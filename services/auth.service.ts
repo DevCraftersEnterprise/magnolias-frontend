@@ -15,15 +15,22 @@ export type RefreshRequest = {
   refreshToken: string
 }
 
+export type AuthUser = {
+  id: string
+  username: string
+  isActive: boolean
+  role: 'ADMIN' | 'SUPER' | 'EMPLOYEE' | 'USER' | string
+}
+
 export type RefreshResponse = {
-  user: any
+  user: AuthUser
   accessToken: string
   refreshToken: string
 }
 
 export type ValidateTokenResponse = {
   valid: boolean
-  user: any
+  user: AuthUser
 }
 
 export const authService = {
