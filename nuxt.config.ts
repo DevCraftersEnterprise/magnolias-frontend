@@ -6,7 +6,6 @@ export default defineNuxtConfig({
     '@fontsource/inter/500.css',
     '@fontsource/inter/600.css',
     '@fontsource/inter/700.css',
-    '@/assets/css/tailwind.css', // si ya lo tienes
   ],
   runtimeConfig: {
     public: {

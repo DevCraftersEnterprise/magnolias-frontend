@@ -22,14 +22,32 @@
   <script setup lang="ts">
   defineProps<{ collapsed?: boolean }>()
   defineEmits<{ (e: 'navigate'): void }>()
-  
-  const items = [
-    { label: 'Productos', to: '/admin/productos' },
-    { label: 'Pedidos', to: '/admin/pedidos' },
-    { label: 'Sucursales', to: '/admin/sucursales' },
-    { label: 'Catálogos', to: '/admin/catalogos' },
-    { label: 'Clientes', to: '/admin/clientes' },
+
+  import { computed } from 'vue'
+
+  const { user, loading } = useAuthUser()
+
+  const itemsBase = [
+    { label: 'Productos', to: '/admin/productos', key: 'productos' },
+    { label: 'Pedidos', to: '/admin/pedidos', key: 'pedidos' },
+    { label: 'Sucursales', to: '/admin/sucursales', key: 'sucursales' },
+    { label: 'Catálogos', to: '/admin/catalogos', key: 'catalogos' },
+    { label: 'Clientes', to: '/admin/clientes', key: 'clientes' },
   ]
+
+  const items = computed(() => {
+    const role = user.value?.role ?? ''
+    if (!role) return [] // espera a que cargue el usuario
+
+    switch (role) {
+      case 'BAKER':
+        return itemsBase.filter(i => i.key === 'pedidos')
+      case 'ASSISTANT':
+        return itemsBase.filter(i => i.key === 'productos')
+      default:
+        return itemsBase
+    }
+  })
   </script>
   
   <style scoped>
