@@ -3,9 +3,15 @@ definePageMeta({ layout: 'admin' })
 useHead({ title: 'Clientes · Magnolias' })
 
 import { computed, onMounted, ref, watch } from 'vue'
-import { customersService, type CustomerItem } from '~/services/customers.service'
+import {
+  customersService,
+  type CustomerItem,
+  type CreateCustomerRequest, // ✅ ESTE es el payload real del POST
+} from '~/services/customers.service'
+
 import ConfirmModal from '~/components/ConfirmModal.vue'
-import CatalogEditModal, { type CatalogEditPayload } from '~/components/CatalogEditModal.vue'
+import CustomerCreateModal, { type CustomerCreateForm } from '~/components/CustomerCreateModal.vue'
+import { type UpdateCustomerRequest } from '~/services/customers.service'
 
 const loading = ref(true)
 const errorMsg = ref('')
@@ -23,15 +29,23 @@ const pagination = ref({
 const phoneQuery = ref('')
 const debouncedPhone = ref('')
 let t: any = null
+function normalizePhoneQuery(input: string) {
+  const s = (input ?? '').trim()
+  if (!s) return ''
 
+  // deja solo dígitos (esto hace que "+52 644-123-4567" => "526441234567")
+  const digits = s.replace(/\D/g, '')
+  return digits
+}
 watch(phoneQuery, (v) => {
   clearTimeout(t)
-  t = setTimeout(() => (debouncedPhone.value = v.trim()), 350)
+  t = setTimeout(() => (debouncedPhone.value = normalizePhoneQuery(v)), 350)
 })
 
 function clearSearch() {
   phoneQuery.value = ''
   debouncedPhone.value = ''
+  loadCustomers(true) // ✅ recarga inmediato
 }
 
 /** ===== Carga ===== */
@@ -98,17 +112,210 @@ function openDetail(title: string, text: string) {
   detailOpen.value = true
 }
 
-/** ===== Crear cliente (placeholder) ===== */
+/** ===== Crear cliente (REAL) ===== */
 const createOpen = ref(false)
-const createModel = ref<CatalogEditPayload | null>(null)
+const createSaving = ref(false)
+const createError = ref('')
+
+const createModel = ref<CustomerCreateForm | null>(null)
 
 function openCreate() {
-  createModel.value = { name: '', description: '' }
+  createError.value = ''
+  createModel.value = {
+    fullName: '',
+    phone: '',
+    alternativePhone: '',
+    email: '',
+    notes: '',
+    withAddress: false,
+    address: {
+      street: '',
+      number: '',
+      neighborhood: '',
+      city: '',
+      postalCode: '',
+      interphoneCode: '',
+      betweenStreets: '',
+      reference: '',
+      notes: '',
+    },
+  }
   createOpen.value = true
 }
 
-async function onCreateSave() {
-  createOpen.value = false
+function toNullIfEmpty(v: string | null | undefined) {
+  const s = (v ?? '').trim()
+  return s ? s : null
+}
+
+async function onCreateSave(model: CustomerCreateForm) {
+  createSaving.value = true
+  createError.value = ''
+  try {
+    // ✅ Validaciones obligatorias
+    if (!model.fullName.trim()) throw new Error('El nombre es obligatorio.')
+    if (!model.phone.trim()) throw new Error('El teléfono es obligatorio.')
+
+    // ✅ Si activó dirección, obligatorios: calle, número, colonia
+    if (model.withAddress) {
+      if (!model.address.street.trim()) throw new Error('La calle es obligatoria.')
+      if (!model.address.number.trim()) throw new Error('El número es obligatorio.')
+      if (!model.address.neighborhood.trim()) throw new Error('La colonia es obligatoria.')
+    }
+
+    // ✅ Convertimos FORM -> REQUEST (payload del POST)
+    const payload: CreateCustomerRequest = {
+      fullName: model.fullName.trim(),
+      phone: model.phone.trim(),
+      alternativePhone: toNullIfEmpty(model.alternativePhone),
+      email: toNullIfEmpty(model.email),
+      notes: toNullIfEmpty(model.notes),
+
+      address: model.withAddress
+        ? {
+            street: model.address.street.trim(),
+            number: model.address.number.trim(),
+            neighborhood: model.address.neighborhood.trim(),
+            city: toNullIfEmpty(model.address.city),
+            postalCode: toNullIfEmpty(model.address.postalCode),
+            interphoneCode: toNullIfEmpty(model.address.interphoneCode),
+            betweenStreets: toNullIfEmpty(model.address.betweenStreets),
+            reference: toNullIfEmpty(model.address.reference),
+            notes: toNullIfEmpty(model.address.notes),
+          }
+        : null,
+    }
+
+    await customersService.createCustomer(payload)
+
+    createOpen.value = false
+    await loadCustomers(true) // recarga lista desde página 1
+  } catch (e: any) {
+    console.error(e)
+    createError.value = e?.message || 'No se pudo crear el cliente.'
+  } finally {
+    createSaving.value = false
+  }
+}
+
+const editOpen = ref(false)
+const editSaving = ref(false)
+const editError = ref('')
+const editingId = ref<string | null>(null)
+
+const editModel = ref<CustomerCreateForm | null>(null)
+
+function safeStr(v: any) {
+  return (v ?? '').toString()
+}
+
+
+function openEdit(c: CustomerItem) {
+  editError.value = ''
+  editingId.value = c.id
+
+  const hasAddress = !!c.address
+
+  editModel.value = {
+    fullName: safeStr(c.fullName),
+    phone: safeStr(c.phone),
+    alternativePhone: safeStr(c.alternativePhone),
+    email: safeStr(c.email),
+    notes: safeStr(c.notes),
+    withAddress: hasAddress,
+    address: {
+      street: safeStr(c.address?.street),
+      number: safeStr(c.address?.number),
+      neighborhood: safeStr(c.address?.neighborhood),
+      city: safeStr(c.address?.city),
+      postalCode: safeStr(c.address?.postalCode),
+      interphoneCode: safeStr(c.address?.interphoneCode),
+      betweenStreets: safeStr(c.address?.betweenStreets),
+      reference: safeStr(c.address?.reference),
+      notes: safeStr(c.address?.notes),
+    },
+  }
+
+  editOpen.value = true
+}
+
+async function onEditSave(model: CustomerCreateForm) {
+  if (!editingId.value) return
+  editSaving.value = true
+  editError.value = ''
+
+  try {
+    // Validaciones obligatorias (igual que create)
+    if (!model.fullName.trim()) throw new Error('El nombre es obligatorio.')
+    if (!model.phone.trim()) throw new Error('El teléfono es obligatorio.')
+
+    if (model.withAddress) {
+      if (!model.address.street.trim()) throw new Error('La calle es obligatoria.')
+      if (!model.address.number.trim()) throw new Error('El número es obligatorio.')
+      if (!model.address.neighborhood.trim()) throw new Error('La colonia es obligatoria.')
+    }
+
+    const payload: UpdateCustomerRequest = {
+      fullName: model.fullName.trim(),
+      phone: model.phone.trim(),
+      alternativePhone: toNullIfEmpty(model.alternativePhone),
+      email: toNullIfEmpty(model.email),
+      notes: toNullIfEmpty(model.notes),
+      isActive: true, // si quieres mantenerlo siempre activo al editar (si no, quítalo)
+      address: model.withAddress
+        ? {
+            street: model.address.street.trim(),
+            number: model.address.number.trim(),
+            neighborhood: model.address.neighborhood.trim(),
+            city: toNullIfEmpty(model.address.city),
+            postalCode: toNullIfEmpty(model.address.postalCode),
+            interphoneCode: toNullIfEmpty(model.address.interphoneCode),
+            betweenStreets: toNullIfEmpty(model.address.betweenStreets),
+            reference: toNullIfEmpty(model.address.reference),
+            notes: toNullIfEmpty(model.address.notes),
+          }
+        : null, // si apagó toggle, borra dirección
+    }
+
+    await customersService.updateCustomer(editingId.value, payload)
+
+    editOpen.value = false
+    editingId.value = null
+    await loadCustomers(false) // recarga página actual sin resetear offset
+  } catch (e: any) {
+    console.error(e)
+    editError.value = e?.message || 'No se pudo actualizar el cliente.'
+  } finally {
+    editSaving.value = false
+  }
+}
+const deleteConfirmOpen = ref(false)
+const deleteSaving = ref(false)
+const deleteError = ref('')
+function onEditDelete() {
+  deleteError.value = ''
+  deleteConfirmOpen.value = true
+}
+async function confirmDelete() {
+  if (!editingId.value) return
+  deleteSaving.value = true
+  deleteError.value = ''
+
+  try {
+    await customersService.deleteCustomer(editingId.value)
+
+    // cerrar todo y refrescar
+    deleteConfirmOpen.value = false
+    editOpen.value = false
+    editingId.value = null
+
+    await loadCustomers(false)
+  } catch (e: any) {
+    console.error(e)
+    deleteError.value = e?.message || 'No se pudo eliminar el cliente.'
+  } finally {
+    deleteSaving.value = false
+  }
 }
 
 /** ===== Paginación ===== */
@@ -225,7 +432,8 @@ async function nextPage() {
                     <tr
                       v-for="c in customers"
                       :key="c.id"
-                      class="border-b border-black/5 last:border-b-0 hover:bg-[#FAFAFB] transition"
+                      class="border-b border-black/5 last:border-b-0 hover:bg-[#FAFAFB] transition cursor-pointer"
+                      @dblclick="openEdit(c)"
                     >
                       <td class="px-4 py-3 text-[13px] text-[#111827] truncate">
                         {{ c.fullName }}
@@ -283,7 +491,10 @@ async function nextPage() {
               <div
                 v-for="c in customers"
                 :key="c.id"
-                class="rounded-2xl bg-white ring-1 ring-black/10 p-4"
+                class="rounded-2xl bg-white ring-1 ring-black/10 p-4 cursor-pointer active:scale-[0.99] transition"
+                role="button"
+                tabindex="0"
+                @click="openEdit(c)"
               >
                 <p class="text-[14px] font-semibold text-[#111827]">{{ c.fullName }}</p>
                 <p class="text-[13px] text-gray-600 mt-0.5">{{ c.phone }}</p>
@@ -372,12 +583,29 @@ async function nextPage() {
       @confirm="detailOpen = false"
     />
 
-    <CatalogEditModal
+    <CustomerCreateModal
       v-model="createOpen"
-      mode="create"
       :model="createModel"
       title="Agregar cliente"
+      :saving="createSaving"
+      :error="createError"
       @save="onCreateSave"
+    />
+    <CustomerCreateModal
+      v-model="editOpen"
+      :model="editModel"
+      title="Editar cliente"
+      mode="edit"
+      :saving="editSaving"
+      :error="editError"
+      @save="onEditSave"
+      @delete="onEditDelete"
+    />
+    <ConfirmModal
+      v-model="deleteConfirmOpen"
+      title="Eliminar cliente"
+      message="Este cliente se eliminará (quedará inactivo). ¿Deseas continuar?"
+      @confirm="confirmDelete"
     />
   </section>
 </template>

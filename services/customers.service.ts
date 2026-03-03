@@ -34,6 +34,39 @@ export type CustomersResponse = {
   pagination: { limit: number; offset: number; totalPages: number; currentPage: number }
 }
 
+/** ===== Create DTOs ===== */
+export type CreateCustomerAddress = {
+  street: string
+  number: string
+  neighborhood: string
+  city?: string | null
+  postalCode?: string | null
+  interphoneCode?: string | null
+  betweenStreets?: string | null
+  reference?: string | null
+  notes?: string | null
+}
+
+export type CreateCustomerRequest = {
+  fullName: string
+  phone: string
+  alternativePhone?: string | null
+  email?: string | null
+  address?: CreateCustomerAddress | null
+  notes?: string | null
+}
+
+// PATCH DTOs
+export type UpdateCustomerRequest = {
+  fullName?: string
+  phone?: string
+  alternativePhone?: string | null
+  email?: string | null
+  address?: CreateCustomerAddress | null
+  notes?: string | null
+  isActive?: boolean
+}
+
 export const customersService = {
   getCustomers(params: {
     phone?: string
@@ -51,6 +84,27 @@ export const customersService = {
 
     return apiFetch<CustomersResponse>(`/api/customers?${q.toString()}`, {
       method: 'GET',
+      auth: true,
+    })
+  },
+
+  createCustomer(payload: CreateCustomerRequest) {
+    return apiFetch<CustomerItem>(`/api/customers`, {
+      method: 'POST',
+      auth: true,
+      body: payload,
+    })
+  },
+  updateCustomer(id: string, payload: UpdateCustomerRequest) {
+    return apiFetch<CustomerItem>(`/api/customers/${id}`, {
+      method: 'PATCH',
+      auth: true,
+      body: payload,
+    })
+  },
+  deleteCustomer(id: string) {
+    return apiFetch<void>(`/api/customers/${id}`, {
+      method: 'DELETE',
       auth: true,
     })
   },
