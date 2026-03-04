@@ -351,90 +351,122 @@ async function onConfirmDelete() {
 }
 
 /** Guardar edit */
+/** Guardar edit / create */
 async function onSaveEdit(payload: CatalogEditPayload) {
   editOpen.value = false
 
   const block = editBlock.value
   const isEdit = editMode.value === 'edit'
 
-  // no edit en color
+  // color usa su propio modal
   if (block === 'color') return
 
-  // ⚠️ Si no tienes POST, no permitimos "create"
+  // Helpers para refrescar listas paginadas
+  const resetFillings = async () => {
+    fillings.value = []
+    fillingsPagination.value = { ...fillingsPagination.value, offset: 0, currentPage: 1 }
+    await loadFillings()
+  }
+
+  const resetFlavors = async () => {
+    flavors.value = []
+    flavorsPagination.value = { ...flavorsPagination.value, offset: 0, currentPage: 1 }
+    await loadFlavors()
+  }
+
+  const resetFrostings = async () => {
+    frostings.value = []
+    frostingsPagination.value = { ...frostingsPagination.value, offset: 0, currentPage: 1 }
+    await loadFrostings()
+  }
+
+  const resetStyles = async () => {
+    styles.value = []
+    stylesPagination.value = { ...stylesPagination.value, offset: 0, currentPage: 1 }
+    await loadStyles()
+  }
+
+  const resetFlowers = async () => {
+    flowers.value = []
+    flowersPagination.value = { ...flowersPagination.value, offset: 0, currentPage: 1 }
+    await loadFlowers()
+  }
+
+  // ===== CREATE (POST) =====
   if (!isEdit) {
-    // aquí puedes poner toast "Aún no hay endpoint para crear"
+    if (block === 'pan') {
+      await catalogsService.createBreadType({ name: payload.name, description: payload.description ?? '' })
+      await loadBreadTypes()
+      return
+    }
+
+    if (block === 'relleno') {
+      await catalogsService.createFilling({ name: payload.name, description: payload.description ?? '' })
+      await resetFillings()
+      return
+    }
+
+    if (block === 'sabor') {
+      await catalogsService.createFlavor({ name: payload.name, description: payload.description ?? '' })
+      await resetFlavors()
+      return
+    }
+
+    if (block === 'cubierta') {
+      await catalogsService.createFrosting({ name: payload.name, description: payload.description ?? '' })
+      await resetFrostings()
+      return
+    }
+
+    if (block === 'estilo') {
+      await catalogsService.createStyle({ name: payload.name, description: payload.description ?? '' })
+      await resetStyles()
+      return
+    }
+
+    if (block === 'flor') {
+      await catalogsService.createFlower({ name: payload.name, description: payload.description ?? '' })
+      await resetFlowers()
+      return
+    }
+
     return
   }
 
-  // ✅ Aquí SI existe "payload" porque es el parámetro de esta función
-  // y lo mandamos a patchX(id, payloadParcial)
+  // ===== EDIT (PATCH) =====
   if (block === 'pan') {
-    await catalogsService.patchBreadType(payload.id!, {
-      name: payload.name,
-      description: payload.description,
-      isActive: true
-    })
+    await catalogsService.patchBreadType(payload.id!, { name: payload.name, description: payload.description ?? '', isActive: true })
     await loadBreadTypes()
     return
   }
 
   if (block === 'relleno') {
-    await catalogsService.patchFilling(payload.id!, {
-      name: payload.name,
-      description: payload.description,
-      isActive: true
-    })
-    fillings.value = []
-    fillingsPagination.value = { ...fillingsPagination.value, offset: 0, currentPage: 1 }
-    await loadFillings()
+    await catalogsService.patchFilling(payload.id!, { name: payload.name, description: payload.description ?? '', isActive: true })
+    await resetFillings()
     return
   }
 
   if (block === 'sabor') {
-    await catalogsService.patchFlavor(payload.id!, {
-      name: payload.name,
-      description: payload.description,
-      isActive: true
-    })
-    flavors.value = []
-    flavorsPagination.value = { ...flavorsPagination.value, offset: 0, currentPage: 1 }
-    await loadFlavors()
+    await catalogsService.patchFlavor(payload.id!, { name: payload.name, description: payload.description ?? '', isActive: true })
+    await resetFlavors()
     return
   }
 
   if (block === 'cubierta') {
-    await catalogsService.patchFrosting(payload.id!, {
-      name: payload.name,
-      description: payload.description,
-      isActive: true
-    })
-    frostings.value = []
-    frostingsPagination.value = { ...frostingsPagination.value, offset: 0, currentPage: 1 }
-    await loadFrostings()
+    await catalogsService.patchFrosting(payload.id!, { name: payload.name, description: payload.description ?? '', isActive: true })
+    await resetFrostings()
     return
   }
 
   if (block === 'estilo') {
-    await catalogsService.patchStyle(payload.id!, {
-      name: payload.name,
-      description: payload.description,
-      isActive: true
-    })
-    styles.value = []
-    stylesPagination.value = { ...stylesPagination.value, offset: 0, currentPage: 1 }
-    await loadStyles()
+    await catalogsService.patchStyle(payload.id!, { name: payload.name, description: payload.description ?? '', isActive: true })
+    await resetStyles()
     return
   }
 
   if (block === 'flor') {
-    await catalogsService.patchFlower(payload.id!, {
-      name: payload.name,
-      description: payload.description,
-      isActive: true
-    })
-    flowers.value = []
-    flowersPagination.value = { ...flowersPagination.value, offset: 0, currentPage: 1 }
-    await loadFlowers()
+    await catalogsService.patchFlower(payload.id!, { name: payload.name, description: payload.description ?? '', isActive: true })
+    await resetFlowers()
     return
   }
 }
@@ -483,6 +515,9 @@ const cards = [
           <div class="max-h-[260px] space-y-1 overflow-auto p-2">
             <!-- Todas menos colores -->
             <template v-if="card.key !== 'color'">
+            <div v-if="colorsLoading" class="px-3 py-2 text-[13px] text-[#6B7280]">
+                Cargando…
+              </div>
               <button
                 v-for="it in (card.items?.value ?? [])"
                 :key="it.id"
