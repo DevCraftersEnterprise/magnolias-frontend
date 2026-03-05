@@ -2,7 +2,6 @@
 import { apiFetch } from '~/services/api.client'
 
 export type CategoryMini = { id: string; name: string }
-
 export type ProductPicture = { imageUrl: string }
 
 export type ProductItem = {
@@ -52,6 +51,16 @@ export function getProductImageUrl(p: ProductItem): string | null {
   return url ? String(url).trim() : null
 }
 
+/** Payload que tu swagger sugiere para /api/products/favorite */
+export type UpdateFavoritePayload = {
+  id: string
+  name: string
+  description: string
+  isFavorite: boolean
+  isActive: boolean
+  categoryId: string
+}
+
 export const productsService = {
   /** GET /api/products */
   getProducts(limit = 10, offset = 0, filters?: ProductsFilters) {
@@ -61,7 +70,7 @@ export const productsService = {
     })
   },
 
-  /** Trae TODOS los productos paginando internamente (útil para agrupar por categoría en frontend) */
+  /** Trae TODOS los productos paginando internamente */
   async getAllProducts(filters?: ProductsFilters) {
     const limit = 50
     let offset = 0
@@ -81,12 +90,21 @@ export const productsService = {
     return out
   },
 
-  /** (Opcional) Si tu backend tiene PATCH para favorito, lo conectamos aquí luego */
-  // setFavorite(productId: string, isFavorite: boolean) {
-  //   return apiFetch<ProductItem>(`/api/products/${productId}`, {
-  //     method: 'PATCH',
-  //     auth: true,
-  //     body: { isFavorite },
-  //   })
-  // },
+  /** PATCH /api/products/favorite */
+  setFavorite(product: ProductItem, isFavorite: boolean) {
+    const payload: UpdateFavoritePayload = {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      isFavorite,
+      isActive: product.isActive,
+      categoryId: product.category?.id,
+    }
+
+    return apiFetch<ProductItem>('/api/products/favorite', {
+      method: 'PATCH',
+      auth: true,
+      body: payload,
+    })
+  },
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin' })
+useHead({ title: 'Panel · Magnolias' })
 
 const quick = [
   { label: 'Productos', to: '/admin/productos' },

@@ -1,128 +1,154 @@
 <template>
   <div class="px-6 py-6">
-    <!-- Header central -->
-    <div class="flex items-start justify-between gap-4">
-      <div>
+    <!-- Sticky header (limpio) -->
+    <div
+      class="sticky top-0 z-20 -mx-6 px-6 pt-2 pb-4 bg-[#F8F8FB]/85 backdrop-blur supports-[backdrop-filter]:bg-[#F8F8FB]/70"
+    >
+      <div class="flex items-center justify-end gap-3">
+        <button
+          class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#101541]
+                 shadow-sm ring-1 ring-black/5 hover:shadow transition active:scale-[0.99]"
+          @click="openCreateCategory()"
+        >
+          <span class="grid h-6 w-6 place-content-center rounded-lg bg-black/5">
+            <svg class="h-4 w-4 text-[#101541]" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 5v14M5 12h14"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </span>
+          Agregar categoría
+        </button>
       </div>
-
-      <button
-        class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-[#101541]
-               shadow-sm ring-1 ring-black/5 hover:shadow transition"
-        @click="openCreateCategory()"
-      >
-        Agregar categoría
-      </button>
     </div>
 
     <!-- Loading / Error -->
-    <div v-if="loading" class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+    <div v-if="loading" class="mt-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
       <div class="animate-pulse space-y-3">
-        <div class="h-5 w-40 rounded bg-black/10"></div>
-        <div class="h-3 w-72 rounded bg-black/10"></div>
-        <div class="h-24 w-full rounded bg-black/10"></div>
+        <div class="h-5 w-44 rounded bg-black/10"></div>
+        <div class="h-3 w-80 rounded bg-black/10"></div>
+        <div class="h-28 w-full rounded bg-black/10"></div>
       </div>
     </div>
 
-    <div v-else-if="errorMsg" class="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+    <div
+      v-else-if="errorMsg"
+      class="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+    >
       {{ errorMsg }}
     </div>
 
     <!-- Categorías -->
-    <div v-else class="mt-6 space-y-6">
+    <div v-else class="mt-4 space-y-5">
       <div
         v-for="cat in categoriesOrdered"
         :key="cat.id"
-        class="select-none"
+        class="rounded-2xl bg-white shadow-sm ring-1 ring-black/5 overflow-hidden"
       >
-        <!-- Título categoría -->
-        <div class="flex items-center justify-between gap-3">
-          <button
-            class="group inline-flex items-center gap-3 text-left"
-            @click="toggleCategory(cat.id)"
-          >
-            <span
-              class="grid h-7 w-7 place-content-center rounded-lg bg-white shadow-sm ring-1 ring-black/5"
-            >
-              <svg
-                class="h-4 w-4 transition-transform"
-                :class="isCategoryOpen(cat.id) ? 'rotate-180' : 'rotate-0'"
-                viewBox="0 0 24 24"
-                fill="none"
+        <!-- Category header -->
+        <div class="px-4 sm:px-5 py-4">
+          <div class="flex items-center justify-between gap-4">
+            <!-- Left: Toggle + title (ALINEADO) -->
+            <button class="group flex items-center gap-3 text-left" @click="toggleCategory(cat.id)">
+              <span
+                class="grid h-9 w-9 place-content-center rounded-xl bg-black/5 group-hover:bg-black/10 transition"
               >
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
+                <svg
+                  class="h-5 w-5 text-[#101541] transition-transform"
+                  :class="isCategoryOpen(cat.id) ? 'rotate-180' : 'rotate-0'"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M6 9l6 6 6-6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
 
-            <h2 class="text-2xl font-semibold text-[#101541]">
-              {{ cat.name }}
-            </h2>
-          </button>
+              <div class="flex items-center gap-2">
+                <h2 class="text-xl sm:text-2xl font-semibold text-[#101541] leading-none">
+                  {{ cat.name }}
+                </h2>
 
-          <!-- + Agregar producto -->
-          <button
-            class="grid h-9 w-9 place-content-center rounded-xl bg-white shadow-sm ring-1 ring-black/5
-                   hover:shadow transition"
-            @click="openCreateProduct(cat)"
-            title="Agregar producto"
-          >
-            <svg class="h-5 w-5 text-[#101541]" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
+                <span
+                  class="rounded-full bg-black/5 px-2.5 py-1 text-xs font-semibold text-black/60 leading-none"
+                >
+                  {{ cat.items.length }}
+                </span>
+              </div>
+            </button>
+
+            <!-- Right: Agregar producto -->
+            <button
+              class="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#101541]
+                     shadow-sm ring-1 ring-black/5 hover:shadow transition active:scale-[0.99]"
+              @click="openCreateProduct(cat)"
+              title="Agregar producto"
+            >
+              <span class="grid h-7 w-7 place-content-center rounded-lg bg-black/5">
+                <svg class="h-4 w-4 text-[#101541]" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 5v14M5 12h14"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </span>
+              <span class="hidden sm:inline">Agregar producto</span>
+              <span class="sm:hidden">+</span>
+            </button>
+          </div>
         </div>
 
-        <!-- Contenedor cards -->
-        <div v-show="isCategoryOpen(cat.id)" class="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+        <!-- Body -->
+        <div v-show="isCategoryOpen(cat.id)" class="border-t border-black/5 px-4 sm:px-5 py-4">
           <div v-if="cat.items.length === 0" class="py-10 text-center text-sm text-black/50">
             No hay productos en esta categoría.
           </div>
 
           <div v-else class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            <div
-              v-for="p in cat.items"
-              :key="p.id"
-              class="group relative"
-            >
+            <div v-for="p in cat.items" :key="p.id" class="group">
               <!-- Card -->
               <div
-                class="relative overflow-hidden rounded-2xl bg-[#F5D3E6] shadow-sm ring-1 ring-black/5"
+                class="relative overflow-hidden rounded-2xl bg-[#F5D3E6] ring-1 ring-black/5 shadow-sm
+                       transition will-change-transform group-hover:-translate-y-0.5 group-hover:shadow-md"
               >
-                <!-- Imagen / Placeholder -->
                 <div class="relative aspect-[4/3]">
                   <img
                     v-if="productImg(p)"
                     :src="productImg(p)!"
                     class="h-full w-full object-cover"
                     :alt="p.name"
-                    />
+                  />
                   <div
                     v-else
                     class="h-full w-full bg-gradient-to-br from-[#F7C0DB] via-[#F6A5CE] to-[#F48AC1]"
                   />
 
-                  <!-- Overlay hover -->
+                  <!-- Overlay: NO captura clicks -->
                   <div
-                    class="absolute inset-0 bg-black/0 group-hover:bg-black/45 transition flex items-center justify-center"
-                  >
-                    <button
-                      class="opacity-0 group-hover:opacity-100 transition
-                             rounded-xl bg-white/90 px-4 py-2 text-sm font-semibold text-[#101541]
-                             shadow-sm"
-                      @click="openDetails(p)"
-                    >
-                      Ver detalles
-                    </button>
-                  </div>
+                    class="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/35 via-black/0 to-black/0
+                           opacity-0 group-hover:opacity-100 transition"
+                  ></div>
 
-                  <!-- Heart favorito -->
+                  <!-- Heart: arriba derecha, clickeable, centrado -->
                   <button
-                    class="absolute right-3 top-3 grid h-9 w-9 place-content-center rounded-xl bg-white/90
-                           shadow-sm ring-1 ring-black/5 hover:bg-white transition"
+                    class="absolute right-3 top-3 z-10 h-10 w-10 rounded-xl bg-white/90
+                           shadow-sm ring-1 ring-black/5 hover:bg-white transition
+                           flex items-center justify-center"
                     @click.stop="toggleFavorite(p)"
                     :title="p.isFavorite ? 'Favorito' : 'Marcar como favorito'"
                   >
                     <svg
-                      class="h-5 w-5"
+                      class="h-5 w-5 block"
                       viewBox="0 0 24 24"
                       fill="none"
                     >
@@ -137,21 +163,37 @@
                     </svg>
                   </button>
 
-                  <!-- Badge (opcional) -->
+                  <!-- Badge favorito -->
                   <span
                     v-if="p.isFavorite"
-                    class="absolute left-3 top-3 rounded-lg bg-white/90 px-2 py-1 text-[11px] font-semibold text-[#101541]
+                    class="absolute left-3 top-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#101541]
                            ring-1 ring-black/5"
                   >
                     Favorito
                   </span>
+
+                  <!-- Ver detalles -->
+                  <div
+                    class="absolute inset-x-3 bottom-3 z-10 flex items-center justify-start opacity-0 group-hover:opacity-100 transition"
+                  >
+                    <button
+                      class="rounded-xl bg-white/90 px-3 py-2 text-xs font-semibold text-[#101541]
+                             shadow-sm ring-1 ring-black/5 hover:bg-white transition"
+                      @click="openDetails(p)"
+                    >
+                      Ver detalles
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <!-- Nombre -->
-              <div class="mt-2">
-                <p class="text-sm font-semibold text-[#101541]">
+              <!-- Name + description -->
+              <div class="mt-3">
+                <p class="text-[13px] font-semibold text-[#101541] leading-snug line-clamp-1">
                   {{ p.name }}
+                </p>
+                <p v-if="p.description" class="mt-0.5 text-xs text-black/50 leading-snug line-clamp-2">
+                  {{ p.description }}
                 </p>
               </div>
             </div>
@@ -160,10 +202,15 @@
       </div>
 
       <!-- Sin categorías -->
-      <div v-if="categoriesOrdered.length === 0" class="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
+      <div
+        v-if="categoriesOrdered.length === 0"
+        class="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-black/5"
+      >
         <p class="text-sm text-black/60">No hay productos aún.</p>
       </div>
     </div>
+
+    <!-- ===== MODALES ===== -->
 
     <!-- Modal placeholder: Crear categoría -->
     <div v-if="modalCategory.open" class="fixed inset-0 z-50">
@@ -283,7 +330,10 @@
           </div>
 
           <div class="mt-5 flex justify-end">
-            <button class="h-10 rounded-xl bg-[#101541] px-4 text-sm font-semibold text-white hover:brightness-110" @click="closeDetailsModal()">
+            <button
+              class="h-10 rounded-xl bg-[#101541] px-4 text-sm font-semibold text-white hover:brightness-110"
+              @click="closeDetailsModal()"
+            >
               Cerrar
             </button>
           </div>
@@ -417,17 +467,47 @@ function toggleCategory(id: string) {
 /** =========================
  * Favorite (solo 1)
  * ========================= */
-async function toggleFavorite(p: ProductItem) {
-  const currentFav = products.value.find(x => x.isFavorite)
+import { productsService } from '~/services/products.service'
 
-  if (currentFav && currentFav.id !== p.id) currentFav.isFavorite = false
-  p.isFavorite = !p.isFavorite
+async function toggleFavorite(p: ProductItem) {
+  const prevFav = products.value.find(x => x.isFavorite)
+
+  // estado objetivo
+  const nextIsFav = !p.isFavorite
+
+  // optimistic UI:
+  if (nextIsFav) {
+    // si vamos a marcar este como favorito, desmarca el anterior
+    if (prevFav && prevFav.id !== p.id) prevFav.isFavorite = false
+    p.isFavorite = true
+  } else {
+    // si lo vamos a desmarcar, queda ninguno
+    p.isFavorite = false
+  }
+
+  // fuerza refresco visual
+  products.value = [...products.value]
 
   try {
-    // await apiFetch(`/api/products/${p.id}`, { method: 'PATCH', auth: true, body: { isFavorite: p.isFavorite } })
-  } catch (e: any) {
-    if (currentFav && currentFav.id !== p.id) currentFav.isFavorite = true
-    p.isFavorite = !p.isFavorite
+    // 1) actualiza el clickeado
+    await productsService.setFavorite(p, p.isFavorite)
+
+    // 2) si marcamos nuevo favorito y había otro, actualiza el anterior a false en backend también
+    if (nextIsFav && prevFav && prevFav.id !== p.id) {
+      await productsService.setFavorite(prevFav, false)
+    }
+  } catch (e) {
+    // rollback
+    if (nextIsFav) {
+      // queríamos marcar p, volvemos al estado anterior
+      p.isFavorite = false
+      if (prevFav && prevFav.id !== p.id) prevFav.isFavorite = true
+    } else {
+      // queríamos desmarcar p, lo regresamos
+      p.isFavorite = true
+    }
+
+    products.value = [...products.value]
   }
 }
 

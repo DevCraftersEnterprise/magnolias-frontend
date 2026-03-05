@@ -57,6 +57,7 @@
   
   <script setup lang="ts">
   definePageMeta({ layout: 'auth', middleware: ['guest'] })
+  useHead({ title: 'Iniciar sesión · Magnolias' })
   import { Icon } from '@iconify/vue'
   
   const { login, loading } = useAuth()

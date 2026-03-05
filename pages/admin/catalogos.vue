@@ -1,6 +1,7 @@
 <!-- pages/admin/catalogos.vue -->
 <script setup lang="ts">
 definePageMeta({ layout: 'admin' })
+useHead({ title: 'Catálogos · Magnolias' })
 
 import { onMounted, ref } from 'vue'
 import CatalogEditModal, { type CatalogEditPayload } from '~/components/CatalogEditModal.vue'
