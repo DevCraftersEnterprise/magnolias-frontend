@@ -489,13 +489,8 @@ async function toggleFavorite(p: ProductItem) {
   products.value = [...products.value]
 
   try {
-    // 1) actualiza el clickeado
+    // actualiza el clickeado
     await productsService.setFavorite(p, p.isFavorite)
-
-    // 2) si marcamos nuevo favorito y había otro, actualiza el anterior a false en backend también
-    if (nextIsFav && prevFav && prevFav.id !== p.id) {
-      await productsService.setFavorite(prevFav, false)
-    }
   } catch (e) {
     // rollback
     if (nextIsFav) {
