@@ -84,7 +84,7 @@
               <div class="relative overflow-hidden rounded-2xl bg-[#F5D3E6] ring-1 ring-black/5 shadow-sm
                        transition will-change-transform group-hover:-translate-y-0.5 group-hover:shadow-md">
                 <div class="relative aspect-[4/3]">
-                  <img v-if="productImg(p)" :src="productImg(p)!" class="h-full w-full object-cover" :alt="p.name" />
+                  <img v-if="productImg(p)" :src="productImg(p)!" class="h-full w-full object-cover" :alt="capitalize(p.name)" />
                   <div v-else class="h-full w-full bg-gradient-to-br from-[#F7C0DB] via-[#F6A5CE] to-[#F48AC1]" />
 
                   <!-- Overlay: NO captura clicks -->
@@ -124,7 +124,7 @@
               <!-- Name + description -->
               <div class="mt-3">
                 <p class="text-[13px] font-semibold text-[#101541] leading-snug line-clamp-1">
-                  {{ p.name }}
+                  {{ capitalize(p.name) }}
                 </p>
                 <p v-if="p.description" class="mt-0.5 text-xs text-black/50 leading-snug line-clamp-2">
                   {{ p.description }}
@@ -245,7 +245,7 @@
           </div>
 
           <div class="mt-4">
-            <p class="text-sm font-semibold text-[#101541]">{{ modalDetails.product?.name }}</p>
+            <p class="text-sm font-semibold text-[#101541]">{{ capitalize(modalDetails.product?.name || '') }}</p>
             <p class="mt-1 text-sm text-black/60">{{ modalDetails.product?.description }}</p>
             <p class="mt-3 text-xs text-black/45">
               Categoría: <span class="font-semibold text-black/70">{{ modalDetails.product?.category?.name }}</span>
@@ -263,6 +263,33 @@
     </div>
 
   </div>
+  <!-- ===== MODALES NUEVOS (componentes) ===== -->
+
+<CategoryModal
+  v-if="categoryModal.open"
+  :open="categoryModal.open"
+  :mode="categoryModal.mode"
+  :category="categoryModal.category"
+  @close="categoryModal.open = false"
+  @saved="reloadAll()"
+/>
+
+<ProductModal
+  v-if="productModal.open"
+  :open="productModal.open"
+  :mode="productModal.mode"
+  :categoryId="productModal.categoryId"
+  @close="productModal.open = false"
+  @created="onProductCreated"
+/>
+
+<ProductPicturesModal
+  v-if="picturesModal.open && picturesModal.product"
+  :open="picturesModal.open"
+  :product="picturesModal.product"
+  @close="picturesModal.open = false"
+  @uploaded="reloadAll()"
+/>
 </template>
 
 <script setup lang="ts">
@@ -320,6 +347,10 @@ function productImg(p: ProductItem) {
   return url ? String(url).trim() : null
 }
 
+function capitalize(str: string): string {
+  return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+}
+
 /** =========================
  * Fetch
  * ========================= */
@@ -356,7 +387,7 @@ const categories = computed<CategoryGroup[]>(() => {
 
   for (const p of products.value) {
     const id = p.category?.id ?? 'no-cat'
-    const name = p.category?.name ?? 'Sin categoría'
+    const name = capitalize(p.category?.name ?? 'Sin categoría')
     if (!map.has(id)) map.set(id, { id, name, items: [] })
     map.get(id)!.items.push(p)
   }
@@ -435,10 +466,6 @@ const modalCategory = ref({
   name: '',
 })
 
-function openCreateCategory() {
-  modalCategory.value.open = true
-  modalCategory.value.name = ''
-}
 function closeCategoryModal() {
   modalCategory.value.open = false
 }
@@ -454,13 +481,6 @@ const modalProduct = ref({
   description: '',
 })
 
-function openCreateProduct(cat: CategoryGroup) {
-  modalProduct.value.open = true
-  modalProduct.value.categoryId = cat.id
-  modalProduct.value.categoryName = cat.name
-  modalProduct.value.name = ''
-  modalProduct.value.description = ''
-}
 function closeProductModal() {
   modalProduct.value.open = false
 }
@@ -499,4 +519,39 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+
+
+/// =========================
+/// modales
+import CategoryModal from '~/components/modals/CategoryModal.vue'
+import ProductModal from '~/components/modals/ProductModal.vue'
+import ProductPicturesModal from '~/components/modals/ProductPicturesModal.vue'
+
+// estados
+const categoryModal = ref({ open: false, mode: 'create' as const, category: null as any })
+const productModal = ref({ open: false, mode: 'create' as const, categoryId: '' })
+const picturesModal = ref({ open: false, product: null as ProductItem | null })
+
+function openCreateCategory() {
+  categoryModal.value = { open: true, mode: 'create', category: null }
+}
+
+function openEditCategory(cat: any) {
+  categoryModal.value = { open: true, mode: 'edit', category: cat }
+}
+
+function openCreateProduct(cat: any) {
+  productModal.value = { open: true, mode: 'create', categoryId: cat.id }
+}
+
+// después de crear producto -> abrir modal de fotos
+function onProductCreated(p: ProductItem) {
+  picturesModal.value = { open: true, product: p }
+}
+
+// refrescar
+async function reloadAll() {
+  await fetchAllProducts()
+}
 </script>

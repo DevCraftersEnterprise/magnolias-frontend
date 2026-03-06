@@ -1,4 +1,3 @@
-// ~/services/products.service.ts
 import { apiFetch } from '~/services/api.client'
 
 export type CategoryMini = { id: string; name: string }
@@ -34,6 +33,23 @@ export type ProductsFilters = Partial<{
   isFavorite: boolean
 }>
 
+export type CreateProductPayload = {
+  name: string
+  description: string
+  isFavorite: boolean
+  categoryId: string
+}
+
+export type UploadProductPicturesPayload = {
+  id: string
+  name: string
+  description: string
+  isFavorite: boolean
+  categoryId: string
+  isActive: boolean
+  files: File[]
+}
+
 function withPagination(base: string, limit: number, offset: number, extra?: Record<string, any>) {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
   if (extra) {
@@ -51,7 +67,7 @@ export function getProductImageUrl(p: ProductItem): string | null {
   return url ? String(url).trim() : null
 }
 
-/** Payload que tu swagger sugiere para /api/products/favorite */
+/** payload para PATCH /api/products/favorite */
 export type UpdateFavoritePayload = {
   id: string
   name: string
@@ -105,6 +121,37 @@ export const productsService = {
       method: 'PATCH',
       auth: true,
       body: payload,
+    })
+  },
+
+  /** POST /api/products */
+  createProduct(payload: CreateProductPayload) {
+    return apiFetch<ProductItem>('/api/products', {
+      method: 'POST',
+      auth: true,
+      body: payload,
+    })
+  },
+
+  /** POST /api/products/picture (multipart/form-data) */
+  async uploadPictures(payload: UploadProductPicturesPayload) {
+    const fd = new FormData()
+    fd.append('id', payload.id)
+    fd.append('name', payload.name)
+    fd.append('description', payload.description ?? '')
+    fd.append('isFavorite', payload.isFavorite ? '1' : '0')
+    fd.append('categoryId', payload.categoryId)
+    fd.append('isActive', String(payload.isActive))
+
+    // nombre del campo: normalmente "files" o "pictures"
+    // como swagger no lo especifica, usaremos "files" y si tu backend espera otro, lo cambiamos.
+    payload.files.forEach((f) => fd.append('files', f))
+
+    return apiFetch<ProductItem>('/api/products/picture', {
+      method: 'POST',
+      auth: true,
+      body: fd,
+      // IMPORTANT: apiFetch debe NO forzar 'Content-Type: application/json' cuando body es FormData
     })
   },
 }

@@ -82,7 +82,6 @@ async function logout() {
 </script>
 
 <style scoped>
-/* ✅ grid normal: sidebar + main */
 .m-admin{
   min-height: 100vh;
   background: #f4f4f4;
@@ -91,27 +90,31 @@ async function logout() {
   transition: grid-template-columns .18s ease;
 }
 
-/* ✅ cuando colapsa: sidebar 0 (sin hueco) */
 .m-admin.is-collapsed{
   grid-template-columns: 0px 1fr;
 }
 
-/* sidebar */
+/* sidebar desktop fijo */
 .m-admin__sidebar{
   background: #ffffff;
   border-right: 1px solid rgba(0,0,0,.06);
   box-shadow: 0 10px 30px rgba(0,0,0,.06);
-  position: relative;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   z-index: 10;
   width: 220px;
-  overflow: hidden; /* ✅ evita “logo chiquito” flotando */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-/* ✅ cuando colapsa, ocultamos totalmente el aside visualmente */
+/* colapsado */
 .m-admin.is-collapsed .m-admin__sidebar{
   width: 0;
+  min-width: 0;
   border-right: 0;
   box-shadow: none;
+  overflow: hidden;
 }
 
 .m-admin__main{
@@ -130,8 +133,9 @@ async function logout() {
   margin: 0 auto;
 }
 
-/* overlay móvil */
-.m-admin__overlay{ display: none; }
+.m-admin__overlay{
+  display: none;
+}
 
 /* ===== Mobile drawer ===== */
 @media (max-width: 900px){
@@ -144,12 +148,15 @@ async function logout() {
     top: 0;
     left: 0;
     bottom: 0;
+    height: 100vh;
     transform: translateX(-110%);
     transition: transform .22s ease;
     z-index: 50;
     width: 280px;
     border-right: 1px solid rgba(0,0,0,.06);
     box-shadow: 0 10px 30px rgba(0,0,0,.10);
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .m-admin__sidebar.is-drawer-open{
