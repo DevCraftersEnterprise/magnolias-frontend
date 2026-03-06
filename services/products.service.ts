@@ -137,11 +137,6 @@ export const productsService = {
   async uploadPictures(payload: UploadProductPicturesPayload) {
     const fd = new FormData()
     fd.append('id', payload.id)
-    fd.append('name', payload.name)
-    fd.append('description', payload.description ?? '')
-    fd.append('isFavorite', payload.isFavorite ? '1' : '0')
-    fd.append('categoryId', payload.categoryId)
-    fd.append('isActive', String(payload.isActive))
 
     // nombre del campo: normalmente "files" o "pictures"
     // como swagger no lo especifica, usaremos "files" y si tu backend espera otro, lo cambiamos.
