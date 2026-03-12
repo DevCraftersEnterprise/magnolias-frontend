@@ -50,24 +50,15 @@ export type UploadProductPicturesPayload = {
   files: File[]
 }
 
-function withPagination(base: string, limit: number, offset: number, extra?: Record<string, any>) {
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
-  if (extra) {
-    Object.entries(extra).forEach(([k, v]) => {
-      if (v === undefined || v === null || v === '') return
-      params.set(k, String(v))
-    })
-  }
-  return `${base}?${params.toString()}`
+export type PatchProductPayload = {
+  id: string
+  name: string
+  description: string
+  isFavorite: boolean
+  categoryId: string
+  isActive: boolean
 }
 
-/** Devuelve la primera imagen del producto (si existe) */
-export function getProductImageUrl(p: ProductItem): string | null {
-  const url = p?.pictures?.[0]?.imageUrl
-  return url ? String(url).trim() : null
-}
-
-/** payload para PATCH /api/products/favorite */
 export type UpdateFavoritePayload = {
   id: string
   name: string
@@ -77,8 +68,28 @@ export type UpdateFavoritePayload = {
   categoryId: string
 }
 
+function withPagination(base: string, limit: number, offset: number, extra?: Record<string, any>) {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  })
+
+  if (extra) {
+    Object.entries(extra).forEach(([k, v]) => {
+      if (v === undefined || v === null || v === '') return
+      params.set(k, String(v))
+    })
+  }
+
+  return `${base}?${params.toString()}`
+}
+
+export function getProductImageUrl(p: ProductItem): string | null {
+  const url = p?.pictures?.[0]?.imageUrl
+  return url ? String(url).trim() : null
+}
+
 export const productsService = {
-  /** GET /api/products */
   getProducts(limit = 10, offset = 0, filters?: ProductsFilters) {
     return apiFetch<ProductsResponse>(withPagination('/api/products', limit, offset, filters), {
       method: 'GET',
@@ -86,7 +97,6 @@ export const productsService = {
     })
   },
 
-  /** Trae TODOS los productos paginando internamente */
   async getAllProducts(filters?: ProductsFilters) {
     const limit = 50
     let offset = 0
@@ -106,14 +116,13 @@ export const productsService = {
     return out
   },
 
-  /** PATCH /api/products/favorite */
   setFavorite(product: ProductItem, isFavorite: boolean) {
     const payload: UpdateFavoritePayload = {
       id: product.id,
       name: product.name,
       description: product.description,
-      isFavorite,
-      isActive: product.isActive,
+      isFavorite: !!isFavorite,
+      isActive: !!product.isActive,
       categoryId: product.category?.id,
     }
 
@@ -124,34 +133,49 @@ export const productsService = {
     })
   },
 
-  /** POST /api/products */
   createProduct(payload: CreateProductPayload) {
     return apiFetch<ProductItem>('/api/products', {
       method: 'POST',
       auth: true,
-      body: payload,
+      body: {
+        ...payload,
+        isFavorite: !!payload.isFavorite,
+      },
     })
   },
 
-  /** POST /api/products/picture (multipart/form-data) */
+  patchProduct(payload: PatchProductPayload) {
+    return apiFetch<ProductItem>('/api/products', {
+      method: 'PATCH',
+      auth: true,
+      body: {
+        id: payload.id,
+        name: payload.name,
+        description: payload.description,
+        isFavorite: !!payload.isFavorite,
+        categoryId: payload.categoryId,
+        isActive: !!payload.isActive,
+      },
+    })
+  },
+
   async uploadPictures(payload: UploadProductPicturesPayload) {
     const fd = new FormData()
     fd.append('id', payload.id)
     fd.append('name', payload.name)
     fd.append('description', payload.description ?? '')
-    fd.append('isFavorite', payload.isFavorite ? '1' : '0')
+    fd.append('isFavorite', String(!!payload.isFavorite))
     fd.append('categoryId', payload.categoryId)
-    fd.append('isActive', String(payload.isActive))
+    fd.append('isActive', String(!!payload.isActive))
 
-    // nombre del campo: normalmente "files" o "pictures"
-    // como swagger no lo especifica, usaremos "files" y si tu backend espera otro, lo cambiamos.
+    // Si el backend realmente espera "files", esto está bien.
+    // Si no funciona, lo primero a probar es cambiar "files" por "pictures".
     payload.files.forEach((f) => fd.append('files', f))
 
     return apiFetch<ProductItem>('/api/products/picture', {
       method: 'POST',
       auth: true,
       body: fd,
-      // IMPORTANT: apiFetch debe NO forzar 'Content-Type: application/json' cuando body es FormData
     })
   },
 }

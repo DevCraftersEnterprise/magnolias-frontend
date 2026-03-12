@@ -1,7 +1,9 @@
 <template>
   <div class="m-side">
     <div class="m-side__brand">
-      <img src="/img/magnolias-logo.png" alt="Magnolias" class="m-side__logo" />
+      <NuxtLink to="/admin">
+        <img src="/img/magnolias-logo.png" alt="Magnolias" class="m-side__logo" />
+      </NuxtLink>
     </div>
 
     <nav class="m-side__nav" :class="{ 'is-collapsed': collapsed }">

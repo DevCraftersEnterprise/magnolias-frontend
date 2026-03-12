@@ -2,85 +2,175 @@
 definePageMeta({ layout: 'admin' })
 useHead({ title: 'Panel · Magnolias' })
 
-const quick = [
-  { label: 'Productos', to: '/admin/productos' },
-  { label: 'Pedidos', to: '/admin/pedidos' },
-  { label: 'Sucursales', to: '/admin/sucursales' },
-  { label: 'Catálogos', to: '/admin/catalogos' },
-  { label: 'Clientes', to: '/admin/clientes' },
-]
-
-// Opcional: cosas recientes (dummy por ahora)
-const recent = [
-  { label: 'Editar: Pastel “Red Velvet”', meta: 'Productos' },
-  { label: 'Pedido #1042 actualizado', meta: 'Pedidos' },
-  { label: 'Nuevo color agregado', meta: 'Catálogos' },
+const orderSummary = [
+  {
+    key: 'created',
+    label: 'Creados',
+    value: 5,
+    icon: 'created',
+  },
+  {
+    key: 'in_process',
+    label: 'En proceso',
+    value: 0,
+    icon: 'process',
+  },
+  {
+    key: 'done',
+    label: 'Terminados',
+    value: 0,
+    icon: 'done',
+  },
+  {
+    key: 'delivered',
+    label: 'Entregados',
+    value: 0,
+    icon: 'delivered',
+  },
+  {
+    key: 'cancelled',
+    label: 'Cancelados',
+    value: 0,
+    icon: 'cancelled',
+  },
 ]
 </script>
 
 <template>
-  <section class="space-y-5">
-    <!-- Título minimal (no "bienvenida", no rol) -->
-    <div class="flex items-end justify-between gap-4">
-      <div>
-        <h2 class="text-[20px] font-extrabold tracking-tight text-zinc-900">
-          Panel
+  <section>
+    <div
+      class="rounded-[28px] border border-[#F3DCE8] bg-white p-5 shadow-[0_10px_24px_rgba(226,184,206,0.16)] sm:p-6"
+    >
+      <div class="mb-5">
+        <h2 class="text-[20px] font-bold text-[#1E1E1E]">
+          Resumen general de pedidos
         </h2>
-        <p class="mt-1 text-[13px] text-zinc-500">
-          Elige una sección para administrar.
-        </p>
-      </div>
-    </div>
-
-    <!-- Layout tipo Figma: contenedores blancos con lista -->
-    <div class="grid gap-5 lg:grid-cols-2">
-      <!-- Accesos -->
-      <div class="rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.06)] border border-black/5 overflow-hidden">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-black/10">
-          <div class="text-[14px] font-extrabold text-zinc-900">Accesos rápidos</div>
-          <div class="text-[12px] font-semibold text-zinc-400">Admin</div>
-        </div>
-
-        <div class="p-2">
-          <NuxtLink
-            v-for="q in quick"
-            :key="q.to"
-            :to="q.to"
-            class="group flex items-center justify-between gap-3 rounded-xl px-3 py-2.5
-                   text-[14px] text-zinc-800 transition hover:bg-pink-50"
-          >
-            <span class="font-medium">{{ q.label }}</span>
-
-            <span class="inline-flex items-center gap-2 text-zinc-400 group-hover:text-zinc-700">
-              <span class="text-[12px] font-semibold">Abrir</span>
-              <span class="text-[16px] leading-none">→</span>
-            </span>
-          </NuxtLink>
-        </div>
       </div>
 
-      <!-- Recientes -->
-      <div class="rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.06)] border border-black/5 overflow-hidden">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-black/10">
-          <div class="text-[14px] font-extrabold text-zinc-900">Recientes</div>
-          <div class="text-[12px] font-semibold text-zinc-400">Últimos cambios</div>
-        </div>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div
+          v-for="item in orderSummary"
+          :key="item.key"
+          class="rounded-3xl border border-[#F3DCE8] bg-white p-4 shadow-[0_10px_24px_rgba(226,184,206,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(226,184,206,0.22)]"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div
+              class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFBEE6] text-[#B86B98]"
+            >
+              <!-- Creados -->
+              <svg
+                v-if="item.icon === 'created'"
+                class="h-6 w-6"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
 
-        <div class="p-2">
-          <div
-            v-for="(r, i) in recent"
-            :key="i"
-            class="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5
-                   text-[14px] text-zinc-800 hover:bg-pink-50 transition"
-          >
-            <div class="min-w-0">
-              <div class="truncate font-medium">{{ r.label }}</div>
-              <div class="mt-0.5 text-[12px] text-zinc-500">{{ r.meta }}</div>
+              <!-- En proceso -->
+              <svg
+                v-else-if="item.icon === 'process'"
+                class="h-6 w-6"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M12 6v6l4 2"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="8"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+
+              <!-- Terminados -->
+              <svg
+                v-else-if="item.icon === 'done'"
+                class="h-6 w-6"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M5 12l4 4L19 7"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+
+              <!-- Entregados -->
+              <svg
+                v-else-if="item.icon === 'delivered'"
+                class="h-6 w-6"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M3 7h11v8H3z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <path
+                  d="M14 10h3l2 2v3h-5z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                />
+                <circle cx="7" cy="18" r="1.6" fill="currentColor" />
+                <circle cx="17" cy="18" r="1.6" fill="currentColor" />
+              </svg>
+
+              <!-- Cancelados -->
+              <svg
+                v-else
+                class="h-6 w-6"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="8"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <path
+                  d="M9 9l6 6M15 9l-6 6"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
             </div>
-            <div class="text-zinc-400 font-extrabold">…</div>
+
+            <span
+              class="rounded-full bg-[#FFF4FA] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#B58A9F]"
+            >
+              Pedidos
+            </span>
           </div>
 
-          <!-- si no quieres “recientes”, borra toda esta caja y listo -->
+          <div class="mt-4">
+            <p class="text-[13px] font-semibold text-[#9A8A90]">
+              {{ item.label }}
+            </p>
+            <p class="mt-1 text-3xl font-bold text-[#1E1E1E]">
+              {{ item.value }}
+            </p>
+          </div>
         </div>
       </div>
     </div>
