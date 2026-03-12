@@ -84,7 +84,8 @@
               <div class="relative overflow-hidden rounded-2xl bg-[#F5D3E6] ring-1 ring-black/5 shadow-sm
                        transition will-change-transform group-hover:-translate-y-0.5 group-hover:shadow-md">
                 <div class="relative aspect-[4/3]">
-                  <img v-if="productImg(p)" :src="productImg(p)!" class="h-full w-full object-cover" :alt="capitalize(p.name)" />
+                  <img v-if="productImg(p)" :src="productImg(p)!" class="h-full w-full object-cover"
+                    :alt="capitalize(p.name)" />
                   <div v-else class="h-full w-full bg-gradient-to-br from-[#F7C0DB] via-[#F6A5CE] to-[#F48AC1]" />
 
                   <!-- Overlay: NO captura clicks -->
@@ -235,23 +236,11 @@
   </div>
   <!-- ===== MODALES NUEVOS (componentes) ===== -->
 
-<CategoryModal
-  v-if="categoryModal.open"
-  :open="categoryModal.open"
-  :mode="categoryModal.mode"
-  :category="categoryModal.category"
-  @close="categoryModal.open = false"
-  @saved="reloadAll()"
-/>
+  <CategoryModal v-if="categoryModal.open" :open="categoryModal.open" :mode="categoryModal.mode"
+    :category="categoryModal.category" @close="categoryModal.open = false" @saved="reloadAll()" />
 
-<ProductModal
-  v-if="productModal.open"
-  :open="productModal.open"
-  :mode="productModal.mode"
-  :categoryId="productModal.categoryId"
-  @close="productModal.open = false"
-  @created="onProductCreated"
-/>
+  <ProductModal v-if="productModal.open" :open="productModal.open" :mode="productModal.mode"
+    :categoryId="productModal.categoryId" @close="productModal.open = false" @created="onProductCreated" />
 
 <ProductPicturesModal
   v-if="picturesModal.open && picturesModal.product"
