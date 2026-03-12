@@ -80,7 +80,6 @@ export function getProductImageUrl(p: ProductItem): string | null {
 
 /** payload para PATCH /api/products/favorite */
 export type UpdateFavoritePayload = {
-  id: string
   name: string
   description: string
   isFavorite: boolean
@@ -120,7 +119,6 @@ export const productsService = {
   /** PATCH /api/products/favorite */
   setFavorite(product: ProductItem, isFavorite: boolean) {
     const payload: UpdateFavoritePayload = {
-      id: product.id,
       name: product.name,
       description: product.description,
       isFavorite,
@@ -128,7 +126,7 @@ export const productsService = {
       categoryId: product.category?.id,
     }
 
-    return apiFetch<ProductItem>('/api/products/favorite', {
+    return apiFetch<ProductItem>(`/api/products/favorite/${product.id}`, {
       method: 'PATCH',
       auth: true,
       body: payload,
@@ -146,11 +144,10 @@ export const productsService = {
 
   /** PATCH /api/products */
   patchProduct(payload: PatchProductPayload) {
-    return apiFetch<ProductItem>('/api/products', {
+    return apiFetch<ProductItem>(`/api/products/${payload.id}`, {
       method: 'PATCH',
       auth: true,
       body: {
-        id: payload.id,
         name: payload.name,
         description: payload.description,
         isFavorite: payload.isFavorite,
@@ -163,13 +160,12 @@ export const productsService = {
   /** POST /api/products/picture (multipart/form-data) */
   async uploadPictures(payload: UploadProductPicturesPayload) {
     const fd = new FormData()
-    fd.append('id', payload.id)
 
     // nombre del campo: normalmente "files" o "pictures"
     // como swagger no lo especifica, usaremos "files" y si tu backend espera otro, lo cambiamos.
     payload.files.forEach((f) => fd.append('files', f))
 
-    return apiFetch<ProductItem>('/api/products/picture', {
+    return apiFetch<ProductItem>(`/api/products/picture/${payload.id}`, {
       method: 'POST',
       auth: true,
       body: fd,
