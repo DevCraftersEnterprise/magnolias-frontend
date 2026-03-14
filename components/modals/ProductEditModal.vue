@@ -1,17 +1,10 @@
 <template>
   <Teleport to="body">
-    <div
-      v-if="modelValue"
-      class="fixed inset-0 z-[110] flex items-center justify-center p-4"
-    >
-      <div
-        class="absolute inset-0 bg-black/60"
-        @click="close"
-      ></div>
+    <div v-if="modelValue" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/60" @click="close"></div>
 
       <div
-        class="relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-[24px] bg-white shadow-2xl ring-1 ring-black/10"
-      >
+        class="relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-[24px] bg-white shadow-2xl ring-1 ring-black/10">
         <!-- Header -->
         <div class="px-5 pt-5 sm:px-6 sm:pt-6">
           <div class="flex items-center justify-between gap-3">
@@ -21,19 +14,11 @@
               </h3>
             </div>
 
-            <button
-              type="button"
+            <button type="button"
               class="grid h-9 w-9 shrink-0 place-content-center rounded-full text-black/70 transition hover:bg-black/5"
-              aria-label="Cerrar"
-              @click="close"
-            >
+              aria-label="Cerrar" @click="close">
               <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M6 6L18 18M18 6L6 18"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               </svg>
             </button>
           </div>
@@ -47,12 +32,9 @@
               <label class="mb-2 block text-sm font-semibold text-black/60">
                 Nombre
               </label>
-              <input
-                v-model="form.name"
-                type="text"
+              <input v-model="form.name" type="text"
                 class="h-12 w-full rounded-xl bg-black/[0.06] px-4 text-base text-black/75 outline-none transition placeholder:text-black/35 focus:ring-2 focus:ring-black/10"
-                placeholder="Nombre del producto"
-              />
+                placeholder="Nombre del producto" />
             </div>
 
             <!-- Categoría -->
@@ -61,31 +43,18 @@
                 Categoría
               </label>
               <div class="relative">
-                <select
-                  v-model="form.categoryId"
-                  class="h-12 w-full appearance-none rounded-xl bg-black/[0.06] px-4 pr-10 text-base text-black/75 outline-none transition focus:ring-2 focus:ring-black/10"
-                >
+                <select v-model="form.categoryId"
+                  class="h-12 w-full appearance-none rounded-xl bg-black/[0.06] px-4 pr-10 text-base text-black/75 outline-none transition focus:ring-2 focus:ring-black/10">
                   <option value="" disabled>Selecciona una categoría</option>
-                  <option
-                    v-for="c in categories"
-                    :key="c.id"
-                    :value="c.id"
-                  >
+                  <option v-for="c in categories" :key="c.id" :value="c.id">
                     {{ c.name }}
                   </option>
                 </select>
                 <svg
                   class="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-black/60 pointer-events-none"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <path
-                    d="M7 9l5 5 5-5"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
+                  viewBox="0 0 24 24" fill="none">
+                  <path d="M7 9l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
                 </svg>
               </div>
             </div>
@@ -95,12 +64,9 @@
               <label class="mb-2 block text-sm font-semibold text-black/60">
                 Descripción
               </label>
-              <textarea
-                v-model="form.description"
-                rows="4"
+              <textarea v-model="form.description" rows="4"
                 class="min-h-[120px] w-full rounded-xl bg-black/[0.06] px-4 py-3 text-base text-black/75 outline-none transition placeholder:text-black/35 focus:ring-2 focus:ring-black/10"
-                placeholder="Descripción"
-              />
+                placeholder="Descripción"></textarea>
             </div>
 
             <!-- Estado del producto -->
@@ -114,19 +80,13 @@
                     {{ form.isActive ? 'Disponible para clientes' : 'No disponible' }}
                   </p>
                 </div>
-                
-                <button
-                  type="button"
-                  role="switch"
-                  :aria-checked="form.isActive"
-                  @click="form.isActive = !form.isActive"
+
+                <button type="button" role="switch" :aria-checked="form.isActive" @click="toggleProductStatus"
+                  :disabled="saving"
                   class="relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-black/20 focus:ring-offset-2"
-                  :class="form.isActive ? 'bg-[#FFBEE6]' : 'bg-gray-300'"
-                >
-                  <span
-                    :class="form.isActive ? 'translate-x-5' : 'translate-x-0'"
-                    class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                  />
+                  :class="form.isActive ? 'bg-[#FFBEE6]' : 'bg-gray-300'">
+                  <span :class="form.isActive ? 'translate-x-5' : 'translate-x-0'"
+                    class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
                 </button>
               </div>
             </div>
@@ -138,30 +98,16 @@
               </label>
 
               <div class="flex flex-wrap items-center gap-3">
-                <div
-                  v-for="(pic, idx) in pictures"
-                  :key="`${form.id}-${idx}-${pic.id}`"
-                  class="relative"
-                >
-                  <button
-                    type="button"
+                <div v-for="(pic, idx) in pictures" :key="`${form.id}-${idx}-${pic.id}`" class="relative">
+                  <button type="button"
                     class="h-20 w-20 overflow-hidden rounded-xl bg-[#F3D2E4] ring-1 ring-black/10 transition hover:scale-[1.02]"
-                    :class="idx === activeThumb ? 'ring-2 ring-[#111827]' : ''"
-                    @click="activeThumb = idx"
-                  >
-                    <img
-                      :src="pic.imageUrl"
-                      class="h-full w-full object-cover"
-                      alt="Miniatura"
-                    />
+                    :class="idx === activeThumb ? 'ring-2 ring-[#111827]' : ''" @click="activeThumb = idx">
+                    <img :src="pic.imageUrl" class="h-full w-full object-cover" alt="Miniatura" />
                   </button>
 
-                  <button
-                    type="button"
+                  <button type="button"
                     class="absolute -right-1.5 -top-1.5 grid h-8 w-8 place-content-center rounded-full bg-white shadow-md ring-1 ring-black/10 transition hover:bg-red-50"
-                    title="Eliminar imagen"
-                    @click.stop="askDelete(pic)"
-                  >
+                    title="Eliminar imagen" @click.stop="askDelete(pic)">
                     <svg class="h-4 w-4 text-gray-700" viewBox="0 0 24 24" fill="none">
                       <path d="M6 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                       <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -171,57 +117,34 @@
                   </button>
                 </div>
 
-                <button
-                  type="button"
+                <button type="button"
                   class="grid h-20 w-20 place-content-center rounded-xl border border-dashed border-black/20 bg-black/[0.04] transition hover:bg-black/[0.07]"
-                  title="Agregar fotografía"
-                  @click="fileInput?.click()"
-                >
+                  title="Agregar fotografía" @click="fileInput?.click()">
                   <svg class="h-8 w-8 text-black/45" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 5v14M5 12h14"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                   </svg>
                 </button>
               </div>
 
-              <input
-                ref="fileInput"
-                type="file"
-                class="hidden"
-                multiple
-                accept="image/*"
-                @change="onPickFiles"
-              />
+              <input ref="fileInput" type="file" class="hidden" multiple accept="image/*" @change="onPickFiles" />
             </div>
 
             <!-- Error -->
-            <div
-              v-if="errorMsg"
-              class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
+            <div v-if="errorMsg" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {{ errorMsg }}
             </div>
 
             <!-- Acciones -->
             <div class="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
-              <button
-                type="button"
+              <button type="button"
                 class="h-11 min-w-[140px] rounded-xl bg-black/10 px-6 text-base font-semibold text-black/80 transition hover:bg-black/15"
-                @click="close"
-              >
+                @click="close">
                 Cancelar
               </button>
 
-              <button
-                type="button"
+              <button type="button"
                 class="h-11 min-w-[140px] rounded-xl bg-[#0F172A] px-6 text-base font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="saving"
-                @click="save"
-              >
+                :disabled="saving" @click="save">
                 {{ saving ? 'Guardando...' : 'Guardar' }}
               </button>
             </div>
@@ -229,10 +152,7 @@
         </div>
       </div>
 
-      <ConfirmModal
-        v-model="confirmOpen"
-        @confirm="deleteSelectedPicture"
-      />
+      <ConfirmModal v-model="confirmOpen" @confirm="deleteSelectedPicture" />
     </div>
   </Teleport>
 </template>
@@ -341,10 +261,10 @@ async function upload(files: File[]) {
     })
 
     // Actualizar inmediatamente el array local de fotos (solo activas)
-    pictures.value = updatedProduct.pictures 
-      ? updatedProduct.pictures.filter(p => p.isActive !== false) 
+    pictures.value = updatedProduct.pictures
+      ? updatedProduct.pictures.filter(p => p.isActive !== false)
       : []
-    
+
     // Resetear el thumbnail activo si es necesario
     if (activeThumb.value >= pictures.value.length) {
       activeThumb.value = 0
@@ -355,6 +275,27 @@ async function upload(files: File[]) {
     errorMsg.value = normalizeError(e, 'No se pudieron subir las fotos.')
   } finally {
     saving.value = false
+  }
+}
+
+async function toggleProductStatus() {
+  const newStatus = !form.isActive;
+
+  if (!newStatus) {
+    errorMsg.value = '';
+    saving.value = true;
+
+    try {
+      await productsService.deactivateProduct(form.id);
+      form.isActive = newStatus;
+      emit('updated');
+    } catch (e: any) {
+      errorMsg.value = normalizeError(e, 'No se pudo deactivar el producto.');
+    } finally {
+      saving.value = false;
+    }
+  } else {
+    form.isActive = newStatus;
   }
 }
 
@@ -370,7 +311,7 @@ async function save() {
       isFavorite: !!form.isFavorite,
       categoryId: form.categoryId,
       isActive: !!form.isActive,
-    })
+    });
 
     emit('updated')
     close()
@@ -390,17 +331,17 @@ async function deleteSelectedPicture() {
 
   try {
     await productsService.deletePicture(pictureToDelete.id)
-    
+
     // Actualizar inmediatamente el array local eliminando la imagen
     pictures.value = pictures.value.filter(p => p.id !== pictureToDelete.id)
-    
+
     // Ajustar el thumbnail activo si es necesario
     if (activeThumb.value >= pictures.value.length && pictures.value.length > 0) {
       activeThumb.value = pictures.value.length - 1
     } else if (pictures.value.length === 0) {
       activeThumb.value = 0
     }
-    
+
     selectedToDelete.value = null
     confirmOpen.value = false
     emit('updated')

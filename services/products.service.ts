@@ -1,7 +1,7 @@
 import { apiFetch } from '~/services/api.client'
 
 export type CategoryMini = { id: string; name: string }
-export type ProductPicture = { 
+export type ProductPicture = {
   id: string
   imageUrl: string
   isActive: boolean
@@ -184,4 +184,11 @@ export const productsService = {
       auth: true,
     })
   },
+
+  async deactivateProduct(productId: string) {
+    return apiFetch<void>(`/api/products/${productId}`, {
+      method: 'DELETE',
+      auth: true,
+    })
+  }
 }
