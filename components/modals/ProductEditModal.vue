@@ -103,6 +103,34 @@
               />
             </div>
 
+            <!-- Estado del producto -->
+            <div>
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-semibold text-black/60">
+                    Estado del producto
+                  </label>
+                  <p class="mt-0.5 text-xs text-black/50">
+                    {{ form.isActive ? 'Disponible para clientes' : 'No disponible' }}
+                  </p>
+                </div>
+                
+                <button
+                  type="button"
+                  role="switch"
+                  :aria-checked="form.isActive"
+                  @click="form.isActive = !form.isActive"
+                  class="relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-black/20 focus:ring-offset-2"
+                  :class="form.isActive ? 'bg-[#FFBEE6]' : 'bg-gray-300'"
+                >
+                  <span
+                    :class="form.isActive ? 'translate-x-5' : 'translate-x-0'"
+                    class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  />
+                </button>
+              </div>
+            </div>
+
             <!-- Imágenes -->
             <div class="space-y-3">
               <label class="block text-sm font-semibold text-black/60">
@@ -112,7 +140,7 @@
               <div class="flex flex-wrap items-center gap-3">
                 <div
                   v-for="(pic, idx) in pictures"
-                  :key="`${form.id}-${idx}-${pic}`"
+                  :key="`${form.id}-${idx}-${pic.id}`"
                   class="relative"
                 >
                   <button
@@ -122,7 +150,7 @@
                     @click="activeThumb = idx"
                   >
                     <img
-                      :src="pic"
+                      :src="pic.imageUrl"
                       class="h-full w-full object-cover"
                       alt="Miniatura"
                     />
@@ -212,7 +240,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import ConfirmModal from '~/components/modals/ConfirmModal.vue'
-import { productsService, type ProductItem } from '~/services/products.service'
+import { productsService, type ProductItem, type ProductPicture } from '~/services/products.service'
 
 type CategoryOption = {
   id: string
@@ -234,7 +262,7 @@ const saving = ref(false)
 const errorMsg = ref('')
 const activeThumb = ref(0)
 const confirmOpen = ref(false)
-const selectedToDelete = ref('')
+const selectedToDelete = ref<ProductPicture | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const categories = computed(() => props.categories || [])
@@ -261,22 +289,30 @@ watch(
     form.isActive = !!props.product.isActive
     form.categoryId = props.product.category?.id || ''
     activeThumb.value = 0
-    selectedToDelete.value = ''
+    selectedToDelete.value = null
     confirmOpen.value = false
   },
   { immediate: true }
 )
 
-const pictures = computed(() => {
-  return props.product?.pictures?.map((p) => p.imageUrl).filter(Boolean) ?? []
-})
+const pictures = ref<ProductPicture[]>([])
+
+// Watch para actualizar las imágenes cuando cambia el producto (solo activas)
+watch(
+  () => props.product?.pictures,
+  (newPictures) => {
+    // Filtrar solo las imágenes activas
+    pictures.value = newPictures ? newPictures.filter(p => p.isActive !== false) : []
+  },
+  { immediate: true, deep: true }
+)
 
 function close() {
   emit('update:modelValue', false)
 }
 
-function askDelete(url: string) {
-  selectedToDelete.value = url
+function askDelete(pic: ProductPicture) {
+  selectedToDelete.value = pic
   confirmOpen.value = true
 }
 
@@ -294,7 +330,7 @@ async function upload(files: File[]) {
   saving.value = true
 
   try {
-    await productsService.uploadPictures({
+    const updatedProduct = await productsService.uploadPictures({
       id: props.product.id,
       name: form.name.trim(),
       description: form.description.trim(),
@@ -303,6 +339,16 @@ async function upload(files: File[]) {
       isActive: !!form.isActive,
       files,
     })
+
+    // Actualizar inmediatamente el array local de fotos (solo activas)
+    pictures.value = updatedProduct.pictures 
+      ? updatedProduct.pictures.filter(p => p.isActive !== false) 
+      : []
+    
+    // Resetear el thumbnail activo si es necesario
+    if (activeThumb.value >= pictures.value.length) {
+      activeThumb.value = 0
+    }
 
     emit('updated')
   } catch (e: any) {
@@ -336,9 +382,33 @@ async function save() {
 }
 
 async function deleteSelectedPicture() {
-  // Aquí conectamos luego el endpoint real.
-  selectedToDelete.value = ''
-  emit('updated')
+  if (!selectedToDelete.value) return
+
+  const pictureToDelete = selectedToDelete.value
+  saving.value = true
+  errorMsg.value = ''
+
+  try {
+    await productsService.deletePicture(pictureToDelete.id)
+    
+    // Actualizar inmediatamente el array local eliminando la imagen
+    pictures.value = pictures.value.filter(p => p.id !== pictureToDelete.id)
+    
+    // Ajustar el thumbnail activo si es necesario
+    if (activeThumb.value >= pictures.value.length && pictures.value.length > 0) {
+      activeThumb.value = pictures.value.length - 1
+    } else if (pictures.value.length === 0) {
+      activeThumb.value = 0
+    }
+    
+    selectedToDelete.value = null
+    confirmOpen.value = false
+    emit('updated')
+  } catch (e: any) {
+    errorMsg.value = normalizeError(e, 'No se pudo eliminar la imagen.')
+  } finally {
+    saving.value = false
+  }
 }
 
 function normalizeError(error: any, fallback: string) {

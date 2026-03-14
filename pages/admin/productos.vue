@@ -84,9 +84,18 @@
               <div class="relative overflow-hidden rounded-2xl bg-[#F5D3E6] ring-1 ring-black/5 shadow-sm
                        transition will-change-transform group-hover:-translate-y-0.5 group-hover:shadow-md">
                 <div class="relative aspect-[4/3]">
-                  <img v-if="productImg(p)" :src="productImg(p)!" class="h-full w-full object-cover"
-                    :alt="capitalize(p.name)" />
-                  <div v-else class="h-full w-full bg-gradient-to-br from-[#F7C0DB] via-[#F6A5CE] to-[#F48AC1]" />
+                  <img 
+                    v-if="productImg(p)" 
+                    :src="productImg(p)!" 
+                    class="h-full w-full object-cover transition-all"
+                    :class="{ 'grayscale opacity-60': !p.isActive }"
+                    :alt="capitalize(p.name)" 
+                  />
+                  <div 
+                    v-else 
+                    class="h-full w-full bg-gradient-to-br from-[#F7C0DB] via-[#F6A5CE] to-[#F48AC1] transition-all"
+                    :class="{ 'grayscale opacity-60': !p.isActive }"
+                  />
 
                   <!-- Overlay: NO captura clicks -->
                   <div class="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/35 via-black/0 to-black/0
@@ -109,6 +118,13 @@
                   <span v-if="p.isFavorite" class="absolute left-3 top-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#101541]
                            ring-1 ring-black/5">
                     Favorito
+                  </span>
+
+                  <!-- Badge No Disponible -->
+                  <span v-if="!p.isActive" class="absolute left-3 z-10 rounded-full bg-gray-900/90 px-3 py-1 text-[11px] font-semibold text-white
+                           ring-1 ring-black/10 backdrop-blur-sm"
+                           :class="p.isFavorite ? 'top-14' : 'top-3'">
+                    No Disponible
                   </span>
 
                   <!-- Ver detalles -->
@@ -251,6 +267,7 @@
 />
 <ProductEditModal
   v-if="editModalOpen && editProduct"
+  :key="editModalKey"
   v-model="editModalOpen"
   :product="editProduct"
   :categories="categoryOptions"
@@ -262,7 +279,7 @@
 definePageMeta({ layout: 'admin' })
 useHead({ title: 'Productos · Magnolias' })
 
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, nextTick } from 'vue'
 import { apiFetch } from '~/services/api.client'
 
 /** =========================
@@ -270,7 +287,11 @@ import { apiFetch } from '~/services/api.client'
  * ========================= */
 type CategoryMini = { id: string; name: string }
 
-type ProductPicture = { imageUrl: string }
+type ProductPicture = { 
+  id: string
+  imageUrl: string
+  isActive: boolean
+}
 
 type ProductItem = {
   id: string
@@ -310,7 +331,9 @@ const openCategoryIds = ref<Set<string>>(new Set())
  * Helpers
  * ========================= */
 function productImg(p: ProductItem) {
-  const url = p?.pictures?.[0]?.imageUrl
+  // Obtener solo la primera imagen activa
+  const activePicture = p?.pictures?.find(pic => pic.isActive !== false)
+  const url = activePicture?.imageUrl
   return url ? String(url).trim() : null
 }
 
@@ -523,6 +546,12 @@ const categoryOptions = computed(() =>
   categoriesOrdered.value.map(c => ({ id: c.id, name: c.name }))
 )
 
+// Key dinámica para forzar re-renderizado del modal cuando cambien las fotos
+const editModalKey = computed(() => {
+  if (!editProduct.value) return ''
+  return `${editProduct.value.id}-${editProduct.value.pictures?.length || 0}`
+})
+
 function openDetails(p: ProductItem) {
   editProduct.value = p
   editModalOpen.value = true
@@ -535,6 +564,17 @@ function closeEditModal() {
 
 // refrescar
 async function reloadAll() {
+  const editProductId = editProduct.value?.id
   await fetchAllProducts()
+  
+  // Si hay un producto en edición, actualizar su referencia con los datos frescos
+  if (editProductId && editModalOpen.value) {
+    const updated = products.value.find(p => p.id === editProductId)
+    if (updated) {
+      // Usar nextTick para asegurar que Vue actualice la UI
+      await nextTick()
+      editProduct.value = updated
+    }
+  }
 }
 </script>

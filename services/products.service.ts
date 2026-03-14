@@ -1,7 +1,11 @@
 import { apiFetch } from '~/services/api.client'
 
 export type CategoryMini = { id: string; name: string }
-export type ProductPicture = { imageUrl: string }
+export type ProductPicture = { 
+  id: string
+  imageUrl: string
+  isActive: boolean
+}
 
 export type ProductItem = {
   id: string
@@ -170,6 +174,14 @@ export const productsService = {
       auth: true,
       body: fd,
       // IMPORTANT: apiFetch debe NO forzar 'Content-Type: application/json' cuando body es FormData
+    })
+  },
+
+  /** DELETE /api/products/picture/{id} */
+  async deletePicture(pictureId: string) {
+    return apiFetch<void>(`/api/products/picture/${pictureId}`, {
+      method: 'DELETE',
+      auth: true,
     })
   },
 }
