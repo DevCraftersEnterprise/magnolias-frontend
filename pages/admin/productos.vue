@@ -84,18 +84,11 @@
               <div class="relative overflow-hidden rounded-2xl bg-[#F5D3E6] ring-1 ring-black/5 shadow-sm
                        transition will-change-transform group-hover:-translate-y-0.5 group-hover:shadow-md">
                 <div class="relative aspect-[4/3]">
-                  <img 
-                    v-if="productImg(p)" 
-                    :src="productImg(p)!" 
-                    class="h-full w-full object-cover transition-all"
-                    :class="{ 'grayscale opacity-60': !p.isActive }"
-                    :alt="capitalize(p.name)" 
-                  />
-                  <div 
-                    v-else 
+                  <img v-if="productImg(p)" :src="productImg(p)!" class="h-full w-full object-cover transition-all"
+                    :class="{ 'grayscale opacity-60': !p.isActive }" :alt="capitalize(p.name)" />
+                  <div v-else
                     class="h-full w-full bg-gradient-to-br from-[#F7C0DB] via-[#F6A5CE] to-[#F48AC1] transition-all"
-                    :class="{ 'grayscale opacity-60': !p.isActive }"
-                  />
+                    :class="{ 'grayscale opacity-60': !p.isActive }" />
 
                   <!-- Overlay: NO captura clicks -->
                   <div class="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/35 via-black/0 to-black/0
@@ -122,19 +115,15 @@
 
                   <!-- Badge No Disponible -->
                   <span v-if="!p.isActive" class="absolute left-3 z-10 rounded-full bg-gray-900/90 px-3 py-1 text-[11px] font-semibold text-white
-                           ring-1 ring-black/10 backdrop-blur-sm"
-                           :class="p.isFavorite ? 'top-14' : 'top-3'">
+                           ring-1 ring-black/10 backdrop-blur-sm" :class="p.isFavorite ? 'top-14' : 'top-3'">
                     No Disponible
                   </span>
 
                   <!-- Ver detalles -->
                   <div
                     class="absolute inset-x-3 bottom-3 z-10 flex items-center justify-start opacity-0 group-hover:opacity-100 transition">
-                    <button
-                      class="rounded-xl bg-white/90 px-3 py-2 text-xs font-semibold text-[#101541]
-                            shadow-sm ring-1 ring-black/5 hover:bg-white transition"
-                      @click.stop="openDetails(p)"
-                    >
+                    <button class="rounded-xl bg-white/90 px-3 py-2 text-xs font-semibold text-[#101541]
+                            shadow-sm ring-1 ring-black/5 hover:bg-white transition" @click.stop="openDetails(p)">
                       Ver detalles
                     </button>
                   </div>
@@ -258,21 +247,10 @@
   <ProductModal v-if="productModal.open" :open="productModal.open" :mode="productModal.mode"
     :categoryId="productModal.categoryId" @close="productModal.open = false" @created="onProductCreated" />
 
-<ProductPicturesModal
-  v-if="picturesModal.open && picturesModal.product"
-  :open="picturesModal.open"
-  :product="picturesModal.product"
-  @close="picturesModal.open = false"
-  @uploaded="reloadAll()"
-/>
-<ProductEditModal
-  v-if="editModalOpen && editProduct"
-  :key="editModalKey"
-  v-model="editModalOpen"
-  :product="editProduct"
-  :categories="categoryOptions"
-  @updated="reloadAll()"
-/>
+  <ProductPicturesModal v-if="picturesModal.open && picturesModal.product" :open="picturesModal.open"
+    :product="picturesModal.product" @close="picturesModal.open = false" @uploaded="reloadAll()" />
+  <ProductEditModal v-if="editModalOpen && editProduct" :key="editModalKey" v-model="editModalOpen"
+    :product="editProduct" :categories="categoryOptions" @updated="reloadAll()" />
 </template>
 
 <script setup lang="ts">
@@ -287,7 +265,7 @@ import { apiFetch } from '~/services/api.client'
  * ========================= */
 type CategoryMini = { id: string; name: string }
 
-type ProductPicture = { 
+type ProductPicture = {
   id: string
   imageUrl: string
   isActive: boolean
@@ -325,7 +303,7 @@ const errorMsg = ref('')
 
 const products = ref<ProductItem[]>([])
 const openCategoryIds = ref<Set<string>>(new Set())
-  
+
 
 /** =========================
  * Helpers
@@ -566,7 +544,7 @@ function closeEditModal() {
 async function reloadAll() {
   const editProductId = editProduct.value?.id
   await fetchAllProducts()
-  
+
   // Si hay un producto en edición, actualizar su referencia con los datos frescos
   if (editProductId && editModalOpen.value) {
     const updated = products.value.find(p => p.id === editProductId)
