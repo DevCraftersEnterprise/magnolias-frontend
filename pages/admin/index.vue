@@ -3,6 +3,7 @@ definePageMeta({ layout: 'admin' })
 useHead({ title: 'Panel · Magnolias' })
 
 import { dashboardService } from "~/services/dashboard.service";
+import OrderSummaryCard from "~/components/OrderSummaryCard.vue";
 
 type OrderSummaryItem = {
   key: string;
@@ -16,18 +17,27 @@ type OrderSummaryItem = {
 const loading = ref(true);
 const errorMsg = ref("");
 const orderSummary = ref<OrderSummaryItem[]>([]);
+const orderTypeSummary = ref<OrderSummaryItem[]>([]);
 
 async function loadOrderStatistics() {
   try {
-    const data = await dashboardService.getOrderStatus({});
+    const { data } = await dashboardService.getOrderStatus({});
 
     orderSummary.value = [
-      { key: "created", label: "Creados", value: data.data.created, icon: "created", backgroundColor: "#B9FFC6", textColor: "#00C91D" },
-      { key: "in_process", label: "En proceso", value: data.data.in_process, icon: "process", backgroundColor: "#FFF8A9", textColor: "#C7B400" },
-      { key: "done", label: "Terminados", value: data.data.done, icon: "done", backgroundColor: "#B9D9FF", textColor: "#0047C9" },
-      { key: "delivered", label: "Entregados", value: data.data.delivered, icon: "delivered", backgroundColor: "#FFD9B9", textColor: "#C94A00" },
-      { key: "cancelled", label: "Cancelados", value: data.data.cancelled, icon: "cancelled", backgroundColor: "#FFD9D9", textColor: "#C90000" },
+      { key: "created", label: "Creados", value: data.created, icon: "created", backgroundColor: "#B9FFC6", textColor: "#00C91D" },
+      { key: "in_process", label: "En proceso", value: data.in_process, icon: "process", backgroundColor: "#FFF8A9", textColor: "#C7B400" },
+      { key: "done", label: "Terminados", value: data.done, icon: "done", backgroundColor: "#B9D9FF", textColor: "#0047C9" },
+      { key: "delivered", label: "Entregados", value: data.delivered, icon: "delivered", backgroundColor: "#FFD9B9", textColor: "#C94A00" },
+      { key: "cancelled", label: "Cancelados", value: data.cancelled, icon: "cancelled", backgroundColor: "#FFD9D9", textColor: "#C90000" },
     ]
+
+    orderTypeSummary.value = [
+      { key: "store", label: "Vitrina", value: data.order_type_counts.vitrina, icon: "store", backgroundColor: "#ADADAD", textColor: "#000000" },
+      { key: "event", label: "Evento", value: data.order_type_counts.evento, icon: "event", backgroundColor: "#AAE9FA", textColor: "#007C8A" },
+      { key: "delivery", label: "Domicilio", value: data.order_type_counts.domicilio, icon: "delivery", backgroundColor: "#E6ABFA", textColor: "#7C00C9" },
+      { key: "custom", label: "Personalizado", value: data.order_type_counts.personalizado, icon: "custom", backgroundColor: "#FFBEE6", textColor: "#C9007C" },
+    ];
+
   } catch (error) {
     errorMsg.value = "Error al cargar las estadísticas del dashboard.";
     console.error(error);
@@ -41,7 +51,8 @@ onMounted(() => loadOrderStatistics());
 
 <template>
   <section>
-    <div class="rounded-[28px] border border-[#F3DCE8] bg-white p-5 shadow-[0_10px_24px_rgba(226,184,206,0.16)] sm:p-6">
+    <div
+      class="rounded-[28px] border border-[#F3DCE8] bg-white p-5 shadow-[0_10px_24px_rgba(226,184,206,0.16)] sm:p-6 mb-5">
       <div class="mb-5">
         <h2 class="text-[20px] font-bold text-[#1E1E1E]">
           Resumen general de pedidos
@@ -49,58 +60,34 @@ onMounted(() => loadOrderStatistics());
       </div>
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <div v-for="item in orderSummary" :key="item.key"
-          class="rounded-3xl border border-[#F3DCE8] bg-white p-4 shadow-[0_10px_24px_rgba(226,184,206,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(226,184,206,0.22)]">
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl"
-              :style="{ backgroundColor: item.backgroundColor, color: item.textColor }">
-              <!-- Creados -->
-              <svg v-if="item.icon === 'created'" class="h-6 w-6" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-              </svg>
+        <OrderSummaryCard v-for="item in orderSummary" :key="item.key" :item="item" label="Pedidos" />
+      </div>
+    </div>
 
-              <!-- En proceso -->
-              <svg v-else-if="item.icon === 'process'" class="h-6 w-6" viewBox="0 0 24 24" fill="none">
-                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" />
-                <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" />
-              </svg>
 
-              <!-- Terminados -->
-              <svg v-else-if="item.icon === 'done'" class="h-6 w-6" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
-                  stroke-linejoin="round" />
-              </svg>
-
-              <!-- Entregados -->
-              <svg v-else-if="item.icon === 'delivered'" class="h-6 w-6" viewBox="0 0 24 24" fill="none">
-                <path d="M3 7h11v8H3z" stroke="currentColor" stroke-width="2" />
-                <path d="M14 10h3l2 2v3h-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-                <circle cx="7" cy="18" r="1.6" fill="currentColor" />
-                <circle cx="17" cy="18" r="1.6" fill="currentColor" />
-              </svg>
-
-              <!-- Cancelados -->
-              <svg v-else class="h-6 w-6" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" />
-                <path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-              </svg>
-            </div>
-
-            <span
-              class="rounded-full bg-[#FFF4FA] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#B58A9F]">
-              Pedidos
-            </span>
+    <div class="rounded-[28px] border border-[#F3DCE8] bg-white p-5 shadow-[0_10px_24px_rgba(226,184,206,0.16)] sm:p-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <div class="mb-5">
+            <h2 class="text-[20px] font-bold text-[#1E1E1E]">
+              Resumen por tipo de pedido
+            </h2>
           </div>
 
-          <div class="mt-4">
-            <p class="text-[13px] font-semibold text-[#9A8A90]">
-              {{ item.label }}
-            </p>
-            <p class="mt-1 text-3xl font-bold text-[#1E1E1E]">
-              {{ item.value }}
-            </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <OrderSummaryCard v-for="item in orderTypeSummary" :key="item.key" :item="item" label="Tipos" />
           </div>
+        </div>
+        <div>
+          <!-- <div class="mb-5">
+            <h2 class="text-[20px] font-bold text-[#1E1E1E]">
+              Alertas de inventario
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4">
+            <OrderSummaryCard v-for="item in orderTypeSummary" :key="item.key" :item="item" label="Tipos" />
+          </div> -->
         </div>
       </div>
     </div>

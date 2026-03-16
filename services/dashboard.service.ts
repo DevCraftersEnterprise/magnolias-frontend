@@ -7,7 +7,13 @@ export type OrderStatistics = {
         in_process: number,
         done: number,
         delivered: number,
-        cancelled: number
+        cancelled: number,
+        order_type_counts: {
+            personalizado: number;
+            vitrina: number;
+            evento: number;
+            domicilio: number;
+        }
     }
 }
 
