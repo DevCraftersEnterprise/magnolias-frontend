@@ -3,10 +3,14 @@ definePageMeta({ layout: "admin" });
 useHead({ title: "Sucursales · Magnolias" });
 
 import SucursalCard from '~/components/SucursalCard.vue';
+import SucursalModal from '~/components/modals/SucursalModal.vue';
+import SucursalEditModal from '~/components/modals/SucursalEditModal.vue';
 import { branchesService, type BranchResponse } from '~/services/branches.service';
 
 const loading = ref(true);
 const errorMsg = ref("");
+const showModal = ref(false);
+const editingBranch = ref<BranchResponse | null>(null);
 
 const branches = ref<BranchResponse[]>([]);
 
@@ -21,6 +25,16 @@ async function loadBranches() {
         loading.value = false;
     }
 }
+
+function onBranchCreated(branch: BranchResponse) {
+    branches.value.push(branch);
+}
+
+function onBranchUpdated(branch: BranchResponse) {
+    const idx = branches.value.findIndex(b => b.id === branch.id);
+    if (idx !== -1) branches.value[idx] = branch;
+}
+
 onMounted(() => loadBranches());
 </script>
 
@@ -29,6 +43,7 @@ onMounted(() => loadBranches());
         <div class="top-0 z-20 -mx-6 px-6 pt-2 pb-4">
             <div class="flex items-center justify-end gap-3">
                 <button
+                    @click="showModal = true"
                     class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#101541] shadow-sm ring-1 ring-black/5 hover:shadow transition active:scale-[0.99]">
                     <span class="grid h-6 w-6 place-content-center rounded-lg bg-black/5">
                         <svg fill="none" class="h-4 w-4 text-[#101541]" viewBox="0 0 24 24">
@@ -75,9 +90,13 @@ onMounted(() => loadBranches());
         <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <SucursalCard v-for="sucursal in branches" :key="sucursal.id" :name="sucursal.name"
                 :address="sucursal.address" :phone1="sucursal.phones.phone1"
-                :phone2="sucursal.phones.phone2 ?? undefined" :whatsapp="sucursal.phones.whatsapp ?? undefined" />
+                :phone2="sucursal.phones.phone2 ?? undefined" :whatsapp="sucursal.phones.whatsapp ?? undefined"
+                :isActive="sucursal.isActive"
+                @edit="editingBranch = sucursal" />
         </div>
     </div>
 
+    <SucursalModal v-if="showModal" @close="showModal = false" @created="onBranchCreated" />
+    <SucursalEditModal v-if="editingBranch" :branch="editingBranch" @close="editingBranch = null" @saved="onBranchUpdated" />
 
 </template>

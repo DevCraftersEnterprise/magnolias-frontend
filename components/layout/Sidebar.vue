@@ -35,6 +35,7 @@ const itemsBase = [
   { label: 'Sucursales', to: '/admin/sucursales', key: 'sucursales' },
   { label: 'Catálogos', to: '/admin/catalogos', key: 'catalogos' },
   { label: 'Clientes', to: '/admin/clientes', key: 'clientes' },
+  { label: 'Usuarios', to: '/admin/usuarios', key: 'usuarios', adminOnly: true },
 ]
 
 const items = computed(() => {
@@ -47,7 +48,7 @@ const items = computed(() => {
     case 'ASSISTANT':
       return itemsBase.filter(i => i.key === 'productos')
     default:
-      return itemsBase
+      return itemsBase.filter(i => !i.adminOnly || role === 'ADMIN' || role === 'SUPER')
   }
 })
 </script>
