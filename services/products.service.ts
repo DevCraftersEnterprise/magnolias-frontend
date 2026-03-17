@@ -1,4 +1,5 @@
 import { apiFetch } from '~/services/api.client'
+import type { ProductItem } from './categories.service';
 
 export type CategoryMini = { id: string; name: string }
 export type ProductPicture = {
@@ -7,17 +8,6 @@ export type ProductPicture = {
   isActive: boolean
 }
 
-export type ProductItem = {
-  id: string
-  name: string
-  description: string
-  isFavorite: boolean
-  isActive: boolean
-  category: CategoryMini
-  createdAt: string
-  updatedAt: string
-  pictures: ProductPicture[]
-}
 
 export type ProductsResponse = {
   items: ProductItem[]
@@ -127,7 +117,7 @@ export const productsService = {
       description: product.description,
       isFavorite,
       isActive: product.isActive,
-      categoryId: product.category?.id,
+      categoryId: product.category.id
     }
 
     return apiFetch<ProductItem>(`/api/products/favorite/${product.id}`, {

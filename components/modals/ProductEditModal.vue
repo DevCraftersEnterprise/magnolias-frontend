@@ -160,7 +160,8 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import ConfirmModal from '~/components/modals/ConfirmModal.vue'
-import { productsService, type ProductItem, type ProductPicture } from '~/services/products.service'
+import type { ProductItem } from '~/services/categories.service'
+import { productsService, type ProductPicture } from '~/services/products.service'
 
 type CategoryOption = {
   id: string
@@ -207,7 +208,7 @@ watch(
     form.description = props.product.description || ''
     form.isFavorite = !!props.product.isFavorite
     form.isActive = !!props.product.isActive
-    form.categoryId = props.product.category?.id || ''
+    form.categoryId = props.product.category.id || ''
     activeThumb.value = 0
     selectedToDelete.value = null
     confirmOpen.value = false

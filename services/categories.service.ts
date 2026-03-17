@@ -12,6 +12,9 @@ export type ProductItem = {
   description: string
   isFavorite: boolean
   isActive: boolean
+  category: {
+    id: string
+  }
   createdAt: string
   updatedAt: string
   pictures: ProductPicture[]
