@@ -1,12 +1,28 @@
 import { apiFetch } from '~/services/api.client'
 
+export type ProductPicture = {
+  id: string
+  imageUrl: string
+  isActive: boolean
+}
+
+export type ProductItem = {
+  id: string
+  name: string
+  description: string
+  isFavorite: boolean
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+  pictures: ProductPicture[]
+}
+
 export type CategoryItem = {
   id: string
   name: string
   description: string
   isActive: boolean
-  createdAt?: string
-  updatedAt?: string
+  products: ProductItem[]
 }
 
 export type CreateCategoryPayload = {
@@ -21,6 +37,13 @@ export type PatchCategoryPayload = Partial<{
 }>
 
 export const categoriesService = {
+  getAll() {
+    return apiFetch<CategoryItem[]>('/api/categories', {
+      method: 'GET',
+      auth: true,
+    })
+  },
+
   create(payload: CreateCategoryPayload) {
     return apiFetch<CategoryItem>('/api/categories', {
       method: 'POST',

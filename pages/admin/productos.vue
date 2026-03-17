@@ -52,7 +52,7 @@
                 </h2>
 
                 <span class="rounded-full bg-black/5 px-2.5 py-1 text-xs font-semibold text-black/60 leading-none">
-                  {{ cat.items.length }}
+                  {{ cat.products.length }}
                 </span>
               </div>
             </button>
@@ -74,12 +74,12 @@
 
         <!-- Body -->
         <div v-show="isCategoryOpen(cat.id)" class="border-t border-black/5 px-4 sm:px-5 py-4">
-          <div v-if="cat.items.length === 0" class="py-10 text-center text-sm text-black/50">
+          <div v-if="cat.products.length === 0" class="py-10 text-center text-sm text-black/50">
             No hay productos en esta categoría.
           </div>
 
           <div v-else class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            <div v-for="p in cat.items" :key="p.id" class="group">
+            <div v-for="p in cat.products" :key="p.id" class="group">
               <!-- Card -->
               <div class="relative overflow-hidden rounded-2xl bg-[#F5D3E6] ring-1 ring-black/5 shadow-sm
                        transition will-change-transform group-hover:-translate-y-0.5 group-hover:shadow-md">
@@ -258,30 +258,10 @@ definePageMeta({ layout: 'admin' })
 useHead({ title: 'Productos · Magnolias' })
 
 import { computed, onMounted, ref, watch, nextTick } from 'vue'
-import { apiFetch } from '~/services/api.client'
 
 /** =========================
  * Types
  * ========================= */
-type CategoryMini = { id: string; name: string }
-
-type ProductPicture = {
-  id: string
-  imageUrl: string
-  isActive: boolean
-}
-
-type ProductItem = {
-  id: string
-  name: string
-  description: string
-  isFavorite: boolean
-  isActive: boolean
-  category: CategoryMini
-  createdAt: string
-  updatedAt: string
-  pictures: ProductPicture[]
-}
 
 type ProductsResponse = {
   items: ProductItem[]
@@ -289,11 +269,7 @@ type ProductsResponse = {
   pagination: { limit: number; offset: number; totalPages: number; currentPage: number }
 }
 
-type CategoryGroup = {
-  id: string
-  name: string
-  items: ProductItem[]
-}
+
 
 /** =========================
  * State
@@ -302,6 +278,7 @@ const loading = ref(true)
 const errorMsg = ref('')
 
 const products = ref<ProductItem[]>([])
+const categories = ref<CategoryItem[]>([])
 const openCategoryIds = ref<Set<string>>(new Set())
 
 
@@ -322,50 +299,10 @@ function capitalize(str: string): string {
 /** =========================
  * Fetch
  * ========================= */
-function withPagination(base: string, limit: number, offset: number) {
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
-  return `${base}?${params.toString()}`
-}
-
 async function fetchAllProducts() {
-  const limit = 50
-  let offset = 0
-  let out: ProductItem[] = []
-  let total = 0
-
-  while (true) {
-    const url = withPagination('/api/products', limit, offset)
-    const res = await apiFetch<ProductsResponse>(url, { method: 'GET', auth: true })
-    out = out.concat(res.items)
-    total = res.total
-
-    offset += limit
-    if (out.length >= total) break
-    if (res.items.length === 0) break
-  }
-
-  products.value = out
+  const data = await categoriesService.getAll();
+  categories.value = data;
 }
-
-/** =========================
- * Grouping
- * ========================= */
-const categories = computed<CategoryGroup[]>(() => {
-  const map = new Map<string, CategoryGroup>()
-
-  for (const p of products.value) {
-    const id = p.category?.id ?? 'no-cat'
-    const name = capitalize(p.category?.name ?? 'Sin categoría')
-    if (!map.has(id)) map.set(id, { id, name, items: [] })
-    map.get(id)!.items.push(p)
-  }
-
-  for (const g of map.values()) {
-    g.items.sort((a, b) => a.name.localeCompare(b.name, 'es'))
-  }
-
-  return Array.from(map.values())
-})
 
 const categoriesOrdered = computed(() => {
   return [...categories.value].sort((a, b) => a.name.localeCompare(b.name, 'es'))
@@ -387,7 +324,7 @@ function toggleCategory(id: string) {
 /** =========================
  * Favorite (solo 1)
  * ========================= */
-import { productsService } from '~/services/products.service'
+import { productsService, type ProductItem } from '~/services/products.service'
 
 async function toggleFavorite(p: ProductItem) {
   const prevFav = products.value.find(x => x.isFavorite)
@@ -485,14 +422,13 @@ onMounted(async () => {
   }
 })
 
-
-
 /// =========================
 /// modales
 import CategoryModal from '~/components/modals/CategoryModal.vue'
 import ProductModal from '~/components/modals/ProductModal.vue'
 import ProductPicturesModal from '~/components/modals/ProductPicturesModal.vue'
 import ProductEditModal from '~/components/modals/ProductEditModal.vue'
+import { categoriesService, type CategoryItem } from '~/services/categories.service'
 
 // estados
 const categoryModal = ref({ open: false, mode: 'create' as const, category: null as any })
