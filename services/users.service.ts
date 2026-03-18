@@ -12,6 +12,8 @@ export type UserItem = {
   area: string | null
   specialty: string | null
   phone: string | null
+  branch?: { id: string; name: string } | null
+  branches?: { id: string; name: string }[]
   createdAt: string
   updatedAt: string
 }
@@ -92,10 +94,17 @@ export const usersService = {
     })
   },
 
-  deleteUser(payload: UpdateUserPayload) {
+  resetPassword(payload: { username: string; newPassword: string }) {
+    return apiFetch<UserItem>('/api/users/reset-password', {
+      method: 'PATCH',
+      body: { username: payload.username, newPassword: payload.newPassword },
+    })
+  },
+
+  deleteUser(payload: { id: string }) {
     return apiFetch<UserItem>('/api/users', {
       method: 'DELETE',
-      body: payload,
+      body: { id: payload.id },
     })
   },
 }

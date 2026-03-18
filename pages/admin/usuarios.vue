@@ -135,16 +135,21 @@ function roleBadge(r: string) {
               </div>
             <div class="flex items-center gap-3 flex-wrap">
               <!-- Filtro rol -->
-              <select
-                v-model="roleFilter"
-                class="h-10 rounded-xl bg-white px-3 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/10"
-              >
-                <option value="">Todos los roles</option>
-                <option value="ADMIN">Admin</option>
-                <option value="EMPLOYEE">Empleado</option>
-                <option value="BAKER">Pastelero</option>
-                <option value="ASSISTANT">Asistente</option>
-              </select>
+              <div class="relative">
+                <select
+                  v-model="roleFilter"
+                  class="h-10 appearance-none rounded-xl bg-white pl-3 pr-9 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/10"
+                >
+                  <option value="">Todos los roles</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="EMPLOYEE">Empleado</option>
+                  <option value="BAKER">Pastelero</option>
+                  <option value="ASSISTANT">Asistente</option>
+                </select>
+                <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
 
               <!-- Buscador -->
               <div class="relative w-[280px] max-w-[46vw]">
@@ -246,7 +251,8 @@ function roleBadge(r: string) {
               <div
                 v-for="u in users"
                 :key="u.id"
-                class="rounded-2xl bg-white ring-1 ring-black/10 p-4"
+                class="rounded-2xl bg-white ring-1 ring-black/10 p-4 cursor-pointer active:bg-black/5 transition"
+                @click="editingUser = u"
               >
                 <div class="flex items-start justify-between gap-2">
                   <div>

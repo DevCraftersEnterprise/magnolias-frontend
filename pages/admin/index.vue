@@ -59,7 +59,7 @@ onMounted(() => loadOrderStatistics());
         </h2>
       </div>
 
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <OrderSummaryCard v-for="item in orderSummary" :key="item.key" :item="item" label="Pedidos" />
       </div>
     </div>
@@ -74,7 +74,7 @@ onMounted(() => loadOrderStatistics());
             </h2>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
             <OrderSummaryCard v-for="item in orderTypeSummary" :key="item.key" :item="item" label="Tipos" />
           </div>
         </div>

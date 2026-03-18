@@ -16,8 +16,8 @@ defineProps<{
 <template>
     <div
         class="rounded-3xl border border-[#F3DCE8] bg-white p-4 shadow-[0_10px_24px_rgba(226,184,206,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(226,184,206,0.22)]">
-        <div class="flex items-center justify-between gap-3">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl"
+        <div class="flex flex-col gap-3">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
                 :style="{ backgroundColor: item.backgroundColor, color: item.textColor }">
 
                 <svg fill="none" class="h-6 w-6" v-if="item.icon === 'created'" viewBox="0 0 24 24">
@@ -82,14 +82,10 @@ defineProps<{
                 </svg>
             </div>
 
-            <span
-                class="rounded-full bg-[#FFF4FA] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#B58A9F]">
-                {{ item.label }}
-            </span>
-        </div>
-
-        <div class="mt-4">
-            <p class="mt-1 text-3xl font-bold text-[#1E1E1E]">{{ item.value }}</p>
+            <div>
+                <p class="text-3xl font-bold text-[#1E1E1E] leading-none">{{ item.value }}</p>
+                <p class="mt-1.5 text-[12px] font-semibold text-[#B58A9F] uppercase tracking-wide">{{ item.label }}</p>
+            </div>
         </div>
     </div>
 </template>
