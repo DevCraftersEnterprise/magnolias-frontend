@@ -15,11 +15,25 @@ export type RefreshRequest = {
   refreshToken: string
 }
 
+export type BranchBasic = {
+  id: string
+  phones: {
+    id: string
+    phone1: string
+    phone2: string | null
+    whatsapp: string | null
+    createdAt: string
+    updatedAt: string
+  }
+}
+
 export type AuthUser = {
   id: string
   username: string
   isActive: boolean
-  role: 'ADMIN' | 'SUPER' | 'EMPLOYEE' | 'USER' | string
+  role: 'ADMIN' | 'SUPER' | 'EMPLOYEE' | 'BAKER' | 'USER' | string
+  branch?: BranchBasic | null
+  branches?: BranchBasic[]
 }
 
 export type RefreshResponse = {

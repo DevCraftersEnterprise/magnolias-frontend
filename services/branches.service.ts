@@ -4,7 +4,11 @@ export type BranchResponse = {
     id: string;
     name: string;
     address: string;
+    latitude: number;
+    longitude: number;
     isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
     phones: {
         id: string;
         phone1: string;

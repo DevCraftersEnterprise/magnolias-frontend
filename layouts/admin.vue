@@ -27,9 +27,11 @@ import Sidebar from '~/components/layout/Sidebar.vue'
 import Topbar from '~/components/layout/Topbar.vue'
 
 const { loadUserFromToken, clearUser } = useAuthUser()
+const { loadBranches } = useBranch()
 
 onMounted(async () => {
   await loadUserFromToken()
+  await loadBranches()
 })
 
 
@@ -42,12 +44,14 @@ const route = useRoute()
 
 const pageTitle = computed(() => {
   const map: Record<string, string> = {
-    '/admin': 'Admin',
+    '/admin': 'Panel Administrativo',
     '/admin/productos': 'Productos',
     '/admin/pedidos': 'Pedidos',
     '/admin/sucursales': 'Sucursales',
     '/admin/catalogos': 'Catálogos',
     '/admin/clientes': 'Clientes',
+    '/admin/usuarios': 'Usuarios',
+
   }
   return map[route.path] ?? 'Admin'
 })

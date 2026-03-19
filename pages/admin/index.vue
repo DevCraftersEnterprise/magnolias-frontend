@@ -4,6 +4,7 @@ useHead({ title: 'Panel · Magnolias' })
 
 import { dashboardService } from "~/services/dashboard.service";
 import OrderSummaryCard from "~/components/OrderSummaryCard.vue";
+const { selectedBranch } = useBranch();
 
 type OrderSummaryItem = {
   key: string;
@@ -21,7 +22,9 @@ const orderTypeSummary = ref<OrderSummaryItem[]>([]);
 
 async function loadOrderStatistics() {
   try {
-    const { data } = await dashboardService.getOrderStatus({});
+    const { data } = await dashboardService.getOrderStatus({
+      branchId: selectedBranch.value?.id
+    });
 
     orderSummary.value = [
       { key: "created", label: "Creados", value: data.created, icon: "created", backgroundColor: "#B9FFC6", textColor: "#00C91D" },
@@ -47,6 +50,7 @@ async function loadOrderStatistics() {
 }
 
 onMounted(() => loadOrderStatistics());
+watch(selectedBranch, () => loadOrderStatistics());
 </script>
 
 <template>

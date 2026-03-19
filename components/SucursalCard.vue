@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import BranchMap from '~/components/BranchMap.vue';
+
 defineProps<{
     name: string;
     address: string;
@@ -6,6 +8,8 @@ defineProps<{
     phone2?: string;
     whatsapp?: string;
     isActive: boolean;
+    latitude: number;
+    longitude: number;
 }>();
 
 const emit = defineEmits<{ (e: 'edit'): void }>()
@@ -80,5 +84,7 @@ function formatMexPhone(raw: string | null | undefined): string {
                 <span class="text-sm">{{ formatMexPhone(whatsapp) }}</span>
             </div>
         </div>
+
+        <BranchMap :latitude="latitude" :longitude="longitude" :name="name" class="mt-3" />
     </div>
 </template>
