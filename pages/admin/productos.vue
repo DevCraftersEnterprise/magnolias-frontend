@@ -326,40 +326,44 @@ function toggleCategory(id: string) {
  * ========================= */
 import { productsService, type ProductItem } from '~/services/products.service'
 
+/** Devuelve el primer producto marcado como favorito buscando en todas las categorías */
+function findCurrentFavorite(): ProductItem | undefined {
+  for (const cat of categories.value) {
+    const fav = cat.products.find(x => x.isFavorite)
+    if (fav) return fav
+  }
+  return undefined
+}
+
 async function toggleFavorite(p: ProductItem) {
-  const prevFav = products.value.find(x => x.isFavorite)
+  const prevFav = findCurrentFavorite()
 
   // estado objetivo
   const nextIsFav = !p.isFavorite
 
-  // optimistic UI:
+  // optimistic UI: actualiza inmediatamente los objetos reactivos dentro de las categorías
   if (nextIsFav) {
-    // si vamos a marcar este como favorito, desmarca el anterior
+    // desmarca el favorito anterior (si existe y es distinto)
     if (prevFav && prevFav.id !== p.id) prevFav.isFavorite = false
     p.isFavorite = true
   } else {
-    // si lo vamos a desmarcar, queda ninguno
     p.isFavorite = false
   }
 
-  // fuerza refresco visual
-  products.value = [...products.value]
-
   try {
-    // actualiza el clickeado
     await productsService.setFavorite(p, p.isFavorite)
+    // si el backend no desmarca el anterior automáticamente, lo enviamos explícitamente
+    if (nextIsFav && prevFav && prevFav.id !== p.id) {
+      await productsService.setFavorite(prevFav, false)
+    }
   } catch (e) {
     // rollback
     if (nextIsFav) {
-      // queríamos marcar p, volvemos al estado anterior
       p.isFavorite = false
       if (prevFav && prevFav.id !== p.id) prevFav.isFavorite = true
     } else {
-      // queríamos desmarcar p, lo regresamos
       p.isFavorite = true
     }
-
-    products.value = [...products.value]
   }
 }
 
@@ -483,9 +487,12 @@ async function reloadAll() {
 
   // Si hay un producto en edición, actualizar su referencia con los datos frescos
   if (editProductId && editModalOpen.value) {
-    const updated = products.value.find(p => p.id === editProductId)
+    let updated: ProductItem | undefined
+    for (const cat of categories.value) {
+      updated = cat.products.find(p => p.id === editProductId)
+      if (updated) break
+    }
     if (updated) {
-      // Usar nextTick para asegurar que Vue actualice la UI
       await nextTick()
       editProduct.value = updated
     }

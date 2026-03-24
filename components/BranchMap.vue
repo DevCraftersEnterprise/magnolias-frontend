@@ -44,9 +44,7 @@ onMounted(async () => {
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapInstance);
 
     L.marker([props.latitude, props.longitude], { icon: pinkIcon })
-        .addTo(mapInstance)
-        .bindPopup(props.name)
-        .openPopup();
+        .addTo(mapInstance);
 });
 </script>
 
