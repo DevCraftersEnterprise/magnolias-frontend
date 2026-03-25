@@ -145,21 +145,30 @@ async function onSubmit() {
       isActive: form.isActive,
     }
 
-    const branchPromise = form.isActive
-      ? branchesService.updateBranch(branchPayload)
-      : branchesService.deleteBranch(branchPayload)
+    // Always use PATCH regardless of isActive — the PATCH endpoint handles deactivation via isActive: false
+    const branchPromise = branchesService.updateBranch(branchPayload)
 
     let fullBranch: BranchResponse
 
     if (phonesChanged) {
+      const phonesId = props.branch.phones?.id
+
+      const phonesPromise = phonesId
+        ? branchesService.updateBranchPhones({
+            id: phonesId,
+            phone1: newPhone1,
+            phone2: newPhone2,
+            whatsapp: newWhatsapp,
+          })
+        : branchesService.addBranchPhones(props.branch.id, {
+            phone1: newPhone1,
+            phone2: newPhone2,
+            whatsapp: newWhatsapp,
+          })
+
       const [updatedBranch, updatedPhones] = await Promise.all([
         branchPromise,
-        branchesService.updateBranchPhones({
-          id: props.branch.phones.id,
-          phone1: newPhone1,
-          phone2: newPhone2,
-          whatsapp: newWhatsapp,
-        }),
+        phonesPromise,
       ])
       fullBranch = {
         ...updatedBranch,

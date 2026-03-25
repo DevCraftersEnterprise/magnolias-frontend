@@ -82,11 +82,19 @@ export type UpdateFavoritePayload = {
 }
 
 export const productsService = {
-  /** GET /api/products */
+  /** GET /api/products (requiere token) */
   getProducts(limit = 10, offset = 0, filters?: ProductsFilters) {
     return apiFetch<ProductsResponse>(withPagination('/api/products', limit, offset, filters), {
       method: 'GET',
       auth: true,
+    })
+  },
+
+  /** GET /api/products sin token — para uso en landing pública */
+  getPublicProducts(limit = 10, offset = 0, filters?: ProductsFilters) {
+    return apiFetch<ProductsResponse>(withPagination('/api/products', limit, offset, filters), {
+      method: 'GET',
+      auth: false,
     })
   },
 
