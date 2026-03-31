@@ -240,7 +240,7 @@
 
 <script setup lang="ts">
 import BranchMap from '~/components/BranchMap.vue'
-import type { ProductItem } from '~/services/products.service'
+import type { ProductItem } from '~/services/categories.service'
 import type { BranchResponse } from '~/services/branches.service'
 
 definePageMeta({ layout: 'landing' })
