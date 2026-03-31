@@ -9,35 +9,43 @@
 
         <!-- Left: text -->
         <div class="z-10 flex flex-col gap-5">
-          <span class="inline-block w-fit rounded-full bg-white/50 px-3 py-1 text-xs font-medium text-[#1E1E1E]/60 tracking-wide uppercase">
-            {{ hero.badge }}
-          </span>
+          <!-- Loading skeleton -->
+          <template v-if="heroLoading || !heroProduct">
+            <div class="animate-pulse space-y-3">
+              <div class="h-5 w-28 rounded-full bg-black/10"></div>
+              <div class="h-10 w-3/4 rounded bg-black/10"></div>
+              <div class="h-4 w-full rounded bg-black/10"></div>
+              <div class="h-4 w-2/3 rounded bg-black/10"></div>
+            </div>
+          </template>
 
-          <h1 class="font-serif text-4xl sm:text-5xl text-[#1E1E1E] leading-tight tracking-tight">
-            {{ hero.title }}
-          </h1>
+          <template v-else>
+            <span class="inline-block w-fit rounded-full bg-white/50 px-3 py-1 text-xs font-medium text-[#1E1E1E]/60 tracking-wide uppercase">
+              {{ heroProduct?.category?.name ?? 'Destacado' }}
+            </span>
 
-          <p class="text-[#1E1E1E]/70 text-base leading-relaxed max-w-xs">
-            {{ hero.subtitle }}
-          </p>
+            <h1 class="font-serif text-4xl sm:text-5xl text-[#1E1E1E] leading-tight tracking-tight">
+              {{ capitalize(heroProduct?.name ?? '') }}
+            </h1>
 
-          <!-- Variant pills -->
-          <div class="flex flex-wrap gap-2 mt-1">
-            <button
-              v-for="v in hero.variants"
-              :key="v"
-              class="rounded-full border border-[#1E1E1E]/30 bg-transparent px-5 py-1.5 text-sm text-[#1E1E1E]/80 hover:border-[#1E1E1E] hover:text-[#1E1E1E] transition active:scale-[0.97]"
-            >
-              {{ v }}
-            </button>
-          </div>
+            <p v-if="heroProduct?.description" class="text-[#1E1E1E]/70 text-base leading-relaxed max-w-xs">
+              {{ heroProduct.description }}
+            </p>
+          </template>
         </div>
 
         <!-- Right: product image + circular CTA -->
         <div class="relative flex items-end justify-center">
+          <!-- Loading skeleton -->
+          <div
+            v-if="heroLoading || !heroProduct"
+            class="w-full max-w-[340px] sm:max-w-[400px] aspect-square rounded-3xl bg-black/10 animate-pulse"
+          ></div>
+
           <img
-            :src="hero.imageUrl"
-            :alt="hero.title"
+            v-else
+            :src="heroImageUrl"
+            :alt="heroProduct?.name ?? 'Producto destacado'"
             class="relative z-0 w-full max-w-[340px] sm:max-w-[400px] object-contain drop-shadow-2xl select-none"
             draggable="false"
           />
@@ -240,14 +248,26 @@ useHead({ title: 'Inicio · Magnolias' })
 
 const apiBase = (useRuntimeConfig().public.apiBase as string).replace(/\/$/, '')
 
-// ─── Hero ────────────────────────────────────────────────────────────────────
-const hero = {
-  badge:    'Temporada especial',
-  title:    'Rosca de Reyes\nArtesanal',
-  subtitle: 'La tradición sabe mejor en familia.',
-  variants: ['Naranja', 'Con Ate'],
-  imageUrl: '/img/cupcakes.png',
+// ─── Hero (producto favorito) ────────────────────────────────────────────────
+type FavoriteProduct = {
+  id: string
+  name: string
+  description?: string | null
+  category?: { id: string; name: string } | null
+  pictures?: { id: string; imageUrl: string; isActive: boolean }[]
 }
+
+const { data: heroData, pending: heroLoading } = useFetch<FavoriteProduct>(
+  `${apiBase}/api/products/favorite`,
+  { server: false, lazy: true }
+)
+
+const heroProduct = computed(() => heroData.value ?? null)
+
+const heroImageUrl = computed(() => {
+  const pic = heroProduct.value?.pictures?.find(p => p.isActive !== false)
+  return pic?.imageUrl ?? '/img/cupcakes.png'
+})
 
 function onOrder() {
   // TODO: conectar con flujo de pedidos
