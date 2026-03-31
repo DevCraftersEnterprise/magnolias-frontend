@@ -351,11 +351,8 @@ async function toggleFavorite(p: ProductItem) {
   }
 
   try {
-    await productsService.setFavorite(p, p.isFavorite)
-    // si el backend no desmarca el anterior automáticamente, lo enviamos explícitamente
-    if (nextIsFav && prevFav && prevFav.id !== p.id) {
-      await productsService.setFavorite(prevFav, false)
-    }
+    // El backend desmarca el favorito anterior automáticamente, solo se necesita una llamada
+    await productsService.setFavorite(p, nextIsFav)
   } catch (e) {
     // rollback
     if (nextIsFav) {
