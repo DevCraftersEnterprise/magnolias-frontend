@@ -206,13 +206,13 @@
   background: transparent !important;
 }
 
-/* mobile */
+/* tablet */
 @media (max-width: 900px){
   .m-top{ height: 74px; padding: 0 16px; }
   .m-top__title{ font-size: 22px; }
   .m-top__branch-select{ max-width: 140px; font-size: 13px; }
 }
-  
+
   .m-top__avatar{
     width: 46px;
     height: 46px;
@@ -260,10 +260,15 @@
     background: #fbeaf2;
     transform: translateY(-1px);
   }
-  
-  @media (max-width: 900px){
-    .m-top{ height: 74px; padding: 0 16px; }
-    .m-top__title{ font-size: 24px; }
-    .m-top__avatar{ width: 40px; height: 40px; }
-  }
+
+/* mobile: hide title + name/role so branch select has room */
+@media (max-width: 640px){
+  .m-top{ height: 66px; padding: 0 14px; }
+  .m-top__title{ display: none; }
+  .m-top__meta{ display: none; }
+  .m-top__branch-select{ max-width: 140px; font-size: 12px; padding: 6px 28px 6px 28px; }
+  .m-top__branch-readonly-label{ max-width: 120px; font-size: 12px; }
+  .m-top__avatar{ width: 36px; height: 36px; font-size: 13px; }
+  .m-top__logout{ width: 36px; height: 36px; }
+}
   </style>
