@@ -7,9 +7,10 @@ import {
   type CustomerItem,
   type CreateCustomerRequest,
 } from '~/services/customers.service'
-import { branchesService, type BranchResponse } from '~/services/branches.service'
-import { catalogsService, type FlowerItem, type ColorItem } from '~/services/catalogs.service'
+import { catalogsService, type FlowerItem, type ColorItem, type BreadTypeItem, type FillingItem, type FlavorItem, type FrostingItem, type StyleItem } from '~/services/catalogs.service'
 import { usersService, type UserItem } from '~/services/users.service'
+import { productsService, getProductImageUrl } from '~/services/products.service'
+import type { ProductItem } from '~/services/categories.service'
 
 const router = useRouter()
 
@@ -125,9 +126,8 @@ const ORDER_TYPES: { key: OrderTypeKey; label: string; sub: string; icon: string
   { key: 'EVENTO',    label: 'Evento',    sub: 'Evento especial',    icon: 'event'    },
 ]
 
-// Branches for Vitrina pickup selector
-const branches = ref<BranchResponse[]>([])
-branchesService.getBranches().then(r => { branches.value = r }).catch(() => {})
+// Branches for Vitrina pickup selector — reuse the global state from Topbar
+const { branches, selectedBranch: topbarBranch } = useBranch()
 
 // Flowers + Colors for FLOR type
 const flowerCatalog = ref<FlowerItem[]>([])
@@ -138,6 +138,178 @@ catalogsService.getColors().then(r => { colorCatalog.value = r }).catch(() => {}
 // Users for EVENTO responsable del montaje
 const usersCatalog = ref<UserItem[]>([])
 usersService.getUsers({ limit: 100 }).then(r => { usersCatalog.value = r.items }).catch(() => {})
+
+// ─── Step 3 — Productos ───────────────────────────────────────────────────────
+// Catalog data for product attributes
+const breadTypes = ref<BreadTypeItem[]>([])
+const fillings   = ref<FillingItem[]>([])
+const flavors    = ref<FlavorItem[]>([])
+const frostings  = ref<FrostingItem[]>([])
+const styles     = ref<StyleItem[]>([])
+
+Promise.all([
+  catalogsService.getBreadTypes(100, 0).then(r => { breadTypes.value = r.items }),
+  catalogsService.getFillings(100, 0).then(r => { fillings.value = r.items }),
+  catalogsService.getFlavors(100, 0).then(r => { flavors.value = r.items }),
+  catalogsService.getFrostings(100, 0, true).then(r => { frostings.value = r.items }),
+  catalogsService.getStyles(100, 0, true).then(r => { styles.value = r.items }),
+]).catch(() => {})
+
+// Product search
+const productQuery     = ref('')
+const productSearching = ref(false)
+const productResults   = ref<ProductItem[]>([])
+const showProductPanel = ref(false)
+
+watch(productQuery, (q) => {
+  const trimmed = q.trim()
+  if (!trimmed) {
+    productResults.value = []
+    showProductPanel.value = false
+    return
+  }
+  productSearching.value = true
+  productsService.getProducts(12, 0, { name: trimmed })
+    .then(r => {
+      productResults.value = r.items
+      showProductPanel.value = true
+    })
+    .catch(() => { productResults.value = [] })
+    .finally(() => { productSearching.value = false })
+})
+
+// Color picker open state per row (flower rows + product rows handled by index key)
+const openColorPicker = ref<string | null>(null)
+
+function colorPickerKey(prefix: string, index: number) { return `${prefix}-${index}` }
+
+function pickColor(rowRef: { colorId: string }, colorId: string, key: string) {
+  rowRef.colorId = colorId
+  openColorPicker.value = null
+}
+
+function colorName(colorId: string) {
+  return colorCatalog.value.find(c => c.id === colorId)?.name ?? ''
+}
+function colorHex(colorId: string) {
+  return colorCatalog.value.find(c => c.id === colorId)?.value ?? ''
+}
+
+// Close color picker on outside click
+if (typeof window !== 'undefined') {
+  document.addEventListener('click', () => { openColorPicker.value = null })
+}
+
+const UBICACION_OPTIONS = [
+  { value: 'TOP',    label: 'Arriba'   },
+  { value: 'BOTTOM', label: 'Abajo'    },
+  { value: 'CENTER', label: 'Centro'   },
+  { value: 'FRONT',  label: 'Frente'   },
+  { value: 'BACK',   label: 'Atrás'    },
+  { value: 'SIDE',   label: 'Lado'     },
+]
+
+const MANGA_OPTIONS = [
+  { value: 'NONE',         label: 'Ninguna'      },
+  { value: 'TOP',          label: 'Arriba'        },
+  { value: 'BOTTOM',       label: 'Abajo'         },
+  { value: 'BOTH_BORDERS', label: 'Ambos bordes'  },
+  { value: 'FULL',         label: 'Completa'      },
+]
+
+type OrderProductRow = {
+  product:   ProductItem
+  qty:       number
+  price:     number
+  // attributes (all optional)
+  sizeId:    string
+  colorId:   string
+  breadId:   string
+  flavorId:  string
+  fillingId: string
+  frostingId:string
+  styleId:   string
+  // text
+  withText:  boolean
+  text:      string
+  textLocation: string
+  // manga decoration
+  mangaStyle:  string
+  mangaNotes:  string
+  // notes
+  notes:     string
+  // reference image
+  withReference: boolean
+  referenceFile: File | null
+  referencePreview: string  // object URL
+}
+
+const orderProducts = ref<OrderProductRow[]>([])
+
+function makeProductRow(p: ProductItem): OrderProductRow {
+  return {
+    product: p, qty: 1, price: 0,
+    sizeId: '', colorId: '', breadId: '', flavorId: '',
+    fillingId: '', frostingId: '', styleId: '',
+    withText: false, text: '', textLocation: 'TOP',
+    mangaStyle: '', mangaNotes: '',
+    notes: '',
+    withReference: false, referenceFile: null, referencePreview: '',
+  }
+}
+
+function addProduct(p: ProductItem) {
+  // if already in list, just bump qty
+  const existing = orderProducts.value.find(r => r.product.id === p.id)
+  if (existing) { existing.qty++; }
+  else          { orderProducts.value.push(makeProductRow(p)) }
+  productQuery.value = ''
+  productResults.value = []
+  showProductPanel.value = false
+}
+
+function removeProduct(i: number) {
+  const row = orderProducts.value[i]
+  if (row?.referencePreview) URL.revokeObjectURL(row.referencePreview)
+  orderProducts.value.splice(i, 1)
+}
+
+// Reference image modal
+const refModal = reactive({ open: false, rowIndex: -1, preview: '' })
+
+function openRefModal(i: number) {
+  refModal.rowIndex = i
+  refModal.preview  = orderProducts.value[i]?.referencePreview ?? ''
+  refModal.open     = true
+}
+
+function onRefFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const row = orderProducts.value[refModal.rowIndex]
+  if (!row) return
+  if (row.referencePreview) URL.revokeObjectURL(row.referencePreview)
+  row.referenceFile    = file
+  row.referencePreview = URL.createObjectURL(file)
+  refModal.preview     = row.referencePreview
+}
+
+function confirmRefImage() {
+  refModal.open = false
+}
+
+function removeRefImage(i: number) {
+  const row = orderProducts.value[i]
+  if (!row) return
+  if (row.referencePreview) URL.revokeObjectURL(row.referencePreview)
+  row.referenceFile    = null
+  row.referencePreview = ''
+  row.withReference    = false
+}
+
+onUnmounted(() => {
+  orderProducts.value.forEach(r => { if (r.referencePreview) URL.revokeObjectURL(r.referencePreview) })
+})
 
 type FlowerRow = { flowerId: string; colorId: string; quantity: number | ''; note: string }
 const flowerRows = ref<FlowerRow[]>([{ flowerId: '', colorId: '', quantity: '', note: '' }])
@@ -182,6 +354,13 @@ const step2 = reactive({
   eventServices: { dessertTable: false, cake: false, montage: false },
 })
 
+// When user picks VITRINA, pre-fill the branch from the Topbar selection
+watch(() => step2.orderType, (type) => {
+  if (type === 'VITRINA') {
+    step2.pickupBranchId = topbarBranch.value?.id ?? ''
+  }
+})
+
 // When customer changes, auto-check "use customer address" if they have one
 watch(selectedCustomer, (c) => {
   step2.useCustomerAddr = !!(c?.address?.street)
@@ -209,6 +388,75 @@ const step2AddressValid = computed(() => {
   return !!(step2.newAddr.street.trim() && step2.newAddr.number.trim() && step2.newAddr.neighborhood.trim())
 })
 
+// ─── Step 4 — Pago ─────────────────────────────────────────────────────────
+const PAYMENT_TYPES = [
+  { value: 'EFECTIVO',      label: 'Efectivo' },
+  { value: 'TARJETA',       label: 'Tarjeta' },
+  { value: 'TRANSFERENCIA', label: 'Transferencia' },
+]
+
+const ORDER_TYPE_LABELS: Record<string, string> = {
+  DOMICILIO: 'Domicilio',
+  VITRINA:   'Vitrina',
+  FLOR:      'Flor',
+  EVENTO:    'Evento',
+}
+
+const step4 = reactive({
+  paymentType:   'EFECTIVO',
+  paymentMode:   'FULL' as 'FULL' | 'DEPOSIT',
+  depositAmount: 0,
+})
+
+const serviceCost = ref<number>(0)
+
+const detailModal = reactive({ open: false, rowIndex: -1 })
+const detailRow   = computed(() =>
+  detailModal.rowIndex >= 0 ? (orderProducts.value[detailModal.rowIndex] ?? null) : null
+)
+function openDetailModal(i: number) { detailModal.rowIndex = i; detailModal.open = true }
+function closeDetailModal()         { detailModal.open = false }
+
+function catalogLabel(arr: { id: string; name: string }[], id: string) {
+  return arr.find(x => x.id === id)?.name ?? '—'
+}
+function optionLabel(opts: { value: string; label: string }[], val: string) {
+  return opts.find(o => o.value === val)?.label ?? '—'
+}
+function formatMXN(n: number) {
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n || 0)
+}
+function formatDate(d: string) {
+  if (!d) return ''
+  const [y, m, day] = d.split('-')
+  return `${day}/${m}/${y}`
+}
+
+const subtotal   = computed(() => orderProducts.value.reduce((s, r) => s + r.price * r.qty, 0))
+const orderTotal = computed(() => subtotal.value + (serviceCost.value || 0))
+const remaining  = computed(() => orderTotal.value - (step4.depositAmount || 0))
+
+const detailRowHasDetails = computed(() => {
+  const r = detailRow.value
+  if (!r) return false
+  return !!(r.sizeId || r.colorId || r.breadId || r.flavorId || r.fillingId ||
+            r.frostingId || r.styleId || (r.withText && r.text) ||
+            (r.mangaStyle && r.mangaStyle !== 'NONE') || r.notes || r.referencePreview)
+})
+
+const step4PickupBranchName = computed(() =>
+  branches.value.find(b => b.id === step2.pickupBranchId)?.name ?? ''
+)
+const step4DeliveryAddr = computed(() => {
+  if (step2.orderType === 'VITRINA') return ''
+  const a = step2.useCustomerAddr
+    ? selectedCustomer.value?.address
+    : step2.newAddr
+  if (!a) return ''
+  return [a.street, (a as any).number ? `#${(a as any).number}` : null, (a as any).neighborhood, a.city]
+    .filter(Boolean).join(', ')
+})
+
 // ─── Navigation ──────────────────────────────────────────────────────────────
 const canNext = computed(() => {
   if (step.value === 1) return !!selectedCustomer.value
@@ -220,6 +468,15 @@ const canNext = computed(() => {
     if (!step2.deliveryDate) return false
     if (!step2AddressValid.value) return false
     return true
+  }
+  if (step.value === 3) {
+    if (orderProducts.value.length === 0) return false
+    // rows with withText need text filled; withReference need a file
+    return orderProducts.value.every(r =>
+      r.price > 0 &&
+      (!r.withText || r.text.trim()) &&
+      (!r.withReference || !!r.referenceFile)
+    )
   }
   return true
 })
@@ -1062,16 +1319,37 @@ function formatCustomerAddress(c: CustomerItem) {
 
                   <!-- Color -->
                   <div class="relative w-24 flex-shrink-0">
-                    <select
-                      v-model="row.colorId"
-                      class="w-full appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                    <button
+                      type="button"
+                      @click.stop="openColorPicker = openColorPicker === colorPickerKey('fl',i) ? null : colorPickerKey('fl',i)"
+                      class="flex items-center gap-1.5 w-full rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] text-[#111827] ring-1 ring-black/8 focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60"
                     >
-                      <option value="" disabled>Color</option>
-                      <option v-for="c in colorCatalog" :key="c.id" :value="c.id">{{ c.name }}</option>
-                    </select>
-                    <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                      <path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                      <span
+                        v-if="row.colorId"
+                        class="inline-block h-3.5 w-3.5 rounded-full flex-shrink-0 ring-1 ring-black/15"
+                        :style="{ background: colorHex(row.colorId) }"
+                      />
+                      <span class="truncate">{{ row.colorId ? colorName(row.colorId) : 'Color' }}</span>
+                      <svg class="ml-auto h-3 w-3 flex-shrink-0 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div
+                      v-if="openColorPicker === colorPickerKey('fl',i)"
+                      class="absolute z-20 mt-1 left-0 min-w-[140px] rounded-xl bg-white ring-1 ring-black/10 shadow-xl py-1 max-h-48 overflow-y-auto"
+                      @click.stop
+                    >
+                      <button type="button" @click="pickColor(row, '', colorPickerKey('fl',i))" class="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] text-gray-400 hover:bg-pink-50">— Ninguno</button>
+                      <button
+                        v-for="c in colorCatalog"
+                        :key="c.id"
+                        type="button"
+                        @click="pickColor(row, c.id, colorPickerKey('fl',i))"
+                        class="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] text-[#111827] hover:bg-pink-50"
+                        :class="{ 'bg-pink-50 font-semibold': row.colorId === c.id }"
+                      >
+                        <span class="inline-block h-3.5 w-3.5 rounded-full flex-shrink-0 ring-1 ring-black/15" :style="{ background: c.value }"/>
+                        {{ c.name }}
+                      </button>
+                    </div>
                   </div>
 
                   <!-- Cantidad -->
@@ -1193,65 +1471,688 @@ function formatCustomerAddress(c: CustomerItem) {
       </div>
 
       <!-- ══════════════════════════════════════════════════════════════════ -->
-      <!-- STEP 3 — Productos (placeholder)                                  -->
+      <!-- STEP 3 — Productos                                                 -->
       <!-- ══════════════════════════════════════════════════════════════════ -->
       <div
         v-else-if="step === 3"
         class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.08)] overflow-hidden"
       >
+        <!-- Header -->
         <div class="px-6 py-5 border-b border-black/10">
-          <h2 class="text-[18px] font-bold text-[#111827]">Paso 3: Productos</h2>
-          <p class="mt-0.5 text-[13px] text-gray-400">Próximamente</p>
+          <h2 class="text-[18px] font-bold text-[#111827]">Productos del Pedido</h2>
+          <p class="mt-0.5 text-[13px] text-gray-400">Busca y agrega los productos, luego configura sus detalles</p>
         </div>
-        <div class="px-6 py-16 flex flex-col items-center text-gray-300">
-          <svg viewBox="0 0 24 24" class="h-14 w-14 mb-4" fill="none" stroke="currentColor" stroke-width="1">
-            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-            <path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>
-          </svg>
-          <p class="text-[14px] text-gray-400">Esta sección está en construcción</p>
+
+        <div class="px-6 py-6 space-y-6">
+
+          <!-- ── Buscador de productos ──────────────────────────────────── -->
+          <div>
+            <p class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3">Agregar Productos</p>
+            <div class="relative">
+              <!-- Input -->
+              <div class="flex items-center gap-2 rounded-xl ring-1 ring-black/10 bg-white px-4 py-2.5">
+                <svg viewBox="0 0 24 24" class="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+                <input
+                  v-model="productQuery"
+                  @focus="showProductPanel = productResults.length > 0"
+                  @keydown.escape="showProductPanel = false"
+                  type="text"
+                  placeholder="Buscar producto..."
+                  class="flex-1 bg-transparent text-[14px] text-[#111827] outline-none placeholder-gray-400"
+                />
+                <svg v-if="productSearching" class="h-4 w-4 animate-spin text-[#FC9AD3]" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="31.4" stroke-dashoffset="10"/>
+                </svg>
+              </div>
+
+              <!-- Results dropdown -->
+              <div
+                v-if="showProductPanel && productResults.length"
+                class="absolute z-30 mt-1 w-full rounded-xl bg-white ring-1 ring-black/10 shadow-xl overflow-hidden"
+              >
+                <div class="max-h-72 overflow-y-auto divide-y divide-black/5">
+                  <button
+                    v-for="p in productResults"
+                    :key="p.id"
+                    type="button"
+                    @click="addProduct(p)"
+                    class="w-full flex items-center gap-3 px-4 py-3 hover:bg-pink-50 transition-colors text-left"
+                  >
+                    <!-- Thumbnail -->
+                    <div class="h-10 w-10 flex-shrink-0 rounded-lg overflow-hidden bg-[#F3F3F4]">
+                      <img
+                        v-if="getProductImageUrl(p)"
+                        :src="getProductImageUrl(p)!"
+                        :alt="p.name"
+                        class="h-full w-full object-cover"
+                      />
+                      <div v-else class="h-full w-full flex items-center justify-center text-gray-300">
+                        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.5">
+                          <rect x="3" y="3" width="18" height="18" rx="2"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-[13px] font-semibold text-[#111827] truncate">{{ p.name }}</p>
+                      <p class="text-[11px] text-gray-400 truncate">{{ p.description || 'Sin descripción' }}</p>
+                    </div>
+                    <svg viewBox="0 0 24 24" class="h-4 w-4 flex-shrink-0 text-[#FC9AD3] ml-auto" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="px-4 py-2 border-t border-black/5 text-[11px] text-gray-400">
+                  {{ productResults.length }} resultado{{ productResults.length !== 1 ? 's' : '' }}
+                </div>
+              </div>
+
+              <!-- No results -->
+              <div
+                v-if="showProductPanel && !productResults.length && !productSearching && productQuery.trim()"
+                class="absolute z-30 mt-1 w-full rounded-xl bg-white ring-1 ring-black/10 shadow-xl px-4 py-6 text-center text-[13px] text-gray-400"
+              >
+                Sin resultados para "{{ productQuery }}"
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Lista de productos agregados ──────────────────────────── -->
+          <div v-if="orderProducts.length">
+            <p class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3">Detalles del producto</p>
+            <div class="space-y-4">
+
+              <div
+                v-for="(row, i) in orderProducts"
+                :key="row.product.id"
+                class="rounded-xl ring-1 ring-black/10 overflow-hidden"
+              >
+                <!-- Product header row -->
+                <div class="flex items-center gap-3 bg-[#F3F3F4] px-4 py-3">
+                  <!-- Thumbnail -->
+                  <div class="h-8 w-8 flex-shrink-0 rounded-md overflow-hidden bg-white">
+                    <img
+                      v-if="getProductImageUrl(row.product)"
+                      :src="getProductImageUrl(row.product)!"
+                      :alt="row.product.name"
+                      class="h-full w-full object-cover"
+                    />
+                    <div v-else class="h-full w-full flex items-center justify-center text-gray-300">
+                      <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M21 15l-5-5L5 21"/></svg>
+                    </div>
+                  </div>
+                  <!-- Name -->
+                  <span class="flex-1 text-[14px] font-semibold text-[#111827] truncate">{{ row.product.name }}</span>
+                  <!-- Price input -->
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <span class="text-[12px] text-gray-500">Precio:</span>
+                    <div class="flex items-center h-6 rounded-lg bg-white ring-1 ring-black/10 overflow-hidden">
+                      <span class="px-1.5 text-[12px] text-gray-400 font-medium border-r border-black/10 h-full flex items-center">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        v-model="row.price"
+                        placeholder="0.00"
+                        class="w-16 bg-transparent px-1.5 text-[12px] font-semibold text-[#111827] outline-none"
+                      />
+                    </div>
+                  </div>
+                  <!-- Qty stepper -->
+                  <div class="flex items-center gap-1 flex-shrink-0">
+                    <span class="text-[12px] text-gray-500 mr-1">Cantidad:</span>
+                    <button type="button" @click="row.qty = Math.max(1, row.qty - 1)" class="h-6 w-6 rounded-md bg-white ring-1 ring-black/10 text-gray-500 hover:bg-pink-50 flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14" stroke-linecap="round"/></svg>
+                    </button>
+                    <span class="w-6 text-center text-[13px] font-semibold text-[#111827]">{{ row.qty }}</span>
+                    <button type="button" @click="row.qty++" class="h-6 w-6 rounded-md bg-white ring-1 ring-black/10 text-gray-500 hover:bg-pink-50 flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+                    </button>
+                  </div>
+                  <!-- Delete -->
+                  <button type="button" @click="removeProduct(i)" class="ml-2 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Attribute rows -->
+                <div class="divide-y divide-black/5 bg-white">
+
+                  <!-- Row 1: Tamaño · Color · Tipo de Pan · Sabor -->
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Tamaño</span>
+                      <input v-model="row.sizeId" type="text" placeholder="ej. 20 P"
+                        class="w-20 rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60" />
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Color</span>
+                      <div class="relative">
+                        <button
+                          type="button"
+                          @click.stop="openColorPicker = openColorPicker === colorPickerKey('pr',i) ? null : colorPickerKey('pr',i)"
+                          class="flex items-center gap-1.5 rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] text-[#111827] ring-1 ring-black/8 focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 min-w-[80px]"
+                        >
+                          <span
+                            v-if="row.colorId"
+                            class="inline-block h-3.5 w-3.5 rounded-full flex-shrink-0 ring-1 ring-black/15"
+                            :style="{ background: colorHex(row.colorId) }"
+                          />
+                          <span class="truncate">{{ row.colorId ? colorName(row.colorId) : '—' }}</span>
+                          <svg class="ml-auto h-3 w-3 flex-shrink-0 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div
+                          v-if="openColorPicker === colorPickerKey('pr',i)"
+                          class="absolute z-20 mt-1 left-0 min-w-[150px] rounded-xl bg-white ring-1 ring-black/10 shadow-xl py-1 max-h-52 overflow-y-auto"
+                          @click.stop
+                        >
+                          <button type="button" @click="pickColor(row, '', colorPickerKey('pr',i))" class="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] text-gray-400 hover:bg-pink-50">— Ninguno</button>
+                          <button
+                            v-for="c in colorCatalog"
+                            :key="c.id"
+                            type="button"
+                            @click="pickColor(row, c.id, colorPickerKey('pr',i))"
+                            class="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] text-[#111827] hover:bg-pink-50"
+                            :class="{ 'bg-pink-50 font-semibold': row.colorId === c.id }"
+                          >
+                            <span class="inline-block h-3.5 w-3.5 rounded-full flex-shrink-0 ring-1 ring-black/15" :style="{ background: c.value }"/>
+                            {{ c.name }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Tipo de Pan</span>
+                      <div class="relative">
+                        <select v-model="row.breadId" class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
+                          <option value="">—</option>
+                          <option v-for="b in breadTypes" :key="b.id" :value="b.id">{{ b.name }}</option>
+                        </select>
+                        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Sabor</span>
+                      <div class="relative">
+                        <select v-model="row.flavorId" class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
+                          <option value="">—</option>
+                          <option v-for="f in flavors" :key="f.id" :value="f.id">{{ f.name }}</option>
+                        </select>
+                        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Row 2: Relleno · Frosting · Estilo -->
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Relleno</span>
+                      <div class="relative">
+                        <select v-model="row.fillingId" class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
+                          <option value="">—</option>
+                          <option v-for="f in fillings" :key="f.id" :value="f.id">{{ f.name }}</option>
+                        </select>
+                        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Frosting</span>
+                      <div class="relative">
+                        <select v-model="row.frostingId" class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
+                          <option value="">—</option>
+                          <option v-for="f in frostings" :key="f.id" :value="f.id">{{ f.name }}</option>
+                        </select>
+                        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Estilo</span>
+                      <div class="relative">
+                        <select v-model="row.styleId" class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
+                          <option value="">—</option>
+                          <option v-for="s in styles" :key="s.id" :value="s.id">{{ s.name }}</option>
+                        </select>
+                        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Row 3: Texto -->
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                    <label class="flex items-center gap-2 cursor-pointer select-none flex-shrink-0">
+                      <input v-model="row.withText" type="checkbox" class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3] focus:ring-[#FC9AD3]/50" />
+                      <span class="text-[12px] font-medium text-gray-500">Texto</span>
+                    </label>
+                    <template v-if="row.withText">
+                      <input
+                        v-model="row.text"
+                        type="text"
+                        placeholder="Texto en el pastel"
+                        class="flex-1 min-w-[140px] rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60"
+                        :class="{ 'ring-red-300': row.withText && !row.text.trim() }"
+                      />
+                      <div class="flex items-center gap-2">
+                        <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Ubicación <span class="text-red-400">*</span></span>
+                        <div class="relative">
+                          <select v-model="row.textLocation" class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
+                            <option v-for="o in UBICACION_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                          </select>
+                          <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+
+                  <!-- Row 4: Decoración con manga -->
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                    <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Decoración con manga</span>
+                    <div class="relative">
+                      <select v-model="row.mangaStyle" class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
+                        <option value="">—</option>
+                        <option v-for="o in MANGA_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                      </select>
+                      <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <input
+                      v-if="row.mangaStyle && row.mangaStyle !== 'NONE'"
+                      v-model="row.mangaNotes"
+                      type="text"
+                      placeholder="Notas de decoración"
+                      class="flex-1 min-w-[140px] rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60"
+                    />
+                  </div>
+
+                  <!-- Row 5: Notas · Subir Referencia -->
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                    <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                      <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Notas</span>
+                      <input v-model="row.notes" type="text" placeholder="Notas de decoración"
+                        class="flex-1 rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60" />
+                    </div>
+                    <!-- Reference image -->
+                    <label class="flex items-center gap-2 cursor-pointer select-none flex-shrink-0">
+                      <input
+                        v-model="row.withReference"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3] focus:ring-[#FC9AD3]/50"
+                        @change="row.withReference && !row.referencePreview ? openRefModal(i) : null"
+                      />
+                      <span class="text-[12px] font-medium text-gray-500">Subir Referencia</span>
+                    </label>
+                    <template v-if="row.withReference">
+                      <div v-if="row.referencePreview" class="flex items-center gap-2">
+                        <img :src="row.referencePreview" class="h-8 w-8 rounded-md object-cover ring-1 ring-black/10" />
+                        <button type="button" @click="openRefModal(i)" class="text-[11px] text-[#C9007C] hover:underline">Cambiar</button>
+                        <button type="button" @click="removeRefImage(i)" class="text-[11px] text-gray-400 hover:text-red-400">Quitar</button>
+                      </div>
+                      <button
+                        v-else
+                        type="button"
+                        @click="openRefModal(i)"
+                        class="flex items-center gap-1.5 rounded-lg bg-[#F3F3F4] px-3 py-1.5 text-[12px] text-gray-500 ring-1 ring-black/8 hover:ring-[#FC9AD3]/60 transition-colors"
+                        :class="{ 'ring-red-300 text-red-400': row.withReference && !row.referenceFile }"
+                      >
+                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Adjuntar imagen
+                      </button>
+                    </template>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div v-else class="flex flex-col items-center py-12 text-gray-300">
+            <svg viewBox="0 0 24 24" class="h-12 w-12 mb-3" fill="none" stroke="currentColor" stroke-width="1">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+              <path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+            <p class="text-[13px] text-gray-400">Busca un producto para comenzar</p>
+          </div>
+
         </div>
       </div>
 
+      <!-- ══ Reference Image Modal ══════════════════════════════════════════ -->
+      <Teleport to="body">
+        <Transition name="fade">
+          <div
+            v-if="refModal.open"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+            @click.self="refModal.open = false"
+          >
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+              <div class="px-5 py-4 border-b border-black/8 flex items-center justify-between">
+                <h3 class="text-[16px] font-bold text-[#111827]">Imagen de referencia</h3>
+                <button type="button" @click="refModal.open = false" class="text-gray-400 hover:text-gray-600">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div class="px-5 py-5 space-y-4">
+                <!-- Preview -->
+                <div class="rounded-xl overflow-hidden bg-[#F3F3F4] flex items-center justify-center" style="min-height:200px">
+                  <img v-if="refModal.preview" :src="refModal.preview" class="max-h-64 w-full object-contain" />
+                  <div v-else class="flex flex-col items-center text-gray-300 py-10">
+                    <svg viewBox="0 0 24 24" class="h-12 w-12 mb-2" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    <p class="text-[13px]">Sin imagen</p>
+                  </div>
+                </div>
+                <!-- Upload button -->
+                <label class="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#FC9AD3]/50 hover:border-[#FC9AD3] px-4 py-3 cursor-pointer transition-colors">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5 text-[#C9007C]" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <span class="text-[13px] font-medium text-[#C9007C]">Seleccionar imagen</span>
+                  <input type="file" accept="image/*" class="sr-only" @change="onRefFileChange" />
+                </label>
+              </div>
+              <div class="px-5 pb-5 flex justify-end gap-2">
+                <button type="button" @click="refModal.open = false" class="px-4 py-2 rounded-xl text-[13px] text-gray-500 ring-1 ring-black/10 hover:bg-gray-50">Cancelar</button>
+                <button
+                  type="button"
+                  @click="confirmRefImage"
+                  :disabled="!refModal.preview"
+                  class="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-[#FC9AD3] hover:bg-[#f98acd] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >Confirmar</button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
+
       <!-- ══════════════════════════════════════════════════════════════════ -->
-      <!-- STEP 4 — Pago (placeholder)                                       -->
+      <!-- STEP 4 — Pago                                                     -->
       <!-- ══════════════════════════════════════════════════════════════════ -->
-      <div
-        v-else-if="step === 4"
-        class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.08)] overflow-hidden"
-      >
-        <div class="px-6 py-5 border-b border-black/10">
-          <h2 class="text-[18px] font-bold text-[#111827]">Paso 4: Pago</h2>
-          <p class="mt-0.5 text-[13px] text-gray-400">Próximamente</p>
+      <div v-if="step === 4" class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+
+        <!-- LEFT: Tipo de Pago + Monto -->
+        <div class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.08)] overflow-hidden">
+          <div class="px-6 py-4 border-b border-black/10">
+            <h2 class="text-[16px] font-bold text-[#111827]">Tipo de Pago</h2>
+          </div>
+          <div class="px-6 py-5 space-y-5">
+
+            <!-- Payment type select -->
+            <div class="relative">
+              <select v-model="step4.paymentType" class="w-full appearance-none rounded-xl bg-[#F3F3F4] pl-4 pr-9 py-2.5 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
+                <option v-for="pt in PAYMENT_TYPES" :key="pt.value" :value="pt.value">{{ pt.label }}</option>
+              </select>
+              <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+
+            <!-- Costo por servicio -->
+            <div>
+              <p class="text-[14px] font-semibold text-[#111827] mb-2">Costo por servicio</p>
+              <div class="flex items-center h-10 rounded-xl bg-[#F3F3F4] ring-1 ring-black/10 overflow-hidden">
+                <span class="px-3 text-[12px] text-gray-400 font-medium border-r border-black/10 h-full flex items-center">$</span>
+                <input type="number" step="0.01" min="0" v-model.number="serviceCost" placeholder="0.00"
+                  class="flex-1 bg-transparent px-3 text-[13px] font-semibold text-[#111827] outline-none" />
+              </div>
+            </div>
+
+            <!-- Monto -->
+            <div>
+              <p class="text-[14px] font-semibold text-[#111827] mb-3">Monto</p>
+              <div class="space-y-3">
+
+                <!-- Pago completo -->
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input type="radio" v-model="step4.paymentMode" value="FULL" class="mt-0.5 accent-[#FC9AD3]" />
+                  <div class="flex-1">
+                    <span class="text-[13px] font-medium text-[#111827]">Pago completo</span>
+                    <div class="mt-1.5 rounded-lg bg-[#F3F3F4] px-3 py-2 text-[13px] font-semibold text-gray-500">
+                      {{ formatMXN(orderTotal) }}
+                    </div>
+                  </div>
+                </label>
+
+                <!-- Pago con depósito -->
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input type="radio" v-model="step4.paymentMode" value="DEPOSIT" class="mt-0.5 accent-[#FC9AD3]" />
+                  <div class="flex-1">
+                    <span class="text-[13px] font-medium text-[#111827]">Pago con depósito</span>
+                    <div class="mt-1.5 space-y-2" :class="step4.paymentMode !== 'DEPOSIT' ? 'opacity-50' : ''">
+                      <div class="flex items-center h-9 rounded-lg bg-[#F3F3F4] ring-1 ring-black/10 overflow-hidden">
+                        <span class="px-2.5 text-[12px] text-gray-400 font-medium border-r border-black/10 h-full flex items-center">$</span>
+                        <input
+                          type="number" step="0.01" min="0"
+                          v-model.number="step4.depositAmount"
+                          placeholder="Monto de depósito"
+                          :disabled="step4.paymentMode !== 'DEPOSIT'"
+                          class="flex-1 bg-transparent px-2.5 text-[13px] text-[#111827] outline-none"
+                        />
+                      </div>
+                      <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-[#F3F3F4] text-[12px]">
+                        <span class="text-gray-500">Restante:</span>
+                        <span class="font-semibold" :class="remaining < 0 ? 'text-red-500' : 'text-[#111827]'">{{ formatMXN(remaining) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </label>
+
+              </div>
+            </div>
+
+          </div>
         </div>
-        <div class="px-6 py-16 flex flex-col items-center text-gray-300">
-          <svg viewBox="0 0 24 24" class="h-14 w-14 mb-4" fill="none" stroke="currentColor" stroke-width="1">
-            <rect x="1" y="4" width="22" height="16" rx="2"/>
-            <path d="M1 10h22"/>
-          </svg>
-          <p class="text-[14px] text-gray-400">Esta sección está en construcción</p>
+
+        <!-- RIGHT: Resumen del Pedido -->
+        <div class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.08)] overflow-hidden flex flex-col">
+          <div class="px-6 py-4 border-b border-black/10">
+            <h2 class="text-[16px] font-bold text-[#111827]">Resumen del Pedido</h2>
+          </div>
+
+          <!-- Product list -->
+          <div class="divide-y divide-black/5 overflow-y-auto max-h-72">
+            <div v-for="(row, i) in orderProducts" :key="row.product.id" class="flex items-start gap-3 px-5 py-3">
+              <!-- Thumbnail -->
+              <div class="h-12 w-12 shrink-0 rounded-lg overflow-hidden bg-[#F3F3F4]">
+                <img v-if="getProductImageUrl(row.product)" :src="getProductImageUrl(row.product)!" :alt="row.product.name" class="h-full w-full object-cover" />
+                <div v-else class="h-full w-full flex items-center justify-center text-gray-300">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M21 15l-5-5L5 21"/></svg>
+                </div>
+              </div>
+              <!-- Info -->
+              <div class="flex-1 min-w-0">
+                <p class="text-[13px] font-semibold text-[#111827] truncate">{{ row.product.name }}</p>
+                <p class="text-[11px] text-gray-400 mt-0.5">Cantidad: {{ row.qty }}</p>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span v-if="row.qty > 1" class="text-[11px] text-gray-400">{{ formatMXN(row.price) }} c/u ·</span>
+                  <span class="text-[12px] font-semibold text-[#C9007C]">{{ formatMXN(row.price * row.qty) }}</span>
+                </div>
+                <button type="button" @click="openDetailModal(i)" class="mt-1 text-[11px] text-[#FC9AD3] hover:text-[#C9007C] font-medium underline underline-offset-2 transition-colors">Ver detalle</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Totals -->
+          <div class="border-t border-black/10 px-5 py-4 space-y-2.5 mt-auto">
+            <div class="flex items-center justify-between text-[13px]">
+              <span class="text-gray-500">Subtotal</span>
+              <span class="font-semibold text-[#111827]">{{ formatMXN(subtotal) }}</span>
+            </div>
+            <div class="flex items-center justify-between text-[13px]">
+              <span class="text-gray-500">Costo por servicio</span>
+              <span class="font-semibold text-[#111827]">{{ formatMXN(serviceCost) }}</span>
+            </div>
+            <div class="flex items-center justify-between text-[14px] pt-1.5 border-t border-black/10">
+              <span class="font-bold text-[#111827]">Total</span>
+              <span class="font-bold text-[#111827]">{{ formatMXN(orderTotal) }}</span>
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- ── Product detail modal ──────────────────────────────────────── -->
+      <Teleport to="body">
+        <Transition
+          enter-active-class="transition duration-150 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-100 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div v-if="detailModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" @click.self="closeDetailModal">
+            <div v-if="detailRow" class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+
+              <!-- Header -->
+              <div class="flex items-center gap-3 px-5 py-4 border-b border-black/10">
+                <div class="h-10 w-10 shrink-0 rounded-lg overflow-hidden bg-[#F3F3F4]">
+                  <img v-if="getProductImageUrl(detailRow.product)" :src="getProductImageUrl(detailRow.product)!" :alt="detailRow.product.name" class="h-full w-full object-cover" />
+                  <div v-else class="h-full w-full flex items-center justify-center text-gray-300">
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M21 15l-5-5L5 21"/></svg>
+                  </div>
+                </div>
+                <div>
+                  <p class="text-[15px] font-bold text-[#111827]">{{ detailRow.product.name }}</p>
+                  <p class="text-[12px] text-gray-400">Detalles del producto</p>
+                </div>
+                <button type="button" @click="closeDetailModal" class="ml-auto text-gray-300 hover:text-gray-500 transition-colors">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+
+              <!-- Attributes -->
+              <div class="px-5 py-4 max-h-[55vh] overflow-y-auto divide-y divide-black/5">
+
+                <!-- Empty state -->
+                <div v-if="!detailRowHasDetails" class="flex flex-col items-center py-8 text-gray-300">
+                  <svg viewBox="0 0 24 24" class="h-10 w-10 mb-3" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke-linecap="round"/>
+                  </svg>
+                  <p class="text-[13px] font-medium text-gray-400">Sin detalles adicionales</p>
+                  <p class="text-[11px] text-gray-300 mt-1">No se especificaron atributos para este producto</p>
+                </div>
+
+                <div v-if="detailRow.sizeId" class="flex justify-between py-2">
+                  <span class="text-[12px] text-gray-500">Tamaño</span>
+                  <span class="text-[12px] font-semibold text-[#111827]">{{ detailRow.sizeId }}</span>
+                </div>
+                <div v-if="detailRow.colorId" class="flex justify-between items-center py-2">
+                  <span class="text-[12px] text-gray-500">Color</span>
+                  <span class="flex items-center gap-1.5 text-[12px] font-semibold text-[#111827]">
+                    <span class="h-3 w-3 rounded-full ring-1 ring-black/10" :style="{ background: colorHex(detailRow.colorId) }"></span>
+                    {{ colorName(detailRow.colorId) }}
+                  </span>
+                </div>
+                <div v-if="detailRow.breadId" class="flex justify-between py-2">
+                  <span class="text-[12px] text-gray-500">Tipo de Pan</span>
+                  <span class="text-[12px] font-semibold text-[#111827]">{{ catalogLabel(breadTypes, detailRow.breadId) }}</span>
+                </div>
+                <div v-if="detailRow.flavorId" class="flex justify-between py-2">
+                  <span class="text-[12px] text-gray-500">Sabor</span>
+                  <span class="text-[12px] font-semibold text-[#111827]">{{ catalogLabel(flavors, detailRow.flavorId) }}</span>
+                </div>
+                <div v-if="detailRow.fillingId" class="flex justify-between py-2">
+                  <span class="text-[12px] text-gray-500">Relleno</span>
+                  <span class="text-[12px] font-semibold text-[#111827]">{{ catalogLabel(fillings, detailRow.fillingId) }}</span>
+                </div>
+                <div v-if="detailRow.frostingId" class="flex justify-between py-2">
+                  <span class="text-[12px] text-gray-500">Frosting</span>
+                  <span class="text-[12px] font-semibold text-[#111827]">{{ catalogLabel(frostings, detailRow.frostingId) }}</span>
+                </div>
+                <div v-if="detailRow.styleId" class="flex justify-between py-2">
+                  <span class="text-[12px] text-gray-500">Estilo</span>
+                  <span class="text-[12px] font-semibold text-[#111827]">{{ catalogLabel(styles, detailRow.styleId) }}</span>
+                </div>
+                <div v-if="detailRow.withText && detailRow.text" class="flex justify-between py-2">
+                  <span class="text-[12px] text-gray-500">Texto</span>
+                  <span class="text-[12px] font-semibold text-[#111827] text-right max-w-[60%]">&ldquo;{{ detailRow.text }}&rdquo; · {{ optionLabel(UBICACION_OPTIONS, detailRow.textLocation) }}</span>
+                </div>
+                <div v-if="detailRow.mangaStyle && detailRow.mangaStyle !== 'NONE'" class="flex justify-between py-2">
+                  <span class="text-[12px] text-gray-500">Manga</span>
+                  <span class="text-[12px] font-semibold text-[#111827]">{{ optionLabel(MANGA_OPTIONS, detailRow.mangaStyle) }}{{ detailRow.mangaNotes ? ` · ${detailRow.mangaNotes}` : '' }}</span>
+                </div>
+                <div v-if="detailRow.notes" class="flex justify-between py-2">
+                  <span class="text-[12px] text-gray-500">Notas</span>
+                  <span class="text-[12px] font-semibold text-[#111827] text-right max-w-[60%]">{{ detailRow.notes }}</span>
+                </div>
+                <div v-if="detailRow.referencePreview" class="pt-3 pb-1">
+                  <p class="text-[12px] text-gray-500 mb-2">Imagen de referencia</p>
+                  <img :src="detailRow.referencePreview" alt="Referencia" class="w-full max-h-44 object-contain rounded-lg ring-1 ring-black/10" />
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="px-5 py-3 border-t border-black/10 flex justify-end">
+                <button type="button" @click="closeDetailModal"
+                  class="h-9 px-6 rounded-xl text-[13px] font-semibold bg-[#111827] text-white hover:bg-black/80 transition-colors">
+                  Cerrar
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
 
       <!-- ── Selected customer summary bar (steps 2–4) ─────────────────── -->
       <div
         v-if="step > 1 && selectedCustomer"
-        class="mt-4 rounded-2xl bg-white ring-1 ring-black/10 px-5 py-3 flex items-center gap-3"
+        class="mt-4 rounded-2xl bg-white ring-1 ring-black/10 px-5 py-3"
+        :class="step === 4 ? 'flex flex-col gap-2' : 'flex items-center gap-3'"
       >
-        <div class="h-8 w-8 shrink-0 rounded-full grid place-items-center font-bold text-[12px] text-white" style="background-color:#FC9AD3">
-          {{ selectedCustomer.fullName.slice(0, 2).toUpperCase() }}
+        <!-- Row 1: avatar + name/phone + change button -->
+        <div class="flex items-center gap-3">
+          <div class="h-8 w-8 shrink-0 rounded-full grid place-items-center font-bold text-[12px] text-white" style="background-color:#FC9AD3">
+            {{ selectedCustomer.fullName.slice(0, 2).toUpperCase() }}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-semibold text-[#111827] truncate">{{ selectedCustomer.fullName }}</p>
+            <p class="text-[12px] text-gray-400">{{ selectedCustomer.phone }}</p>
+          </div>
+          <button
+            type="button"
+            class="ml-auto text-[12px] font-semibold transition-colors shrink-0"
+            style="color:#FC9AD3"
+            @click="step = 1"
+          >
+            Cambiar
+          </button>
         </div>
-        <div class="min-w-0">
-          <p class="text-[13px] font-semibold text-[#111827] truncate">{{ selectedCustomer.fullName }}</p>
-          <p class="text-[12px] text-gray-400">{{ selectedCustomer.phone }}</p>
+
+        <!-- Row 2 (step 4 only): logistics summary -->
+        <div v-if="step === 4 && step2.orderType" class="border-t border-black/8 pt-2 flex flex-wrap gap-x-6 gap-y-1.5">
+
+          <!-- Order type badge -->
+          <div class="flex items-center gap-1.5">
+            <span class="inline-block rounded-full bg-[#FC9AD3]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#C9007C]">
+              {{ ORDER_TYPE_LABELS[step2.orderType] ?? step2.orderType }}
+            </span>
+          </div>
+
+          <!-- VITRINA: pickup branch + date/time -->
+          <template v-if="step2.orderType === 'VITRINA'">
+            <div class="flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0 text-[#FC9AD3]" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              <span class="text-[12px] text-gray-600 font-medium">{{ step4PickupBranchName }}</span>
+            </div>
+            <div v-if="step2.pickupDate" class="flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0 text-[#FC9AD3]" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round"/></svg>
+              <span class="text-[12px] text-gray-600">{{ formatDate(step2.pickupDate) }}{{ step2.pickupTime ? ` · ${step2.pickupTime}` : '' }}</span>
+            </div>
+          </template>
+
+          <!-- Other types: address + delivery date/time -->
+          <template v-else>
+            <div v-if="step4DeliveryAddr" class="flex items-start gap-1.5 min-w-0">
+              <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0 mt-0.5 text-[#FC9AD3]" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              <span class="text-[12px] text-gray-600 truncate">{{ step4DeliveryAddr }}</span>
+            </div>
+            <div v-if="step2.deliveryDate" class="flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0 text-[#FC9AD3]" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round"/></svg>
+              <span class="text-[12px] text-gray-600">{{ formatDate(step2.deliveryDate) }}{{ step2.deliveryTime ? ` · ${step2.deliveryTime}` : '' }}</span>
+            </div>
+          </template>
+
         </div>
-        <button
-          type="button"
-          class="ml-auto text-[12px] font-semibold transition-colors"
-          style="color:#FC9AD3"
-          @click="step = 1"
-        >
-          Cambiar
-        </button>
       </div>
 
       <!-- ── Footer navigation ─────────────────────────────────────────────── -->
@@ -1294,3 +2195,8 @@ function formatCustomerAddress(c: CustomerItem) {
     </div>
   </section>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.15s ease; }
+.fade-enter-from, .fade-leave-to       { opacity: 0; }
+</style>

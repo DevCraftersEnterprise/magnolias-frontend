@@ -47,6 +47,7 @@ const pageTitle = computed(() => {
     '/admin': 'Panel Administrativo',
     '/admin/productos': 'Productos',
     '/admin/pedidos': 'Pedidos',
+    '/admin/pedidos/crear': 'Pedidos',
     '/admin/sucursales': 'Sucursales',
     '/admin/catalogos': 'Catálogos',
     '/admin/clientes': 'Clientes',
