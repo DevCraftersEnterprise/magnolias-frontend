@@ -11,6 +11,7 @@ import { catalogsService, type FlowerItem, type ColorItem, type BreadTypeItem, t
 import { usersService, type UserItem } from '~/services/users.service'
 import { productsService, getProductImageUrl } from '~/services/products.service'
 import type { ProductItem } from '~/services/categories.service'
+import { ordersService, type CreateOrderPayload } from '~/services/orders.service'
 
 const router = useRouter()
 
@@ -403,7 +404,9 @@ watch(exitTimeParts,     pts => { step2.eventExitTime = buildTime24(pts.h, pts.m
 
 function timeToMinutes(t: string) {
   if (!t) return -1
-  const [h, m] = t.split(':').map(Number)
+  const parts = t.split(':').map(Number)
+  const h = parts[0] ?? 0
+  const m = parts[1] ?? 0
   return h * 60 + m
 }
 const pickupTimeOutOfHours = computed(() => {
@@ -489,7 +492,9 @@ function formatDate(d: string) {
 }
 function formatTime(t: string) {
   if (!t) return ''
-  const [hStr, mStr] = t.split(':')
+  const parts = t.split(':')
+  const hStr = parts[0] ?? '0'
+  const mStr = parts[1] ?? '00'
   const h = parseInt(hStr, 10)
   const ampm = h < 12 ? 'AM' : 'PM'
   const hour12 = h % 12 || 12
@@ -544,6 +549,148 @@ const canNext = computed(() => {
   }
   return true
 })
+
+// ─── Submit ──────────────────────────────────────────────────────────────────
+const submitting = ref(false)
+const submitError = ref('')
+
+async function submitOrder() {
+  if (!canNext.value || submitting.value) return
+  submitting.value = true
+  submitError.value = ''
+
+  try {
+    const customer  = selectedCustomer.value!
+    const branchId  = topbarBranch.value?.id ?? ''
+    const isVitrina = step2.orderType === 'VITRINA' || (step2.orderType === 'FLOR' && florMode.value === 'vitrina')
+    const isEvento  = step2.orderType === 'EVENTO'
+
+    // ── delivery date ──────────────────────────────────────────────────────
+    const deliveryDateISO = isVitrina
+      ? (step2.pickupDate ? `${step2.pickupDate}T00:00:00Z` : undefined)
+      : (step2.deliveryDate ? `${step2.deliveryDate}T00:00:00Z` : undefined)
+
+    // ── delivery round ─────────────────────────────────────────────────────
+    const roundMap: Record<string, string> = { '1': 'ROUND_1', '2': 'ROUND_2', '3': 'ROUND_3' }
+    const deliveryRound = step2.deliveryRound ? (roundMap[step2.deliveryRound] ?? step2.deliveryRound) : undefined
+
+    // ── payment ────────────────────────────────────────────────────────────
+    const pmMap: Record<string, string> = { EFECTIVO: 'CASH', TARJETA: 'CARD', TRANSFERENCIA: 'TRANSFER' }
+    const paymentMethod = pmMap[step4.paymentType] ?? step4.paymentType
+    const advancePayment = step4.paymentMode === 'FULL' ? orderTotal.value : (step4.depositAmount || 0)
+
+    // ── event services ─────────────────────────────────────────────────────
+    const eventServices: string[] = []
+    if (isEvento) {
+      if (step2.eventServices.dessertTable) eventServices.push('DESSERT_TABLE')
+      if (step2.eventServices.cake)         eventServices.push('CAKE')
+      if (step2.eventServices.montage)      eventServices.push('MONTAGE')
+    }
+
+    // ── delivery address ────────────────────────────────────────────────────
+    let deliveryAddress: CreateOrderPayload['deliveryAddress'] | undefined
+    if (!isVitrina) {
+      if (step2.useCustomerAddr) {
+        deliveryAddress = {
+          useCustomerAddress: true,
+          betweenStreets:  step2.betweenStreets || undefined,
+          interphoneCode:  step2.interphoneCode || undefined,
+          reference:       step2.reference || undefined,
+          deliveryNotes:   step2.deliveryNotes || undefined,
+          receiverName:    step2.receiverName || undefined,
+          receiverPhone:   step2.receiverPhone || undefined,
+        }
+      } else {
+        deliveryAddress = {
+          useCustomerAddress: false,
+          newAddress: {
+            street:        step2.newAddr.street,
+            number:        step2.newAddr.number,
+            neighborhood:  step2.newAddr.neighborhood,
+            city:          step2.newAddr.city || undefined,
+            postalCode:    step2.newAddr.postalCode || undefined,
+            betweenStreets:step2.newAddr.betweenStreets || undefined,
+            interphoneCode:step2.newAddr.interphoneCode || undefined,
+            reference:     step2.newAddr.reference || undefined,
+          },
+          deliveryNotes:  step2.newAddr.deliveryNotes || undefined,
+          receiverName:   step2.receiverName || undefined,
+          receiverPhone:  step2.receiverPhone || undefined,
+        }
+      }
+    }
+
+    // ── details ─────────────────────────────────────────────────────────────
+    const details = orderProducts.value.map(r => ({
+      productId:      r.product.id,
+      price:          r.price,
+      quantity:       r.qty,
+      productSize:    r.sizeId || undefined,
+      hasWriting:     r.withText,
+      writingText:    r.withText && r.text ? r.text : undefined,
+      writingLocation:r.withText && r.textLocation ? r.textLocation : undefined,
+      pipingLocation: r.mangaStyle && r.mangaStyle !== 'NONE' ? r.mangaStyle : undefined,
+      decorationNotes:r.mangaNotes || undefined,
+      notes:          r.notes || undefined,
+      breadTypeId:    r.breadId || undefined,
+      colorId:        r.colorId || undefined,
+      fillingId:      r.fillingId || undefined,
+      flavorId:       r.flavorId || undefined,
+      frostingId:     r.frostingId || undefined,
+      styleId:        r.styleId || undefined,
+      referenceFile:  r.referenceFile ?? undefined,
+    }))
+
+    // ── flowers ─────────────────────────────────────────────────────────────
+    const flowers = (step2.orderType === 'FLOR' || isEvento)
+      ? flowerRows.value
+          .filter(f => f.flowerId)
+          .map(f => ({
+            flowerId: f.flowerId,
+            colorId:  f.colorId || undefined,
+            quantity: Number(f.quantity) || 1,
+            notes:    f.note || undefined,
+          }))
+      : undefined
+
+    // ── collection datetime for pickup ────────────────────────────────────
+    const collectionDateTime = isVitrina && step2.pickupDate
+      ? `${step2.pickupDate}T${step2.pickupTime || '08:00'}:00Z`
+      : undefined
+
+    const payload: CreateOrderPayload = {
+      orderType:            step2.orderType!,
+      customerId:           customer.id,
+      branchId,
+      advancePayment,
+      paymentMethod,
+      deliveryDate:         deliveryDateISO,
+      deliveryTime:         (!isVitrina && step2.deliveryTime) ? step2.deliveryTime : undefined,
+      deliveryRound,
+      collectionDateTime,
+      ...(isEvento && {
+        eventTime:           step2.deliveryTime || undefined,
+        setupTime:           step2.eventExitTime || undefined,
+        branchDepartureTime: step2.eventExitTime || undefined,
+        setupPersonName:     step2.eventResponsibleId || undefined,
+        guestCount:          step2.eventGuestCount ? Number(step2.eventGuestCount) : undefined,
+        setupServiceCost:    serviceCost.value || undefined,
+        eventServices:       eventServices.length ? eventServices : undefined,
+      }),
+      hasPhotoReference: orderProducts.value.some(r => !!r.referenceFile),
+      deliveryAddress,
+      details,
+      flowers,
+    }
+
+    await ordersService.createOrder(payload)
+    router.push('/admin/pedidos')
+  } catch (e: any) {
+    submitError.value = e?.message || 'Error al crear el pedido. Inténtalo de nuevo.'
+  } finally {
+    submitting.value = false
+  }
+}
 
 function back() {
   if (step.value === 1) router.push('/admin/pedidos')
@@ -1471,8 +1618,10 @@ function formatCustomerAddress(c: CustomerItem) {
 
             </fieldset>
 
-            <!-- ── Flores del Pedido (sólo FLOR) ──────────────────────── -->
-            <fieldset v-if="step2.orderType === 'FLOR'">
+          </template>
+
+          <!-- ── Flores del Pedido (sólo FLOR) ──────────────────────── -->
+          <fieldset v-if="step2.orderType === 'FLOR'">
               <div class="flex items-center gap-2 mb-3">
                 <legend class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">Flores del Pedido</legend>
                 <button
@@ -1656,8 +1805,6 @@ function formatCustomerAddress(c: CustomerItem) {
                 </div>
               </div>
             </fieldset>
-
-          </template>
 
         </div>
       </div>
@@ -2372,13 +2519,16 @@ function formatCustomerAddress(c: CustomerItem) {
             </p>
           </Transition>
 
+          <p v-if="submitError" class="text-[12px] text-red-500 text-right max-w-xs">{{ submitError }}</p>
+
           <button
             type="button"
-            class="h-11 px-7 rounded-xl text-[14px] font-bold text-white transition disabled:opacity-40"
+            class="h-11 px-7 rounded-xl text-[14px] font-bold text-white transition disabled:opacity-40 flex items-center gap-2"
             style="background-color:#FC9AD3"
-            :disabled="!canNext"
-            @click="next"
+            :disabled="!canNext || submitting"
+            @click="step === STEPS.length ? submitOrder() : next()"
           >
+            <div v-if="submitting" class="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
             {{ step === STEPS.length ? 'Confirmar pedido ✓' : 'Siguiente →' }}
           </button>
         </div>

@@ -106,6 +106,85 @@ export const STATUS_COLORS: Record<OrderStatus, { bg: string; text: string }> = 
   'CANCELED':   { bg: '#FFD9D9', text: '#C90000' },
 }
 
+// ─── Create order ──────────────────────────────────────────────────────────
+export type CreateOrderDetail = {
+  productId: string
+  price: number
+  quantity: number
+  productSize?: string
+  hasWriting: boolean
+  writingText?: string
+  writingLocation?: string
+  pipingLocation?: string
+  decorationNotes?: string
+  notes?: string
+  breadTypeId?: string
+  colorId?: string
+  fillingId?: string
+  flavorId?: string
+  frostingId?: string
+  styleId?: string
+  referenceFile?: File | null
+}
+
+export type CreateOrderFlower = {
+  flowerId: string
+  colorId?: string
+  quantity: number
+  notes?: string
+}
+
+export type CreateOrderDeliveryAddress = {
+  useCustomerAddress: boolean
+  newAddress?: {
+    street: string
+    number: string
+    neighborhood: string
+    city?: string
+    postalCode?: string
+    betweenStreets?: string
+    interphoneCode?: string
+    reference?: string
+  }
+  betweenStreets?: string
+  interphoneCode?: string
+  reference?: string
+  deliveryNotes?: string
+  receiverName?: string
+  receiverPhone?: string
+}
+
+export type CreateOrderPayload = {
+  orderType: OrderType
+  customerId: string
+  branchId: string
+  advancePayment: number
+  paymentMethod?: string
+  ticketNumber?: string
+  deliveryDate?: string
+  deliveryTime?: string
+  readyTime?: string
+  deliveryRound?: string
+  // VITRINA / FLOR-vitrina pickup
+  collectionDateTime?: string
+  // EVENTO
+  eventTime?: string
+  setupTime?: string
+  branchDepartureTime?: string
+  setupPersonName?: string
+  eventServices?: string[]
+  guestCount?: number
+  dessertsTotal?: number
+  setupServiceCost?: number
+  // misc
+  hasPhotoReference?: boolean
+  requiresInvoice?: boolean
+  transferAccount?: string
+  deliveryAddress?: CreateOrderDeliveryAddress
+  details: CreateOrderDetail[]
+  flowers?: CreateOrderFlower[]
+}
+
 // ─── Service ───────────────────────────────────────────────────────────────
 export const ordersService = {
   /** branchId va en el PATH — es obligatorio por ahora */
@@ -135,6 +214,39 @@ export const ordersService = {
     return apiFetch<OrderItem>(`/api/orders/${id}`, {
       method: 'GET',
       auth: true,
+    })
+  },
+
+  createOrder(payload: CreateOrderPayload) {
+    // If any product carries a reference image, send as multipart FormData
+    const hasFiles = payload.details.some(d => d.referenceFile)
+    if (hasFiles) {
+      const form = new FormData()
+      const { details, flowers, ...rest } = payload
+      const detailsMeta = details.map(({ referenceFile, ...d }) => d)
+      const jsonBody = { ...rest, details: detailsMeta, flowers }
+      console.log('[createOrder] FormData payload:', JSON.stringify(jsonBody, null, 2))
+      // Append scalar fields directly
+      Object.entries(rest).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) form.append(key, String(value))
+      })
+      // Append arrays as JSON strings
+      form.append('details', JSON.stringify(detailsMeta))
+      if (flowers && flowers.length > 0) form.append('flowers', JSON.stringify(flowers))
+      // Append reference images
+      details.forEach((d) => {
+        if (d.referenceFile) form.append('referenceImages', d.referenceFile)
+      })
+      return apiFetch<OrderItem>('/api/orders', { method: 'POST', auth: true, body: form })
+    }
+    const { details, ...rest } = payload
+    const detailsMeta = details.map(({ referenceFile, ...d }) => d)
+    const jsonBody = { ...rest, details: detailsMeta }
+    console.log('[createOrder] JSON payload:', JSON.stringify(jsonBody, null, 2))
+    return apiFetch<OrderItem>('/api/orders', {
+      method: 'POST',
+      auth: true,
+      body: JSON.stringify(jsonBody),
     })
   },
 }
