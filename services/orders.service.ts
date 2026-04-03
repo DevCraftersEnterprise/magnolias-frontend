@@ -2,7 +2,7 @@ import { apiFetch } from '~/services/api.client'
 
 // Valores exactos que devuelve/acepta el backend
 export type OrderStatus = 'CREATED' | 'IN PROCESS' | 'DONE' | 'DELIVERED' | 'CANCELED'
-export type OrderType   = 'DOMICILIO' | 'EVENTO' | 'VITRINA' | 'PERSONALIZADO' | 'FLOR'
+export type OrderType = 'DOMICILIO' | 'EVENTO' | 'VITRINA' | 'PERSONALIZADO' | 'FLOR'
 
 export type OrderDeliveryAddress = {
   street?: string
@@ -74,36 +74,36 @@ export type OrderFilters = {
 
 // ─── Labels ────────────────────────────────────────────────────────────────
 export const TYPE_LABELS: Record<OrderType, string> = {
-  DOMICILIO:    'Domicilio',
-  EVENTO:       'Evento',
-  VITRINA:      'Vitrina',
-  PERSONALIZADO:'Personalizado',
-  FLOR:         'Flor',
+  DOMICILIO: 'Domicilio',
+  EVENTO: 'Evento',
+  VITRINA: 'Vitrina',
+  PERSONALIZADO: 'Personalizado',
+  FLOR: 'Flor',
 }
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
-  'CREATED':    'Creado',
+  'CREATED': 'Creado',
   'IN PROCESS': 'En proceso',
-  'DONE':       'Finalizado',
-  'DELIVERED':  'Entregado',
-  'CANCELED':   'Cancelado',
+  'DONE': 'Finalizado',
+  'DELIVERED': 'Entregado',
+  'CANCELED': 'Cancelado',
 }
 
 // ─── Colors (design system del dashboard) ──────────────────────────────────
 export const TYPE_COLORS: Record<OrderType, { bg: string; text: string }> = {
-  DOMICILIO:    { bg: '#E6ABFA', text: '#7C00C9' },
-  EVENTO:       { bg: '#AAE9FA', text: '#007C8A' },
-  VITRINA:      { bg: '#D9D9D9', text: '#555555' },
-  PERSONALIZADO:{ bg: '#FFD9B9', text: '#C94A00' },
-  FLOR:         { bg: '#FFBEE6', text: '#C9007C' },
+  DOMICILIO: { bg: '#E6ABFA', text: '#7C00C9' },
+  EVENTO: { bg: '#AAE9FA', text: '#007C8A' },
+  VITRINA: { bg: '#D9D9D9', text: '#555555' },
+  PERSONALIZADO: { bg: '#FFD9B9', text: '#C94A00' },
+  FLOR: { bg: '#FFBEE6', text: '#C9007C' },
 }
 
 export const STATUS_COLORS: Record<OrderStatus, { bg: string; text: string }> = {
-  'CREATED':    { bg: '#B9FFC6', text: '#00C91D' },
+  'CREATED': { bg: '#B9FFC6', text: '#00C91D' },
   'IN PROCESS': { bg: '#FFF8A9', text: '#C7B400' },
-  'DONE':       { bg: '#B9D9FF', text: '#0047C9' },
-  'DELIVERED':  { bg: '#FFD9B9', text: '#C94A00' },
-  'CANCELED':   { bg: '#FFD9D9', text: '#C90000' },
+  'DONE': { bg: '#B9D9FF', text: '#0047C9' },
+  'DELIVERED': { bg: '#FFD9B9', text: '#C94A00' },
+  'CANCELED': { bg: '#FFD9D9', text: '#C90000' },
 }
 
 // ─── Create order ──────────────────────────────────────────────────────────
@@ -222,17 +222,18 @@ export const ordersService = {
     const hasFiles = payload.details.some(d => d.referenceFile)
     if (hasFiles) {
       const form = new FormData()
-      const { details, flowers, ...rest } = payload
+      // Destructure complex/nested fields that cannot be safely stringified with String()
+      const { details, flowers, deliveryAddress, eventServices, ...scalars } = payload
       const detailsMeta = details.map(({ referenceFile, ...d }) => d)
-      const jsonBody = { ...rest, details: detailsMeta, flowers }
-      console.log('[createOrder] FormData payload:', JSON.stringify(jsonBody, null, 2))
-      // Append scalar fields directly
-      Object.entries(rest).forEach(([key, value]) => {
+      // Append primitive/scalar fields directly
+      Object.entries(scalars).forEach(([key, value]) => {
         if (value !== undefined && value !== null) form.append(key, String(value))
       })
-      // Append arrays as JSON strings
+      // Append complex fields as JSON strings so the backend can parse them
       form.append('details', JSON.stringify(detailsMeta))
       if (flowers && flowers.length > 0) form.append('flowers', JSON.stringify(flowers))
+      if (deliveryAddress) form.append('deliveryAddress', JSON.stringify(deliveryAddress))
+      if (eventServices && eventServices.length > 0) form.append('eventServices', JSON.stringify(eventServices))
       // Append reference images
       details.forEach((d) => {
         if (d.referenceFile) form.append('referenceImages', d.referenceFile)
@@ -242,7 +243,6 @@ export const ordersService = {
     const { details, ...rest } = payload
     const detailsMeta = details.map(({ referenceFile, ...d }) => d)
     const jsonBody = { ...rest, details: detailsMeta }
-    console.log('[createOrder] JSON payload:', JSON.stringify(jsonBody, null, 2))
     return apiFetch<OrderItem>('/api/orders', {
       method: 'POST',
       auth: true,
