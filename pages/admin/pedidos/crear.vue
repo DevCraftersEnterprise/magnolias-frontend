@@ -162,21 +162,26 @@ const productSearching = ref(false)
 const productResults   = ref<ProductItem[]>([])
 const showProductPanel = ref(false)
 
+let productSearchTimer: ReturnType<typeof setTimeout> | null = null
+
 watch(productQuery, (q) => {
+  if (productSearchTimer) clearTimeout(productSearchTimer)
   const trimmed = q.trim()
   if (!trimmed) {
     productResults.value = []
     showProductPanel.value = false
     return
   }
-  productSearching.value = true
-  productsService.getProducts(12, 0, { name: trimmed })
-    .then(r => {
-      productResults.value = r.items
-      showProductPanel.value = true
-    })
-    .catch(() => { productResults.value = [] })
-    .finally(() => { productSearching.value = false })
+  productSearchTimer = setTimeout(() => {
+    productSearching.value = true
+    productsService.getProducts(12, 0, { name: trimmed })
+      .then(r => {
+        productResults.value = r.items
+        showProductPanel.value = true
+      })
+      .catch(() => { productResults.value = [] })
+      .finally(() => { productSearching.value = false })
+  }, 400)
 })
 
 // Color picker open state per row (flower rows + product rows handled by index key)
@@ -237,6 +242,8 @@ type OrderProductRow = {
   // manga decoration
   mangaStyle:  string
   mangaNotes:  string
+  // size custom text
+  customSize: string
   // notes
   notes:     string
   // reference image
@@ -254,7 +261,9 @@ function makeProductRow(p: ProductItem): OrderProductRow {
     fillingId: '', frostingId: '', styleId: '',
     withText: false, text: '', textLocation: 'TOP',
     mangaStyle: '', mangaNotes: '',
+    customSize: '',
     notes: '',
+
     withReference: false, referenceFile: null, referencePreview: '',
   }
 }
@@ -561,8 +570,8 @@ async function submitOrder() {
 
   try {
     const customer  = selectedCustomer.value!
-    const branchId  = topbarBranch.value?.id ?? ''
     const isVitrina = step2.orderType === 'VITRINA' || (step2.orderType === 'FLOR' && florMode.value === 'vitrina')
+    const branchId  = isVitrina ? (step2.pickupBranchId || (topbarBranch.value?.id ?? '')) : (topbarBranch.value?.id ?? '')
     const isEvento  = step2.orderType === 'EVENTO'
 
     // ── delivery date ──────────────────────────────────────────────────────
@@ -626,6 +635,7 @@ async function submitOrder() {
       price:          r.price,
       quantity:       r.qty,
       productSize:    r.sizeId || undefined,
+      customSize:     r.sizeId === 'CUSTOM' ? (r.customSize || undefined) : undefined,
       hasWriting:     r.withText,
       writingText:    r.withText && r.text ? r.text : undefined,
       writingLocation:r.withText && r.textLocation ? r.textLocation : undefined,
@@ -674,9 +684,9 @@ async function submitOrder() {
         branchDepartureTime: step2.eventExitTime || undefined,
         setupPersonName:     step2.eventResponsibleId || undefined,
         guestCount:          step2.eventGuestCount ? Number(step2.eventGuestCount) : undefined,
-        setupServiceCost:    serviceCost.value || undefined,
         eventServices:       eventServices.length ? eventServices : undefined,
       }),
+      setupServiceCost:    serviceCost.value || undefined,
       hasPhotoReference: orderProducts.value.some(r => !!r.referenceFile),
       deliveryAddress,
       details,
@@ -1965,8 +1975,27 @@ function formatCustomerAddress(c: CustomerItem) {
                   <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
                     <div class="flex items-center gap-2">
                       <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Tamaño</span>
-                      <input v-model="row.sizeId" type="text" placeholder="ej. 20 P"
-                        class="w-20 rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60" />
+                      <div class="relative">
+                        <select v-model="row.sizeId" class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
+                          <option value="">—</option>
+                          <option value="10P">10 P</option>
+                          <option value="15P">15 P</option>
+                          <option value="20P">20 P</option>
+                          <option value="25P">25 P</option>
+                          <option value="30P">30 P</option>
+                          <option value="40P">40 P</option>
+                          <option value="50P">50 P</option>
+                          <option value="CUSTOM">Personalizado</option>
+                        </select>
+                        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </div>
+                      <input
+                        v-if="row.sizeId === 'CUSTOM'"
+                        v-model="row.customSize"
+                        type="text"
+                        placeholder="ej. 100 personas"
+                        class="w-28 rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60"
+                      />
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="text-[12px] font-medium text-gray-500 flex-shrink-0">Color</span>

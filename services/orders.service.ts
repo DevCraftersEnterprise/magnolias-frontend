@@ -112,6 +112,7 @@ export type CreateOrderDetail = {
   price: number
   quantity: number
   productSize?: string
+  customSize?: string
   hasWriting: boolean
   writingText?: string
   writingLocation?: string
