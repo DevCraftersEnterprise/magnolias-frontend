@@ -63,7 +63,9 @@ function clearSearch() {
   debouncedName.value = ''
   loadOrders(true)
 }
-const openMenuId    = ref<string | null>(null)
+const deleteTarget  = ref<OrderItem | null>(null)
+const deleteConfirm = ref(false)
+const deleting      = ref(false)
 
 const showingFrom    = computed(() => orders.value.length === 0 ? 0 : offset.value + 1)
 const showingTo      = computed(() => offset.value + orders.value.length)
@@ -113,9 +115,25 @@ async function nextPage() {
   await loadOrders(false)
 }
 
-function toggleMenu(id: string, e: Event) {
-  e.stopPropagation()
-  openMenuId.value = openMenuId.value === id ? null : id
+function confirmDelete(order: OrderItem) {
+  deleteTarget.value  = order
+  deleteConfirm.value = true
+}
+
+async function executeDelete() {
+  if (!deleteTarget.value || deleting.value) return
+  deleting.value = true
+  try {
+    await ordersService.deleteOrder(deleteTarget.value.id)
+    deleteConfirm.value = false
+    deleteTarget.value  = null
+    await loadOrders(true)
+  } catch (e: any) {
+    errorMsg.value = e?.message || 'No se pudo eliminar el pedido.'
+    deleteConfirm.value = false
+  } finally {
+    deleting.value = false
+  }
 }
 
 // ─── KANBAN STATE ─────────────────────────────────────────────────────────────
@@ -203,12 +221,6 @@ watch(selectedBranch, () => {
 
 watch([filterStatus, debouncedName], () => loadOrders(true))
 
-function handleClickOutside() {
-  openMenuId.value = null
-}
-onMounted(() => document.addEventListener('click', handleClickOutside))
-onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
-
 // ─── Order detail modal ───────────────────────────────────────────────────────
 const selectedOrder = ref<OrderItem | null>(null)
 const detailOpen    = ref(false)
@@ -216,7 +228,6 @@ const detailOpen    = ref(false)
 function openDetail(order: OrderItem) {
   selectedOrder.value = order
   detailOpen.value    = true
-  openMenuId.value    = null
 }
 </script>
 
@@ -394,42 +405,52 @@ function openDetail(order: OrderItem) {
                           </span>
                         </td>
 
-                        <!-- Acciones (...) -->
-                        <td class="px-4 py-3 relative">
-                          <button
-                            type="button"
-                            class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-black/5 transition"
-                            title="Opciones"
-                            @click="(e) => toggleMenu(order.id, e)"
-                          >
-                            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor">
-                              <circle cx="12" cy="5"  r="1.5"/>
-                              <circle cx="12" cy="12" r="1.5"/>
-                              <circle cx="12" cy="19" r="1.5"/>
-                            </svg>
-                          </button>
-
-                          <!-- Dropdown -->
-                          <Transition
-                            enter-active-class="transition duration-100 ease-out"
-                            enter-from-class="opacity-0 scale-95"
-                            enter-to-class="opacity-100 scale-100"
-                            leave-active-class="transition duration-75 ease-in"
-                            leave-from-class="opacity-100 scale-100"
-                            leave-to-class="opacity-0 scale-95"
-                          >
-                            <div
-                              v-if="openMenuId === order.id"
-                              class="absolute right-0 top-full z-30 mt-1 w-44 origin-top-right rounded-xl bg-white py-1 shadow-lg ring-1 ring-black/10 text-[13px]"
+                        <!-- Acciones -->
+                        <td class="px-4 py-3">
+                          <div class="flex items-center gap-0.5">
+                            <!-- Ver detalle -->
+                            <button
+                              type="button"
+                              class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-black/5 hover:text-[#111827] transition"
+                              title="Ver detalle"
+                              @click="openDetail(order)"
                             >
-                              <button class="w-full px-4 py-2 text-left text-[#111827] hover:bg-black/5 transition" @click="openDetail(order)">
-                                Ver detalle
-                              </button>
-                              <button class="w-full px-4 py-2 text-left text-[#111827] hover:bg-black/5 transition">
-                                Cambiar estado
-                              </button>
-                            </div>
-                          </Transition>
+                              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                              </svg>
+                            </button>
+                            <!-- Editar (solo CREATED) -->
+                            <button
+                              type="button"
+                              class="grid h-8 w-8 place-items-center rounded-lg transition"
+                              :class="order.status === 'CREATED'
+                                ? 'text-gray-400 hover:bg-black/5 hover:text-[#111827]'
+                                : 'text-gray-200 cursor-not-allowed'"
+                              :title="order.status === 'CREATED' ? 'Editar pedido' : 'Solo se pueden editar pedidos con estado Creado'"
+                              :disabled="order.status !== 'CREATED'"
+                              @click="order.status === 'CREATED' && navigateTo('/admin/pedidos/editar/' + order.id)"
+                            >
+                              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                            </button>
+                            <!-- Eliminar -->
+                            <button
+                              type="button"
+                              class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
+                              title="Eliminar pedido"
+                              @click="confirmDelete(order)"
+                            >
+                              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                <path d="M10 11v6M14 11v6"/>
+                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                              </svg>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     </tbody>
@@ -726,4 +747,26 @@ function openDetail(order: OrderItem) {
     :order="selectedOrder"
     @close="detailOpen = false"
   />
+
+  <!-- Delete confirm -->
+  <Teleport to="body">
+    <Transition enter-active-class="transition duration-150 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-100 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="deleteConfirm" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60" @click="deleteConfirm = false" />
+        <div class="relative z-10 w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 p-6">
+          <h3 class="text-[16px] font-bold text-[#111827]">¿Eliminar pedido?</h3>
+          <p class="mt-2 text-[13px] text-gray-500">
+            Se eliminará el pedido <span class="font-semibold text-[#111827]">{{ deleteTarget?.orderCode }}</span>. Esta acción no se puede deshacer.
+          </p>
+          <div class="mt-5 flex justify-end gap-2">
+            <button type="button" class="h-9 px-4 rounded-xl text-[13px] ring-1 ring-black/10 hover:bg-black/5 transition" @click="deleteConfirm = false">Cancelar</button>
+            <button type="button" class="h-9 px-4 rounded-xl text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 transition" :disabled="deleting" @click="executeDelete">
+              <span v-if="deleting" class="flex items-center gap-2"><span class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"/></span>
+              <span v-else>Eliminar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>

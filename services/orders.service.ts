@@ -9,6 +9,10 @@ export type OrderDeliveryAddress = {
   number?: string
   neighborhood?: string
   city?: string
+  postalCode?: string | null
+  interphoneCode?: string | null
+  betweenStreets?: string | null
+  reference?: string | null
   deliveryNotes?: string | null
   receiverName?: string
   receiverPhone?: string
@@ -29,7 +33,10 @@ export type OrderAuditUser = {
 export type OrderCustomer = {
   id: string
   fullName: string
-  phone?: string
+  phone?: string | null
+  alternativePhone?: string | null
+  email?: string | null
+  notes?: string | null
   address?: OrderCustomerAddress
 }
 
@@ -104,6 +111,195 @@ export const STATUS_COLORS: Record<OrderStatus, { bg: string; text: string }> = 
   'DONE': { bg: '#B9D9FF', text: '#0047C9' },
   'DELIVERED': { bg: '#FFD9B9', text: '#C94A00' },
   'CANCELED': { bg: '#FFD9D9', text: '#C90000' },
+}
+
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  CASH: 'Efectivo',
+  TRANSFER: 'Transferencia',
+  CARD: 'Tarjeta',
+  OTHER: 'Otro',
+}
+
+export const DELIVERY_ROUND_LABELS: Record<string, string> = {
+  ROUND_1: 'Ronda 1',
+  ROUND_2: 'Ronda 2',
+  ROUND_3: 'Ronda 3',
+  ROUND_4: 'Ronda 4',
+}
+
+// ─── Order detail types (GET /api/orders/{term}) ───────────────────────────
+export type OrderDetailProduct = {
+  id: string
+  name: string
+  description?: string | null
+  isFavorite?: boolean
+  isActive?: boolean
+}
+
+export type OrderDetailCatalogItem = {
+  id: string
+  name: string
+} | null
+
+export type OrderDetailItem = {
+  id: string
+  price: string
+  quantity: number
+  productSize?: string | null
+  customSize?: string | null
+  hasWriting?: boolean
+  writingText?: string | null
+  writingLocation?: string | null
+  pipingLocation?: string | null
+  decorationNotes?: string | null
+  notes?: string | null
+  referenceImageUrl?: string | null
+  isActive?: boolean
+  product?: OrderDetailProduct | null
+  color?: OrderDetailCatalogItem
+  breadType?: OrderDetailCatalogItem
+  filling?: OrderDetailCatalogItem
+  flavor?: OrderDetailCatalogItem
+  frosting?: OrderDetailCatalogItem
+  style?: OrderDetailCatalogItem
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type OrderDetailCustomer = {
+  id: string
+  fullName: string
+  phone?: string | null
+  alternativePhone?: string | null
+  email?: string | null
+  notes?: string | null
+  isActive?: boolean
+  address?: OrderCustomerAddress
+}
+
+export type OrderDetailDeliveryAddress = {
+  id?: string
+  street?: string
+  number?: string
+  neighborhood?: string
+  city?: string
+  postalCode?: string | null
+  interphoneCode?: string | null
+  betweenStreets?: string | null
+  reference?: string | null
+  deliveryNotes?: string | null
+  receiverName?: string
+  receiverPhone?: string
+  createdAt?: string
+}
+
+export type OrderDetailBranch = {
+  id: string
+  name: string
+  address?: string
+  isActive?: boolean
+}
+
+export type OrderDetailAuditUser = {
+  id: string
+  name: string
+  lastname: string
+  username?: string
+  role?: string
+}
+
+export type OrderDetail = {
+  id: string
+  orderType: OrderType
+  orderCode: string
+  deliveryRound?: string | null
+  deliveryDate: string
+  deliveryTime?: string | null
+  readyTime?: string | null
+  eventTime?: string | null
+  setupTime?: string | null
+  branchDepartureTime?: string | null
+  collectionDateTime?: string | null
+  setupPersonName?: string | null
+  eventServices?: string[] | null
+  guestCount?: number | null
+  totalAmount: string
+  advancePayment?: string
+  remainingBalance?: string
+  paidAmount?: string
+  dessertsTotal?: string
+  setupServiceCost?: string
+  hasPhotoReference?: boolean
+  ticketNumber?: string | null
+  settlementTicketNumber?: string | null
+  paymentMethod?: string | null
+  transferAccount?: string | null
+  requiresInvoice?: boolean
+  isCustomerPickup?: boolean
+  settlementDate?: string | null
+  settlementTotal?: string
+  status: OrderStatus
+  deliveryAddress?: OrderDetailDeliveryAddress
+  customer?: OrderDetailCustomer
+  branch?: OrderDetailBranch
+  createdBy?: OrderDetailAuditUser
+  updatedBy?: OrderDetailAuditUser
+  createdAt: string
+  updatedAt: string
+  details: OrderDetailItem[]
+  orderFlowers: any[]
+}
+
+// ─── Update order ──────────────────────────────────────────────────────────
+export type UpdateOrderDetailPayload = {
+  productId: string
+  price: number
+  quantity: number
+  productSize?: string
+  customSize?: string
+  hasWriting: boolean
+  writingText?: string
+  writingLocation?: string
+  pipingLocation?: string
+  decorationNotes?: string
+  notes?: string
+  breadTypeId?: string
+  colorId?: string
+  fillingId?: string
+  flavorId?: string
+  frostingId?: string
+  styleId?: string
+}
+
+export type UpdateOrderPayload = {
+  id: string
+  orderType?: OrderType
+  customerId?: string
+  branchId?: string
+  advancePayment?: number
+  payment?: number
+  paymentMethod?: string
+  transferAccount?: string
+  ticketNumber?: string
+  deliveryDate?: string
+  deliveryTime?: string
+  readyTime?: string
+  deliveryRound?: string
+  collectionDateTime?: string
+  eventTime?: string
+  setupTime?: string
+  branchDepartureTime?: string
+  setupPersonName?: string
+  eventServices?: string[]
+  guestCount?: number
+  dessertsTotal?: number
+  setupServiceCost?: number
+  hasPhotoReference?: boolean
+  requiresInvoice?: boolean
+  isCustomerPickup?: boolean
+  deliveryAddress?: CreateOrderDeliveryAddress
+  details?: UpdateOrderDetailPayload[]
+  flowers?: CreateOrderFlower[]
 }
 
 // ─── Create order ──────────────────────────────────────────────────────────
@@ -212,8 +408,23 @@ export const ordersService = {
   },
 
   getOrder(id: string) {
-    return apiFetch<OrderItem>(`/api/orders/${id}`, {
+    return apiFetch<OrderDetail>(`/api/orders/${id}`, {
       method: 'GET',
+      auth: true,
+    })
+  },
+
+  updateOrder(payload: UpdateOrderPayload) {
+    return apiFetch<OrderDetail>(`/api/orders`, {
+      method: 'PATCH',
+      auth: true,
+      body: JSON.stringify(payload),
+    })
+  },
+
+  deleteOrder(id: string) {
+    return apiFetch<void>(`/api/orders/${id}`, {
+      method: 'DELETE',
       auth: true,
     })
   },

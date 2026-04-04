@@ -66,20 +66,35 @@
                     </div>
                     <div>
                       <p class="text-[11px] text-gray-400">Hora</p>
-                      <p class="mt-0.5 text-[13px] font-medium text-[#111827]">{{ order.deliveryTime ?? '—' }}</p>
+                      <p class="mt-0.5 text-[13px] font-medium text-[#111827]">{{ activeData?.deliveryTime ?? order.deliveryTime ?? '—' }}</p>
                     </div>
                     <div>
                       <p class="text-[11px] text-gray-400">Tipo</p>
-                      <span
-                        v-if="order.orderType"
-                        class="mt-0.5 inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                        :style="typeColor(order.orderType)"
-                      >{{ typeLabel(order.orderType) }}</span>
-                      <p v-else class="mt-0.5 text-[13px] text-gray-400">—</p>
+                      <p class="mt-0.5 text-[13px] font-medium text-[#111827]">{{ typeLabel(activeData?.orderType ?? order.orderType) || '—' }}</p>
+                    </div>
+                    <div v-if="activeData?.deliveryRound">
+                      <p class="text-[11px] text-gray-400">Ronda</p>
+                      <p class="mt-0.5 text-[13px] font-medium text-[#111827]">{{ roundLabel(activeData.deliveryRound) }}</p>
+                    </div>
+                    <div v-if="activeData?.paymentMethod">
+                      <p class="text-[11px] text-gray-400">Pago</p>
+                      <p class="mt-0.5 text-[13px] font-medium text-[#111827]">{{ paymentLabel(activeData.paymentMethod) }}</p>
+                    </div>
+                    <div v-if="activeData?.branch">
+                      <p class="text-[11px] text-gray-400">Sucursal</p>
+                      <p class="mt-0.5 text-[13px] font-medium text-[#111827]">{{ activeData.branch.name }}</p>
+                    </div>
+                    <div v-if="activeData?.requiresInvoice || activeData?.isCustomerPickup" class="col-span-2 sm:col-span-3 flex gap-3">
+                      <span v-if="activeData.requiresInvoice" class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-600">
+                        Requiere factura
+                      </span>
+                      <span v-if="activeData.isCustomerPickup" class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-600">
+                        Recoge en tienda
+                      </span>
                     </div>
                   </div>
                   <!-- Montos -->
-                  <div class="border-t border-black/10 pt-4 grid grid-cols-3 gap-x-4">
+                  <div class="border-t border-black/10 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
                     <div>
                       <p class="text-[11px] text-gray-400">Total</p>
                       <p class="mt-0.5 text-[18px] font-bold text-[#111827]">{{ activeData?.totalAmount ?? order.totalAmount ?? '—' }}</p>
@@ -91,6 +106,14 @@
                     <div>
                       <p class="text-[11px] text-gray-400">Saldo restante</p>
                       <p class="mt-0.5 text-[14px] font-semibold text-[#C9007C]">{{ activeData?.remainingBalance ?? order.remainingBalance ?? '—' }}</p>
+                    </div>
+                    <div v-if="activeData?.setupServiceCost && activeData.setupServiceCost !== '$0.00'">
+                      <p class="text-[11px] text-gray-400">Costo montaje</p>
+                      <p class="mt-0.5 text-[13px] font-medium text-[#111827]">{{ activeData.setupServiceCost }}</p>
+                    </div>
+                    <div v-if="activeData?.dessertsTotal && activeData.dessertsTotal !== '$0.00'">
+                      <p class="text-[11px] text-gray-400">Postres</p>
+                      <p class="mt-0.5 text-[13px] font-medium text-[#111827]">{{ activeData.dessertsTotal }}</p>
                     </div>
                   </div>
                 </div>
@@ -120,7 +143,13 @@
                         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                       </svg>
                     </div>
-                    <p class="text-[13px] text-gray-700 leading-relaxed pt-1">{{ buildDeliveryAddress }}</p>
+                    <div class="pt-1 space-y-0.5">
+                      <p class="text-[13px] text-gray-700 leading-relaxed">{{ buildDeliveryAddress }}</p>
+                      <p v-if="activeDeliveryAddress.postalCode" class="text-[12px] text-gray-500">CP {{ activeDeliveryAddress.postalCode }}</p>
+                      <p v-if="activeDeliveryAddress.betweenStreets" class="text-[12px] text-gray-500">Entre: {{ activeDeliveryAddress.betweenStreets }}</p>
+                      <p v-if="activeDeliveryAddress.interphoneCode" class="text-[12px] text-gray-500">Interfón: {{ activeDeliveryAddress.interphoneCode }}</p>
+                      <p v-if="activeDeliveryAddress.reference" class="text-[12px] text-gray-500">Ref: {{ activeDeliveryAddress.reference }}</p>
+                    </div>
                   </div>
                   <!-- Notas de entrega -->
                   <div v-if="activeDeliveryAddress.deliveryNotes" class="ml-11 rounded-lg bg-white px-3 py-2 ring-1 ring-black/5 text-[12px] text-gray-500 italic">
@@ -132,7 +161,7 @@
               <!-- ─ 3. Cliente ─ -->
               <div v-if="activeCustomer">
                 <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">Cliente</p>
-                <div class="rounded-xl bg-[#F8F8F9] px-4 py-4">
+                <div class="rounded-xl bg-[#F8F8F9] px-4 py-4 space-y-3">
                   <div class="flex items-center gap-3">
                     <div class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#E6ABFA] font-bold text-[13px] text-[#7C00C9]">
                       {{ nameInitials(activeCustomer.fullName) }}
@@ -142,40 +171,102 @@
                       <p class="text-[12px] text-gray-500">{{ activeCustomer.phone ?? '—' }}</p>
                     </div>
                   </div>
-                  <div v-if="buildCustomerAddress" class="mt-3 flex items-center gap-2 text-[12px] text-gray-500">
-                    <svg class="h-3.5 w-3.5 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                    </svg>
-                    {{ buildCustomerAddress }}
+                  <div class="space-y-1.5 ml-12">
+                    <div v-if="activeCustomer.alternativePhone" class="flex items-center gap-1.5 text-[12px] text-gray-500">
+                      <svg class="h-3.5 w-3.5 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.39 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.81a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                      </svg>
+                      Alt: {{ activeCustomer.alternativePhone }}
+                    </div>
+                    <div v-if="activeCustomer.email" class="flex items-center gap-1.5 text-[12px] text-gray-500">
+                      <svg class="h-3.5 w-3.5 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                      </svg>
+                      {{ activeCustomer.email }}
+                    </div>
+                    <div v-if="buildCustomerAddress" class="flex items-center gap-1.5 text-[12px] text-gray-500">
+                      <svg class="h-3.5 w-3.5 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                      </svg>
+                      {{ buildCustomerAddress }}
+                    </div>
+                    <div v-if="activeCustomer.notes" class="rounded-lg bg-white px-3 py-2 ring-1 ring-black/5 text-[12px] text-gray-500 italic">
+                      {{ activeCustomer.notes }}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- ─ 4. Imagen de referencia ─ -->
-              <div>
-                <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">Imagen de referencia</p>
-                <div class="rounded-xl overflow-hidden ring-1 ring-black/10">
-                  <template v-if="referenceUrls.length > 0">
-                    <div :class="referenceUrls.length > 1 ? 'grid grid-cols-2 gap-0.5' : ''">
-                      <img
-                        v-for="(url, i) in referenceUrls"
-                        :key="i"
-                        :src="url"
-                        alt="Referencia del pedido"
-                        class="w-full object-cover bg-gray-100"
-                        :class="referenceUrls.length > 1 ? 'max-h-44' : 'max-h-64'"
-                      />
+              <!-- ─ 4. Productos del pedido ─ -->
+              <div v-if="activeData && activeData.details.length > 0">
+                <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">Productos ({{ activeData.details.length }})</p>
+                <div class="space-y-3">
+                  <div
+                    v-for="(detail, i) in activeData.details"
+                    :key="detail.id"
+                    class="rounded-xl bg-[#F8F8F9] overflow-hidden ring-1 ring-black/5"
+                  >
+                    <!-- Image -->
+                    <div v-if="detail.referenceImageUrl" class="w-full">
+                      <img :src="detail.referenceImageUrl" alt="Referencia" class="w-full max-h-52 object-cover bg-gray-100" />
                     </div>
-                  </template>
-                  <div v-else class="flex flex-col items-center justify-center gap-3 py-12 bg-[#FAFAFA]">
-                    <div class="grid h-14 w-14 place-items-center rounded-2xl bg-gray-100">
-                      <svg class="h-7 w-7 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <rect x="3" y="3" width="18" height="18" rx="3" ry="3"/>
-                        <circle cx="8.5" cy="8.5" r="1.5"/>
-                        <polyline points="21 15 16 10 5 21"/>
-                      </svg>
+                    <div class="px-4 py-3 space-y-2">
+                      <!-- Product name + qty/price -->
+                      <div class="flex items-start justify-between gap-2">
+                        <div>
+                          <p class="text-[13px] font-semibold text-[#111827]">{{ detail.product?.name ?? `Producto ${i + 1}` }}</p>
+                          <p v-if="detail.product?.description" class="text-[11px] text-gray-400">{{ detail.product.description }}</p>
+                        </div>
+                        <div class="text-right shrink-0">
+                          <p class="text-[13px] font-bold text-[#111827]">{{ detail.price }}</p>
+                          <p class="text-[11px] text-gray-400">× {{ detail.quantity }}</p>
+                        </div>
+                      </div>
+                      <!-- Attributes grid -->
+                      <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 pt-1">
+                        <div v-if="detail.productSize || detail.customSize">
+                          <p class="text-[10px] text-gray-400">Tamaño</p>
+                          <p class="text-[12px] text-gray-700">{{ detail.productSize ?? detail.customSize }}</p>
+                        </div>
+                        <div v-if="detail.flavor">
+                          <p class="text-[10px] text-gray-400">Sabor</p>
+                          <p class="text-[12px] text-gray-700">{{ detail.flavor.name }}</p>
+                        </div>
+                        <div v-if="detail.filling">
+                          <p class="text-[10px] text-gray-400">Relleno</p>
+                          <p class="text-[12px] text-gray-700">{{ detail.filling.name }}</p>
+                        </div>
+                        <div v-if="detail.frosting">
+                          <p class="text-[10px] text-gray-400">Betún</p>
+                          <p class="text-[12px] text-gray-700">{{ detail.frosting.name }}</p>
+                        </div>
+                        <div v-if="detail.breadType">
+                          <p class="text-[10px] text-gray-400">Tipo de pan</p>
+                          <p class="text-[12px] text-gray-700">{{ detail.breadType.name }}</p>
+                        </div>
+                        <div v-if="detail.color">
+                          <p class="text-[10px] text-gray-400">Color</p>
+                          <p class="text-[12px] text-gray-700">{{ detail.color.name }}</p>
+                        </div>
+                        <div v-if="detail.style">
+                          <p class="text-[10px] text-gray-400">Estilo</p>
+                          <p class="text-[12px] text-gray-700">{{ detail.style.name }}</p>
+                        </div>
+                      </div>
+                      <!-- Writing -->
+                      <div v-if="detail.hasWriting" class="rounded-lg bg-white px-3 py-2 ring-1 ring-black/5 space-y-0.5">
+                        <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Texto en pastel</p>
+                        <p v-if="detail.writingText" class="text-[12px] text-gray-700 italic">"{{ detail.writingText }}"</p>
+                        <p v-if="detail.writingLocation" class="text-[11px] text-gray-500">Ubicación: {{ detail.writingLocation }}</p>
+                        <p v-if="detail.pipingLocation" class="text-[11px] text-gray-500">Piping: {{ detail.pipingLocation }}</p>
+                      </div>
+                      <!-- Notes -->
+                      <div v-if="detail.decorationNotes || detail.notes" class="rounded-lg bg-white px-3 py-2 ring-1 ring-black/5 text-[12px] text-gray-500 italic space-y-0.5">
+                        <p v-if="detail.decorationNotes">Decoración: {{ detail.decorationNotes }}</p>
+                        <p v-if="detail.notes">Nota: {{ detail.notes }}</p>
+                      </div>
                     </div>
-                    <p class="text-[13px] text-gray-400">Sin imagen de referencia</p>
                   </div>
                 </div>
               </div>
@@ -223,7 +314,10 @@ import {
   STATUS_COLORS,
   TYPE_COLORS,
   TYPE_LABELS,
+  PAYMENT_METHOD_LABELS,
+  DELIVERY_ROUND_LABELS,
   type OrderItem,
+  type OrderDetail,
   type OrderType,
 } from '~/services/orders.service'
 
@@ -235,7 +329,7 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: 'close'): void }>()
 
 // ── Fetch full detail on open ────────────────────────────────────────────────
-const activeData    = ref<OrderItem | null>(null)
+const activeData    = ref<OrderDetail | null>(null)
 const loadingDetail = ref(false)
 
 watch(
@@ -265,12 +359,6 @@ const activeDeliveryAddress = computed(() => activeData.value?.deliveryAddress ?
 const activeCustomer        = computed(() => activeData.value?.customer ?? props.order?.customer)
 const activeCreatedBy       = computed(() => activeData.value?.createdBy ?? props.order?.createdBy)
 const activeUpdatedBy       = computed(() => activeData.value?.updatedBy ?? props.order?.updatedBy)
-
-const referenceUrls = computed(() => {
-  const ref = activeData.value?.reference ?? props.order?.reference
-  if (!ref) return []
-  return Array.isArray(ref) ? ref : [ref]
-})
 
 const buildDeliveryAddress = computed(() => {
   const a = activeDeliveryAddress.value
@@ -315,5 +403,13 @@ function typeColor(t?: OrderType) {
 
 function typeLabel(t?: OrderType) {
   return t ? (TYPE_LABELS[t] ?? t) : '—'
+}
+
+function paymentLabel(pm?: string | null) {
+  return pm ? (PAYMENT_METHOD_LABELS[pm] ?? pm) : '—'
+}
+
+function roundLabel(r?: string | null) {
+  return r ? (DELIVERY_ROUND_LABELS[r] ?? r) : '—'
 }
 </script>
