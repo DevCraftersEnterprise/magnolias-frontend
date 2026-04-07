@@ -116,6 +116,42 @@
                       <p class="mt-0.5 text-[13px] font-medium text-[#111827]">{{ activeData.dessertsTotal }}</p>
                     </div>
                   </div>
+
+                  <!-- ── Abono rápido ────────────────────────────────── -->
+                  <div class="border-t border-black/10 pt-4">
+                    <div v-if="isPaid" class="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-3 ring-1 ring-green-200">
+                      <svg class="h-4 w-4 shrink-0 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                      <p class="text-[13px] font-semibold text-green-700">Pedido pagado completamente</p>
+                    </div>
+                    <template v-else>
+                      <p class="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Registrar abono</p>
+                      <div class="flex items-center gap-2">
+                        <div class="flex items-center h-10 flex-1 rounded-xl bg-[#F8F8F9] ring-1 ring-black/10 overflow-hidden focus-within:ring-2 focus-within:ring-[#FC9AD3]/60">
+                          <span class="px-3 text-[13px] text-gray-400 font-medium border-r border-black/10 h-full flex items-center">$</span>
+                          <input
+                            type="number" step="0.01" min="0.01" :max="remainingParsed"
+                            v-model="abonoAmount"
+                            placeholder="0.00"
+                            class="flex-1 bg-transparent px-3 text-[14px] font-semibold text-[#111827] outline-none"
+                            @keydown.enter="saveAbono"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          :disabled="!abonoAmount || Number(abonoAmount) <= 0 || abonoSaving"
+                          class="h-10 px-4 rounded-xl text-[13px] font-semibold text-white transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                          style="background-color: #FC9AD3;"
+                          @click="saveAbono"
+                        >
+                          <div v-if="abonoSaving" class="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                          <span v-else>Guardar</span>
+                        </button>
+                      </div>
+                      <p v-if="abonoError" class="mt-2 text-[12px] text-red-600">{{ abonoError }}</p>
+                      <p v-if="abonoSuccess" class="mt-2 text-[12px] font-semibold text-green-600">✓ Abono registrado correctamente</p>
+                    </template>
+                  </div>
+
                 </div>
               </div>
 
@@ -353,6 +389,40 @@ function onKey(e: KeyboardEvent) {
 }
 onMounted(() => window.addEventListener('keydown', onKey))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+
+// ── Abono rápido ─────────────────────────────────────────────────────────────
+const abonoAmount  = ref<number | ''>('')
+const abonoSaving  = ref(false)
+const abonoError   = ref('')
+const abonoSuccess = ref(false)
+
+const remainingParsed = computed(() => {
+  const raw = activeData.value?.remainingBalance ?? props.order?.remainingBalance ?? ''
+  return parseFloat(String(raw).replace(/[^0-9.]/g, '')) || 0
+})
+const isPaid = computed(() => !!activeData.value && remainingParsed.value === 0)
+
+watch(() => props.open, (v) => {
+  if (!v) { abonoAmount.value = ''; abonoError.value = ''; abonoSuccess.value = false }
+})
+
+async function saveAbono() {
+  const amount = Number(abonoAmount.value)
+  if (!amount || amount <= 0 || !props.order) return
+  abonoSaving.value  = true
+  abonoError.value   = ''
+  abonoSuccess.value = false
+  try {
+    activeData.value  = await ordersService.updateOrder({ id: props.order.id, payment: amount })
+    abonoAmount.value  = ''
+    abonoSuccess.value = true
+    setTimeout(() => { abonoSuccess.value = false }, 3000)
+  } catch (e: any) {
+    abonoError.value = e?.message || 'No se pudo registrar el abono.'
+  } finally {
+    abonoSaving.value = false
+  }
+}
 
 // ── Computed from detail (fallback to list data) ────────────────────────────
 const activeDeliveryAddress = computed(() => activeData.value?.deliveryAddress ?? props.order?.deliveryAddress)

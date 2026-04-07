@@ -409,7 +409,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   DOMICILIO: 'Domicilio', VITRINA: 'Vitrina', FLOR: 'Flor', EVENTO: 'Evento',
 }
 
-const step4 = reactive({ paymentType: 'EFECTIVO', paymentMode: 'FULL' as 'FULL' | 'DEPOSIT', depositAmount: 0 })
+const step4 = reactive({ paymentType: 'EFECTIVO', paymentMode: 'FULL' as 'FULL' | 'DEPOSIT', depositAmount: 0, requiresInvoice: false })
 const serviceCost = ref<number>(0)
 
 const detailModal = reactive({ open: false, rowIndex: -1 })
@@ -614,6 +614,7 @@ function populateFromOrder(order: OrderDetail) {
   }
 
   // Payment
+  step4.requiresInvoice = order.requiresInvoice ?? false
   const pmRevMap: Record<string, string> = { CASH: 'EFECTIVO', CARD: 'TARJETA', TRANSFER: 'TRANSFERENCIA' }
   step4.paymentType  = pmRevMap[order.paymentMethod ?? ''] ?? 'EFECTIVO'
   const advance      = parseFloat(order.advancePayment ?? '0')
@@ -758,6 +759,7 @@ async function submitOrder() {
         eventServices:       eventServices.length ? eventServices : undefined,
       }),
       setupServiceCost: serviceCost.value || undefined,
+      requiresInvoice: step4.requiresInvoice || undefined,
       deliveryAddress,
       details,
       flowers,
@@ -1384,6 +1386,12 @@ function next() {
                 </select>
                 <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
               </div>
+
+              <!-- Requiere factura -->
+              <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                <input v-model="step4.requiresInvoice" type="checkbox" class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3] focus:ring-[#FC9AD3]/50" />
+                <span class="text-[13px] font-medium text-gray-700">Requiere factura</span>
+              </label>
               <div>
                 <p class="text-[14px] font-semibold text-[#111827] mb-2">Costo por servicio</p>
                 <div class="flex items-center h-10 rounded-xl bg-[#F3F3F4] ring-1 ring-black/10 overflow-hidden">

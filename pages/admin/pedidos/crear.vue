@@ -471,9 +471,10 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
 }
 
 const step4 = reactive({
-  paymentType:   'EFECTIVO',
-  paymentMode:   'FULL' as 'FULL' | 'DEPOSIT',
-  depositAmount: 0,
+  paymentType:    'EFECTIVO',
+  paymentMode:    'FULL' as 'FULL' | 'DEPOSIT',
+  depositAmount:  0,
+  requiresInvoice: false,
 })
 
 const serviceCost = ref<number>(0)
@@ -688,6 +689,7 @@ async function submitOrder() {
       }),
       setupServiceCost:    serviceCost.value || undefined,
       hasPhotoReference: orderProducts.value.some(r => !!r.referenceFile),
+      requiresInvoice: step4.requiresInvoice || undefined,
       deliveryAddress,
       details,
       flowers,
@@ -2252,6 +2254,12 @@ function formatCustomerAddress(c: CustomerItem) {
               </select>
               <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
             </div>
+
+            <!-- Requiere factura -->
+            <label class="flex items-center gap-2.5 cursor-pointer select-none">
+              <input v-model="step4.requiresInvoice" type="checkbox" class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3] focus:ring-[#FC9AD3]/50" />
+              <span class="text-[13px] font-medium text-gray-700">Requiere factura</span>
+            </label>
 
             <!-- Costo por servicio -->
             <div>
