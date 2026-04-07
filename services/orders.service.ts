@@ -333,6 +333,11 @@ export type CreateOrderFlower = {
 
 export type CreateOrderDeliveryAddress = {
   useCustomerAddress: boolean
+  // Common / shared address
+  useCommonAddress?: boolean
+  commonAddressId?: string
+  saveAsCommonAddress?: boolean
+  commonAddressName?: string
   newAddress?: {
     street: string
     number: string
