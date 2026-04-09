@@ -118,6 +118,14 @@ export const productsService = {
     return out
   },
 
+  /** GET /api/products/:id */
+  getProductById(id: string) {
+    return apiFetch<ProductItem>(`/api/products/${id}`, {
+      method: 'GET',
+      auth: true,
+    })
+  },
+
   /** PATCH /api/products/favorite */
   setFavorite(product: ProductItem, isFavorite: boolean) {
     const payload: UpdateFavoritePayload = {

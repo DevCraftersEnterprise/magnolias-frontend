@@ -8,10 +8,10 @@ import {
   type CreateCustomerRequest,
 } from '~/services/customers.service'
 import { catalogsService, type FlowerItem, type ColorItem, type BreadTypeItem, type FillingItem, type FlavorItem, type FrostingItem, type StyleItem } from '~/services/catalogs.service'
-import { usersService, type UserItem } from '~/services/users.service'
 import { productsService, getProductImageUrl } from '~/services/products.service'
 import type { ProductItem } from '~/services/categories.service'
 import { ordersService, type CreateOrderPayload } from '~/services/orders.service'
+import { addressesService, type CommonAddress } from '~/services/addresses.service'
 
 const router = useRouter()
 
@@ -136,9 +136,9 @@ const colorCatalog  = ref<ColorItem[]>([])
 catalogsService.getFlowers(100, 0, true).then(r => { flowerCatalog.value = r.items }).catch(() => {})
 catalogsService.getColors().then(r => { colorCatalog.value = r }).catch(() => {})
 
-// Users for EVENTO responsable del montaje
-const usersCatalog = ref<UserItem[]>([])
-usersService.getUsers({ limit: 100 }).then(r => { usersCatalog.value = r.items }).catch(() => {})
+// Common addresses for EVENTO
+const commonAddresses = ref<CommonAddress[]>([])
+addressesService.getAddresses().then(r => { commonAddresses.value = r }).catch(() => {})
 
 // ─── Step 3 — Productos ───────────────────────────────────────────────────────
 // Catalog data for product attributes
@@ -201,9 +201,15 @@ function colorHex(colorId: string) {
   return colorCatalog.value.find(c => c.id === colorId)?.value ?? ''
 }
 
-// Close color picker on outside click
+// Close color picker and product panel on outside click
+const productSearchRef = ref<HTMLElement | null>(null)
 if (typeof window !== 'undefined') {
-  document.addEventListener('click', () => { openColorPicker.value = null })
+  document.addEventListener('click', (e) => {
+    openColorPicker.value = null
+    if (productSearchRef.value && !productSearchRef.value.contains(e.target as Node)) {
+      showProductPanel.value = false
+    }
+  })
 }
 
 const UBICACION_OPTIONS = [
@@ -360,8 +366,13 @@ const step2 = reactive({
   eventMontageDate:    '',
   eventExitTime:       '',
   eventGuestCount:     '' as number | '',
-  eventResponsibleId:  '',
-  eventServices: { dessertTable: false, cake: false, montage: false },
+  eventResponsibleName: '',
+  eventServices: { dessertTable: false, cake: false, cheeseTable: false, plated: false },
+  // EVENTO common address
+  useCommonAddr:    false,
+  commonAddrId:     '',
+  saveAsCommonAddr: false,
+  commonAddrName:   '',
 })
 
 // When user picks VITRINA, pre-fill the branch from the Topbar selection
@@ -369,6 +380,7 @@ const florMode = ref<'domicilio' | 'vitrina'>('domicilio')
 watch(() => step2.orderType, (type) => {
   if (type === 'VITRINA') {
     step2.pickupBranchId = topbarBranch.value?.id ?? ''
+    serviceCost.value = 0
   }
   if (type !== 'FLOR') {
     florMode.value = 'domicilio'
@@ -407,7 +419,7 @@ function buildTime24(h12: number, minute: string, period: 'AM' | 'PM'): string {
 const pickupTimeParts   = reactive({ h: 8, m: '00', p: 'AM' as 'AM' | 'PM' })
 const deliveryTimeParts = reactive({ h: 8, m: '00', p: 'AM' as 'AM' | 'PM' })
 const exitTimeParts     = reactive({ h: 8, m: '00', p: 'AM' as 'AM' | 'PM' })
-watch(pickupTimeParts,   pts => { step2.pickupTime   = buildTime24(pts.h, pts.m, pts.p) })
+watch(pickupTimeParts,   pts => { step2.pickupTime   = buildTime24(pts.h, pts.m, pts.p) }, { immediate: true })
 watch(deliveryTimeParts, pts => { step2.deliveryTime  = buildTime24(pts.h, pts.m, pts.p) })
 watch(exitTimeParts,     pts => { step2.eventExitTime = buildTime24(pts.h, pts.m, pts.p) })
 
@@ -431,7 +443,7 @@ const deliveryTimeOutOfHours = computed(() => {
 const deliveryTimeWarningMsg = computed(() =>
   step2.orderType === 'EVENTO'
     ? 'La hora del evento parece muy temprana (antes de las 7:00 AM). ¿Estás seguro?'
-    : 'La hora seleccionada está fuera del horario de atención (8:00 AM\u2013\u200B7:59 PM). ¿Estás seguro?'
+    : 'La hora seleccionada está fuera del horario de atención (8:00 AM\u2013\u200B7:59 PM). Por favor elige una hora dentro del rango para continuar.'
 )
 const exitTimeOutOfHours = computed(() => {
   const mins = timeToMinutes(step2.eventExitTime)
@@ -542,10 +554,26 @@ const canNext = computed(() => {
   if (step.value === 2) {
     if (!step2.orderType) return false
     if (step2.orderType === 'VITRINA') {
+      if (pickupTimeOutOfHours.value) return false
       return !!(step2.pickupBranchId && step2.pickupDate)
+    }
+    // FLOR vitrina: same requirements as VITRINA + at least one flower
+    if (step2.orderType === 'FLOR' && florMode.value === 'vitrina') {
+      if (pickupTimeOutOfHours.value) return false
+      if (!step2.pickupBranchId || !step2.pickupDate) return false
+      if (!flowerRows.value.some(r => r.flowerId && r.colorId && Number(r.quantity) > 0)) return false
+      return true
     }
     if (!step2.deliveryDate) return false
     if (!step2AddressValid.value) return false
+    // FLOR domicilio: require at least one flower with color and quantity
+    if (step2.orderType === 'FLOR' && florMode.value === 'domicilio') {
+      if (!flowerRows.value.some(r => r.flowerId && r.colorId && Number(r.quantity) > 0)) return false
+    }
+    // Block advancement when time is out of working hours (EVENTO is exempt)
+    if (step2.orderType !== 'EVENTO') {
+      if (deliveryTimeOutOfHours.value) return false
+    }
     return true
   }
   if (step.value === 3) {
@@ -590,17 +618,25 @@ async function submitOrder() {
     const advancePayment = step4.paymentMode === 'FULL' ? orderTotal.value : (step4.depositAmount || 0)
 
     // ── event services ─────────────────────────────────────────────────────
-    const eventServices: string[] = []
+    const eventServicesList: string[] = []
     if (isEvento) {
-      if (step2.eventServices.dessertTable) eventServices.push('DESSERT_TABLE')
-      if (step2.eventServices.cake)         eventServices.push('CAKE')
-      if (step2.eventServices.montage)      eventServices.push('MONTAGE')
+      if (step2.eventServices.dessertTable) eventServicesList.push('DESSERT_TABLE')
+      if (step2.eventServices.cake)         eventServicesList.push('CAKE')
+      if (step2.eventServices.cheeseTable)  eventServicesList.push('CHEESE_TABLE')
+      if (step2.eventServices.plated)       eventServicesList.push('PLATED')
     }
 
     // ── delivery address ────────────────────────────────────────────────────
     let deliveryAddress: CreateOrderPayload['deliveryAddress'] | undefined
     if (!isVitrina) {
-      if (step2.useCustomerAddr) {
+      if (isEvento && step2.useCommonAddr && step2.commonAddrId) {
+        deliveryAddress = {
+          useCustomerAddress: false,
+          useCommonAddress:   true,
+          commonAddressId:    step2.commonAddrId,
+          deliveryNotes:      step2.newAddr.deliveryNotes || undefined,
+        }
+      } else if (step2.useCustomerAddr) {
         deliveryAddress = {
           useCustomerAddress: true,
           betweenStreets:  step2.betweenStreets || undefined,
@@ -612,16 +648,18 @@ async function submitOrder() {
         }
       } else {
         deliveryAddress = {
-          useCustomerAddress: false,
+          useCustomerAddress:  false,
+          saveAsCommonAddress: isEvento && step2.saveAsCommonAddr ? true : undefined,
+          commonAddressName:   isEvento && step2.saveAsCommonAddr ? (step2.commonAddrName || undefined) : undefined,
           newAddress: {
-            street:        step2.newAddr.street,
-            number:        step2.newAddr.number,
-            neighborhood:  step2.newAddr.neighborhood,
-            city:          step2.newAddr.city || undefined,
-            postalCode:    step2.newAddr.postalCode || undefined,
-            betweenStreets:step2.newAddr.betweenStreets || undefined,
-            interphoneCode:step2.newAddr.interphoneCode || undefined,
-            reference:     step2.newAddr.reference || undefined,
+            street:         step2.newAddr.street,
+            number:         step2.newAddr.number,
+            neighborhood:   step2.newAddr.neighborhood,
+            city:           step2.newAddr.city || undefined,
+            postalCode:     step2.newAddr.postalCode || undefined,
+            betweenStreets: step2.newAddr.betweenStreets || undefined,
+            interphoneCode: step2.newAddr.interphoneCode || undefined,
+            reference:      step2.newAddr.reference || undefined,
           },
           deliveryNotes:  step2.newAddr.deliveryNotes || undefined,
           receiverName:   step2.receiverName || undefined,
@@ -676,25 +714,24 @@ async function submitOrder() {
       advancePayment,
       paymentMethod,
       deliveryDate:         deliveryDateISO,
-      deliveryTime:         (!isVitrina && step2.deliveryTime) ? step2.deliveryTime : undefined,
+      deliveryTime:         isVitrina ? (step2.pickupTime || '08:00') : (step2.deliveryTime || undefined),
       deliveryRound,
       collectionDateTime,
-      ...(isEvento && {
-        eventTime:           step2.deliveryTime || undefined,
-        setupTime:           step2.eventExitTime || undefined,
-        branchDepartureTime: step2.eventExitTime || undefined,
-        setupPersonName:     step2.eventResponsibleId || undefined,
-        guestCount:          step2.eventGuestCount ? Number(step2.eventGuestCount) : undefined,
-        eventServices:       eventServices.length ? eventServices : undefined,
-      }),
-      setupServiceCost:    serviceCost.value || undefined,
-      hasPhotoReference: orderProducts.value.some(r => !!r.referenceFile),
-      requiresInvoice: step4.requiresInvoice || undefined,
+      eventTime:            isEvento ? (step2.deliveryTime || undefined)    : undefined,
+      setupTime:            isEvento ? (step2.eventExitTime || undefined)   : undefined,
+      branchDepartureTime:  isEvento ? (step2.eventExitTime || undefined)   : undefined,
+      setupPersonName:      isEvento ? (step2.eventResponsibleName || undefined) : undefined,
+      guestCount:           isEvento && step2.eventGuestCount ? Number(step2.eventGuestCount) : undefined,
+      eventServices:        isEvento && eventServicesList.length ? eventServicesList : undefined,
+      setupServiceCost:     serviceCost.value || undefined,
+      hasPhotoReference:    orderProducts.value.some(r => !!r.referenceFile),
+      requiresInvoice:      step4.requiresInvoice || undefined,
       deliveryAddress,
       details,
       flowers,
     }
 
+    console.log('[crear pedido] payload:', JSON.stringify(payload, null, 2))
     await ordersService.createOrder(payload)
     router.push('/admin/pedidos')
   } catch (e: any) {
@@ -1130,10 +1167,10 @@ function formatCustomerAddress(c: CustomerItem) {
       <!-- ══════════════════════════════════════════════════════════════════ -->
       <div
         v-else-if="step === 2"
-        class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.08)] overflow-hidden"
+        class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.08)]"
       >
         <!-- Header -->
-        <div class="px-6 py-5 border-b border-black/10">
+        <div class="px-6 py-5 border-b border-black/10 rounded-t-2xl overflow-hidden">
           <h2 class="text-[18px] font-bold text-[#111827]">Tipo y logística</h2>
           <p class="mt-0.5 text-[13px] text-gray-400">Elige el tipo de pedido y, si aplica, los detalles de entrega</p>
         </div>
@@ -1246,7 +1283,7 @@ function formatCustomerAddress(c: CustomerItem) {
                 </div>
                 <div v-if="pickupTimeOutOfHours" class="w-full flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700">
                   <svg viewBox="0 0 24 24" class="h-4 w-4 shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  <span>La hora seleccionada está fuera del horario de atención <strong>(8:00 AM – 7:59 PM)</strong>. ¿Estás seguro?</span>
+                  <span>La hora seleccionada está fuera del horario de atención <strong>(8:00 AM – 7:59 PM)</strong>. Por favor elige una hora dentro del rango para continuar.</span>
                 </div>
               </div>
             </div>
@@ -1328,7 +1365,7 @@ function formatCustomerAddress(c: CustomerItem) {
                   </div>
                   <div v-if="pickupTimeOutOfHours" class="w-full flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700">
                     <svg viewBox="0 0 24 24" class="h-4 w-4 shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    <span>La hora seleccionada está fuera del horario de atención <strong>(8:00 AM – 7:59 PM)</strong>. ¿Estás seguro?</span>
+                    <span>La hora seleccionada está fuera del horario de atención <strong>(8:00 AM – 7:59 PM)</strong>. Por favor elige una hora dentro del rango para continuar.</span>
                   </div>
                 </div>
               </div>
@@ -1466,7 +1503,36 @@ function formatCustomerAddress(c: CustomerItem) {
                 Dirección de entrega
               </legend>
 
-              <!-- Checkbox: usar dirección del cliente -->
+              <!-- EVENTO: selector de dirección común (salón de fiestas) -->
+              <template v-if="step2.orderType === 'EVENTO'">
+                <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    v-model="step2.useCommonAddr"
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
+                  />
+                  <span class="text-[13px] text-gray-700">Usar dirección común (salón de fiestas)</span>
+                </label>
+                <div v-if="step2.useCommonAddr" class="flex flex-col gap-1">
+                  <div class="relative">
+                    <select
+                      v-model="step2.commonAddrId"
+                      class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                    >
+                      <option value="" disabled>Selecciona dirección</option>
+                      <option v-for="a in commonAddresses" :key="a.id" :value="a.id">
+                        {{ a.name }} — {{ a.street }} {{ a.number }}, {{ a.neighborhood }}
+                      </option>
+                    </select>
+                    <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Checkbox: usar dirección del cliente (oculto para EVENTO con dirección común) -->
+              <template v-if="!(step2.orderType === 'EVENTO' && step2.useCommonAddr)">
               <label
                 :class="[
                   'flex items-center gap-2.5 cursor-pointer select-none',
@@ -1584,11 +1650,33 @@ function formatCustomerAddress(c: CustomerItem) {
                     />
                   </div>
                 </div>
+
+                <!-- EVENTO: guardar como dirección común -->
+                <template v-if="step2.orderType === 'EVENTO'">
+                  <label class="flex items-center gap-2.5 cursor-pointer select-none mt-1">
+                    <input
+                      v-model="step2.saveAsCommonAddr"
+                      type="checkbox"
+                      class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
+                    />
+                    <span class="text-[13px] text-gray-700">Guardar como dirección común</span>
+                  </label>
+                  <div v-if="step2.saveAsCommonAddr" class="flex flex-col gap-1">
+                    <label class="text-[13px] font-medium text-gray-600">Nombre del lugar</label>
+                    <input
+                      v-model="step2.commonAddrName"
+                      type="text"
+                      placeholder="Ej. Salón La Estancia"
+                      class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
+                    />
+                  </div>
+                </template>
+              </template>
               </template>
 
               <!-- Delivery overrides (always shown when address is set) -->
               <div
-                v-if="step2.useCustomerAddr || (step2.newAddr.street && step2.newAddr.number)"
+                v-if="step2.useCustomerAddr || (step2.newAddr.street && step2.newAddr.number) || (step2.orderType === 'EVENTO' && step2.useCommonAddr && step2.commonAddrId)"
                 class="border-t border-dashed border-black/10 pt-4 space-y-3"
               >
                 <p class="text-[12px] font-semibold text-gray-400 uppercase tracking-wide">Para esta entrega (opcional)</p>
@@ -1768,11 +1856,19 @@ function formatCustomerAddress(c: CustomerItem) {
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                   <input
-                    v-model="step2.eventServices.montage"
+                    v-model="step2.eventServices.cheeseTable"
                     type="checkbox"
                     class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
                   />
-                  <span class="text-[13px] text-gray-700">Montaje</span>
+                  <span class="text-[13px] text-gray-700">Mesa de Quesos</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    v-model="step2.eventServices.plated"
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
+                  />
+                  <span class="text-[13px] text-gray-700">Platillos</span>
                 </label>
               </div>
             </fieldset>
@@ -1801,18 +1897,12 @@ function formatCustomerAddress(c: CustomerItem) {
                   <!-- Responsable del montaje -->
                   <div class="flex items-center gap-2 flex-1 min-w-0">
                     <label class="text-[13px] font-medium text-gray-700 flex-shrink-0">Responsable del montaje</label>
-                    <div class="relative flex-1 min-w-[160px]">
-                      <select
-                        v-model="step2.eventResponsibleId"
-                        class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                      >
-                        <option value="" disabled>Selecciona responsable</option>
-                        <option v-for="u in usersCatalog" :key="u.id" :value="u.id">{{ u.name }} {{ u.lastname }}</option>
-                      </select>
-                      <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </div>
+                    <input
+                      v-model="step2.eventResponsibleName"
+                      type="text"
+                      placeholder="Nombre del responsable"
+                      class="flex-1 rounded-xl bg-white px-3 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60"
+                    />
                   </div>
                 </div>
               </div>
@@ -1826,10 +1916,10 @@ function formatCustomerAddress(c: CustomerItem) {
       <!-- ══════════════════════════════════════════════════════════════════ -->
       <div
         v-else-if="step === 3"
-        class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.08)] overflow-hidden"
+        class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.08)]"
       >
         <!-- Header -->
-        <div class="px-6 py-5 border-b border-black/10">
+        <div class="px-6 py-5 border-b border-black/10 rounded-t-2xl overflow-hidden">
           <h2 class="text-[18px] font-bold text-[#111827]">Productos del Pedido</h2>
           <p class="mt-0.5 text-[13px] text-gray-400">Busca y agrega los productos, luego configura sus detalles</p>
         </div>
@@ -1839,7 +1929,7 @@ function formatCustomerAddress(c: CustomerItem) {
           <!-- ── Buscador de productos ──────────────────────────────────── -->
           <div>
             <p class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3">Agregar Productos</p>
-            <div class="relative">
+            <div ref="productSearchRef" class="relative">
               <!-- Input -->
               <div class="flex items-center gap-2 rounded-xl ring-1 ring-black/10 bg-white px-4 py-2.5">
                 <svg viewBox="0 0 24 24" class="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2">
@@ -2262,11 +2352,14 @@ function formatCustomerAddress(c: CustomerItem) {
             </label>
 
             <!-- Costo por servicio -->
-            <div>
-              <p class="text-[14px] font-semibold text-[#111827] mb-2">Costo por servicio</p>
+            <div :class="step2.orderType === 'VITRINA' ? 'opacity-40 pointer-events-none select-none' : ''">
+              <p class="text-[14px] font-semibold text-[#111827] mb-2">Costo por servicio
+                <span v-if="step2.orderType === 'VITRINA'" class="ml-2 text-[11px] font-normal text-gray-400">(no aplica en vitrina)</span>
+              </p>
               <div class="flex items-center h-10 rounded-xl bg-[#F3F3F4] ring-1 ring-black/10 overflow-hidden">
                 <span class="px-3 text-[12px] text-gray-400 font-medium border-r border-black/10 h-full flex items-center">$</span>
                 <input type="number" step="0.01" min="0" v-model.number="serviceCost" placeholder="0.00"
+                  :disabled="step2.orderType === 'VITRINA'"
                   class="flex-1 bg-transparent px-3 text-[13px] font-semibold text-[#111827] outline-none" />
               </div>
             </div>

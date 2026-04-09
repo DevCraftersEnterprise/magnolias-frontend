@@ -134,6 +134,7 @@ export type OrderDetailProduct = {
   description?: string | null
   isFavorite?: boolean
   isActive?: boolean
+  pictures?: { id: string; imageUrl: string; isActive: boolean }[]
 }
 
 export type OrderDetailCatalogItem = {

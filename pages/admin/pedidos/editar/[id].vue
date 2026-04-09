@@ -7,7 +7,6 @@ import {
   type CustomerItem,
 } from '~/services/customers.service'
 import { catalogsService, type FlowerItem, type ColorItem, type BreadTypeItem, type FillingItem, type FlavorItem, type FrostingItem, type StyleItem } from '~/services/catalogs.service'
-import { usersService, type UserItem } from '~/services/users.service'
 import { productsService, getProductImageUrl } from '~/services/products.service'
 import type { ProductItem } from '~/services/categories.service'
 import {
@@ -144,9 +143,6 @@ const flowerCatalog = ref<FlowerItem[]>([])
 const colorCatalog  = ref<ColorItem[]>([])
 catalogsService.getFlowers(100, 0, true).then(r => { flowerCatalog.value = r.items }).catch(() => {})
 catalogsService.getColors().then(r => { colorCatalog.value = r }).catch(() => {})
-
-const usersCatalog = ref<UserItem[]>([])
-usersService.getUsers({ limit: 100 }).then(r => { usersCatalog.value = r.items }).catch(() => {})
 
 // ─── Step 3 — Productos ───────────────────────────────────────────────────────
 const breadTypes = ref<BreadTypeItem[]>([])
@@ -313,14 +309,14 @@ const step2 = reactive({
   eventMontageDate:    '',
   eventExitTime:       '',
   eventGuestCount:     '' as number | '',
-  eventResponsibleId:  '',
-  eventServices: { dessertTable: false, cake: false, montage: false },
+  eventResponsibleName: '',
+  eventServices: { dessertTable: false, cake: false, cheeseTable: false, plated: false },
 })
 
 const florMode = ref<'domicilio' | 'vitrina'>('domicilio')
 
 watch(() => step2.orderType, (type) => {
-  if (type === 'VITRINA') step2.pickupBranchId = topbarBranch.value?.id ?? ''
+  if (type === 'VITRINA') { step2.pickupBranchId = topbarBranch.value?.id ?? ''; serviceCost.value = 0 }
   if (type !== 'FLOR') florMode.value = 'domicilio'
 })
 
@@ -361,7 +357,7 @@ function parseTime24(t: string): { h: number; m: string; p: 'AM' | 'PM' } {
 const pickupTimeParts   = reactive({ h: 8, m: '00', p: 'AM' as 'AM' | 'PM' })
 const deliveryTimeParts = reactive({ h: 8, m: '00', p: 'AM' as 'AM' | 'PM' })
 const exitTimeParts     = reactive({ h: 8, m: '00', p: 'AM' as 'AM' | 'PM' })
-watch(pickupTimeParts,   pts => { step2.pickupTime   = buildTime24(pts.h, pts.m, pts.p) })
+watch(pickupTimeParts,   pts => { step2.pickupTime   = buildTime24(pts.h, pts.m, pts.p) }, { immediate: true })
 watch(deliveryTimeParts, pts => { step2.deliveryTime  = buildTime24(pts.h, pts.m, pts.p) })
 watch(exitTimeParts,     pts => { step2.eventExitTime = buildTime24(pts.h, pts.m, pts.p) })
 
@@ -558,11 +554,12 @@ function populateFromOrder(order: OrderDetail) {
   // EVENTO fields
   if (order.orderType === 'EVENTO') {
     step2.eventGuestCount     = order.guestCount ?? ''
-    step2.eventResponsibleId  = order.setupPersonName ?? ''
+    step2.eventResponsibleName = order.setupPersonName ?? ''
     const svc = order.eventServices ?? []
     step2.eventServices.dessertTable = svc.includes('DESSERT_TABLE')
     step2.eventServices.cake         = svc.includes('CAKE')
-    step2.eventServices.montage      = svc.includes('MONTAGE')
+    step2.eventServices.cheeseTable  = svc.includes('CHEESE_TABLE')
+    step2.eventServices.plated       = svc.includes('PLATED')
     if (order.setupTime) {
       const { h, m, p } = parseTime24(order.setupTime)
       exitTimeParts.h = h; exitTimeParts.m = m; exitTimeParts.p = p
@@ -577,7 +574,8 @@ function populateFromOrder(order: OrderDetail) {
       description: d.product?.description ?? '',
       isFavorite: d.product?.isFavorite ?? false,
       isActive: d.product?.isActive ?? true,
-      category: { id: '' }, createdAt: '', updatedAt: '', pictures: [],
+      category: { id: '' }, createdAt: '', updatedAt: '',
+      pictures: (d.product?.pictures ?? []) as import('~/services/categories.service').ProductPicture[],
     }
     return {
       product,
@@ -603,6 +601,19 @@ function populateFromOrder(order: OrderDetail) {
     }
   })
 
+  // Service cost — use field from API; fall back to totalAmount − details sum
+  const parseMoney = (v: string | undefined | null) => parseFloat((v ?? '0').replace(/[^0-9.]/g, '')) || 0
+  const rawServiceCost = parseMoney(order.setupServiceCost)
+  if (rawServiceCost > 0) {
+    serviceCost.value = rawServiceCost
+  } else {
+    const detailsSum = (order.details ?? []).reduce((sum, d) => {
+      return sum + parseMoney(String(d.price ?? '0')) * (d.quantity ?? 1)
+    }, 0)
+    const derived = Math.round((parseMoney(order.totalAmount) - detailsSum) * 100) / 100
+    serviceCost.value = derived > 0 ? derived : 0
+  }
+
   // Flowers
   if (order.orderFlowers && order.orderFlowers.length > 0) {
     flowerRows.value = order.orderFlowers.map((f: any) => ({
@@ -617,8 +628,8 @@ function populateFromOrder(order: OrderDetail) {
   step4.requiresInvoice = order.requiresInvoice ?? false
   const pmRevMap: Record<string, string> = { CASH: 'EFECTIVO', CARD: 'TARJETA', TRANSFER: 'TRANSFERENCIA' }
   step4.paymentType  = pmRevMap[order.paymentMethod ?? ''] ?? 'EFECTIVO'
-  const advance      = parseFloat(order.advancePayment ?? '0')
-  const total        = parseFloat(order.totalAmount   ?? '0')
+  const advance      = parseMoney(order.advancePayment)
+  const total        = parseMoney(order.totalAmount)
   if (advance > 0 && advance < total) {
     step4.paymentMode    = 'DEPOSIT'
     step4.depositAmount  = advance
@@ -626,7 +637,6 @@ function populateFromOrder(order: OrderDetail) {
     step4.paymentMode    = 'FULL'
     step4.depositAmount  = 0
   }
-  serviceCost.value = parseFloat(order.setupServiceCost ?? '0')
 }
 
 // ─── Load order on mount ─────────────────────────────────────────────────────
@@ -634,6 +644,19 @@ onMounted(async () => {
   try {
     const order = await ordersService.getOrder(orderId)
     populateFromOrder(order)
+
+    // Fetch full product details to get pictures (order API doesn't include them)
+    const rowsWithoutPictures = orderProducts.value.filter(r => r.product.pictures.length === 0 && r.product.id)
+    if (rowsWithoutPictures.length) {
+      await Promise.allSettled(
+        rowsWithoutPictures.map(async (row) => {
+          try {
+            const full = await productsService.getProductById(row.product.id)
+            row.product.pictures = full.pictures ?? []
+          } catch { /* silently ignore — placeholder image will show */ }
+        })
+      )
+    }
   } catch (e: any) {
     loadError.value = e?.message || 'No se pudo cargar el pedido.'
   } finally {
@@ -671,7 +694,8 @@ async function submitOrder() {
     if (isEvento) {
       if (step2.eventServices.dessertTable) eventServices.push('DESSERT_TABLE')
       if (step2.eventServices.cake)         eventServices.push('CAKE')
-      if (step2.eventServices.montage)      eventServices.push('MONTAGE')
+      if (step2.eventServices.cheeseTable)  eventServices.push('CHEESE_TABLE')
+      if (step2.eventServices.plated)       eventServices.push('PLATED')
     }
 
     let deliveryAddress: CreateOrderDeliveryAddress | undefined
@@ -747,14 +771,14 @@ async function submitOrder() {
       advancePayment,
       paymentMethod,
       deliveryDate: deliveryDateISO,
-      deliveryTime: (!isVitrina && step2.deliveryTime) ? step2.deliveryTime : undefined,
+      deliveryTime: isVitrina ? (step2.pickupTime || '08:00') : (step2.deliveryTime || undefined),
       deliveryRound,
       collectionDateTime,
       ...(isEvento && {
         eventTime:           step2.deliveryTime         || undefined,
         setupTime:           step2.eventExitTime        || undefined,
         branchDepartureTime: step2.eventExitTime        || undefined,
-        setupPersonName:     step2.eventResponsibleId   || undefined,
+        setupPersonName:     step2.eventResponsibleName || undefined,
         guestCount:          step2.eventGuestCount ? Number(step2.eventGuestCount) : undefined,
         eventServices:       eventServices.length ? eventServices : undefined,
       }),
@@ -1176,7 +1200,8 @@ function next() {
               <div class="flex flex-wrap items-center gap-4 rounded-xl border border-black/10 bg-white px-5 py-4">
                 <label class="flex items-center gap-2 cursor-pointer select-none"><input v-model="step2.eventServices.dessertTable" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50" /><span class="text-[13px] text-gray-700">Mesa de Postres</span></label>
                 <label class="flex items-center gap-2 cursor-pointer select-none"><input v-model="step2.eventServices.cake" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50" /><span class="text-[13px] text-gray-700">Pastel</span></label>
-                <label class="flex items-center gap-2 cursor-pointer select-none"><input v-model="step2.eventServices.montage" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50" /><span class="text-[13px] text-gray-700">Montaje</span></label>
+                <label class="flex items-center gap-2 cursor-pointer select-none"><input v-model="step2.eventServices.cheeseTable" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50" /><span class="text-[13px] text-gray-700">Mesa de Quesos</span></label>
+                <label class="flex items-center gap-2 cursor-pointer select-none"><input v-model="step2.eventServices.plated" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50" /><span class="text-[13px] text-gray-700">Platillos</span></label>
               </div>
             </fieldset>
             <fieldset v-if="step2.orderType === 'EVENTO'">
@@ -1188,13 +1213,12 @@ function next() {
                 </div>
                 <div class="flex items-center gap-2 flex-1 min-w-0">
                   <label class="text-[13px] font-medium text-gray-700 flex-shrink-0">Responsable del montaje</label>
-                  <div class="relative flex-1 min-w-[160px]">
-                    <select v-model="step2.eventResponsibleId" class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
-                      <option value="" disabled>Selecciona responsable</option>
-                      <option v-for="u in usersCatalog" :key="u.id" :value="u.id">{{ u.name }} {{ u.lastname }}</option>
-                    </select>
-                    <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </div>
+                  <input
+                    v-model="step2.eventResponsibleName"
+                    type="text"
+                    placeholder="Nombre del responsable"
+                    class="flex-1 rounded-xl bg-white px-3 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60"
+                  />
                 </div>
               </div>
             </fieldset>
@@ -1392,11 +1416,13 @@ function next() {
                 <input v-model="step4.requiresInvoice" type="checkbox" class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3] focus:ring-[#FC9AD3]/50" />
                 <span class="text-[13px] font-medium text-gray-700">Requiere factura</span>
               </label>
-              <div>
-                <p class="text-[14px] font-semibold text-[#111827] mb-2">Costo por servicio</p>
+              <div :class="step2.orderType === 'VITRINA' ? 'opacity-40 pointer-events-none select-none' : ''">
+                <p class="text-[14px] font-semibold text-[#111827] mb-2">Costo por servicio
+                  <span v-if="step2.orderType === 'VITRINA'" class="ml-2 text-[11px] font-normal text-gray-400">(no aplica en vitrina)</span>
+                </p>
                 <div class="flex items-center h-10 rounded-xl bg-[#F3F3F4] ring-1 ring-black/10 overflow-hidden">
                   <span class="px-3 text-[12px] text-gray-400 font-medium border-r border-black/10 h-full flex items-center">$</span>
-                  <input type="number" step="0.01" min="0" v-model.number="serviceCost" placeholder="0.00" class="flex-1 bg-transparent px-3 text-[13px] font-semibold text-[#111827] outline-none" />
+                  <input type="number" step="0.01" min="0" v-model.number="serviceCost" placeholder="0.00" :disabled="step2.orderType === 'VITRINA'" class="flex-1 bg-transparent px-3 text-[13px] font-semibold text-[#111827] outline-none" />
                 </div>
               </div>
               <div>
