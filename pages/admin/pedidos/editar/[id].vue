@@ -567,7 +567,6 @@ function populateFromOrder(order: OrderDetail) {
   }
 
   // Products
-  console.log('[editar] ORDER COMPLETO:', JSON.stringify(order, null, 2))
   orderProducts.value = (order.details ?? []).map(d => {
     const product: ProductItem = {
       id: d.product?.id ?? '', name: d.product?.name ?? '',

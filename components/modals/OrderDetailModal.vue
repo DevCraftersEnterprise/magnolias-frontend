@@ -46,6 +46,23 @@
                 >
                   {{ STATUS_LABELS[order.status] }}
                 </span>
+                <!-- Descargar formato -->
+                <button
+                  type="button"
+                  class="grid h-8 w-8 place-items-center rounded-xl hover:bg-black/5 text-gray-400 transition"
+                  :title="'Descargar formato'"
+                  :disabled="downloading"
+                  @click="downloadFormat()"
+                >
+                  <svg v-if="downloading" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2a10 10 0 1 0 10 10" stroke-linecap="round" />
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round" />
+                    <polyline points="7 10 12 15 17 10" stroke-linecap="round" stroke-linejoin="round" />
+                    <line x1="12" y1="15" x2="12" y2="3" stroke-linecap="round" />
+                  </svg>
+                </button>
                 <button
                   type="button"
                   class="grid h-8 w-8 place-items-center rounded-xl hover:bg-black/5 text-gray-400 transition"
@@ -866,5 +883,40 @@ function paymentLabel(pm?: string | null) {
 
 function roundLabel(r?: string | null) {
   return r ? (DELIVERY_ROUND_LABELS[r] ?? r) : "—";
+}
+
+// ── Descargar formato ───────────────────────────────────────────────────────
+const downloading = ref(false);
+
+function formatEndpoint(orderType?: OrderType): string {
+  if (orderType === 'DOMICILIO') return 'domicilio';
+  if (orderType === 'EVENTO')    return 'evento';
+  if (orderType === 'VITRINA')   return 'vitrina';
+  return 'personalizado'; // FLOR, PERSONALIZADO
+}
+
+async function downloadFormat() {
+  if (downloading.value || !props.order) return;
+  downloading.value = true;
+  try {
+    const config = useRuntimeConfig();
+    const base = String(config.public.apiBase || '').replace(/\/$/, '');
+    const token = useCookie<string | null>('access_token').value;
+    const orderType = activeData.value?.orderType ?? props.order.orderType;
+    const endpoint = formatEndpoint(orderType);
+    const res = await fetch(`${base}/api/formats/${endpoint}/${props.order.id}`, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (e: any) {
+    alert(e?.message || 'No se pudo generar el formato.');
+  } finally {
+    downloading.value = false;
+  }
 }
 </script>

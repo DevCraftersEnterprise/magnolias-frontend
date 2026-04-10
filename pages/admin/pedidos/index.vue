@@ -65,9 +65,10 @@ function clearSearch() {
   debouncedName.value = "";
   loadOrders(true);
 }
-const deleteTarget = ref<OrderItem | null>(null);
-const deleteConfirm = ref(false);
-const deleting = ref(false);
+const cancelTarget = ref<OrderItem | null>(null);
+const cancelConfirm = ref(false);
+const canceling = ref(false);
+const cancelReason = ref('');
 
 const showingFrom = computed(() =>
   orders.value.length === 0 ? 0 : offset.value + 1,
@@ -121,29 +122,31 @@ async function nextPage() {
   await loadOrders(false);
 }
 
-function confirmDelete(order: OrderItem) {
-  deleteTarget.value = order;
-  deleteConfirm.value = true;
+function confirmCancel(order: OrderItem) {
+  cancelTarget.value = order;
+  cancelReason.value = '';
+  cancelConfirm.value = true;
 }
 
-async function executeDelete() {
-  if (!deleteTarget.value || deleting.value) return;
-  deleting.value = true;
+async function executeCancel() {
+  if (!cancelTarget.value || canceling.value) return;
+  canceling.value = true;
   try {
-    await ordersService.deleteOrder(deleteTarget.value.id);
-    deleteConfirm.value = false;
-    deleteTarget.value = null;
+    await ordersService.cancelOrder(cancelTarget.value.id, cancelReason.value);
+    cancelConfirm.value = false;
+    cancelTarget.value = null;
+    cancelReason.value = '';
     await loadOrders(true);
   } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo eliminar el pedido.";
-    deleteConfirm.value = false;
+    errorMsg.value = e?.message || "No se pudo cancelar el pedido.";
+    cancelConfirm.value = false;
   } finally {
-    deleting.value = false;
+    canceling.value = false;
   }
 }
 
 // ─── KANBAN STATE ─────────────────────────────────────────────────────────────
-type KanbanTab = "tomorrow" | "week";
+type KanbanTab = "tomorrow" | "dayAfter";
 const kanbanTab = ref<KanbanTab>("tomorrow");
 const kanbanLoading = ref(true);
 const kanbanError = ref("");
@@ -154,6 +157,24 @@ const tomorrowStr = computed(() => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   return isoDate(d);
+});
+
+const dayAfterStr = computed(() => {
+  const d = new Date();
+  d.setDate(d.getDate() + 2);
+  return isoDate(d);
+});
+
+const tomorrowLabel = computed(() => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "short" });
+});
+
+const dayAfterLabel = computed(() => {
+  const d = new Date();
+  d.setDate(d.getDate() + 2);
+  return d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "short" });
 });
 
 // Filtra por fecha de entrega (comparando solo la parte de fecha del ISO)
@@ -167,9 +188,13 @@ const tomorrowOrders = computed(() =>
     (o) => deliveryDateStr(o.deliveryDate) === tomorrowStr.value,
   ),
 );
-const weekOrders = computed(() => kanbanOrders.value);
+const dayAfterOrders = computed(() =>
+  kanbanOrders.value.filter(
+    (o) => deliveryDateStr(o.deliveryDate) === dayAfterStr.value,
+  ),
+);
 const activeKanbanOrders = computed(() =>
-  kanbanTab.value === "tomorrow" ? tomorrowOrders.value : weekOrders.value,
+  kanbanTab.value === "tomorrow" ? tomorrowOrders.value : dayAfterOrders.value,
 );
 
 const pendingOrders = computed(() =>
@@ -192,11 +217,7 @@ async function loadKanbanOrders() {
   kanbanLoading.value = true;
   kanbanError.value = "";
   try {
-    const today = new Date();
-    const end = new Date(today);
-    end.setDate(end.getDate() + 7);
     const data = await ordersService.getOrders(selectedBranch.value.id, {
-      orderDate: isoDate(today),
       limit: 200,
       offset: 0,
     });
@@ -248,44 +269,6 @@ function openDetail(order: OrderItem) {
   detailOpen.value = true;
 }
 
-// ─── Format download ─────────────────────────────────────────────────────────
-const downloadingId = ref<string | null>(null);
-
-function formatEndpoint(orderCode: string): string {
-  const orderType = orderCode.split("-")[0];
-
-  if (orderType === "DOM") return "domicilio";
-  if (orderType === "EVE") return "evento";
-  if (orderType === "VIT") return "vitrina";
-  return "personalizado"; // FLOR, PERSONALIZADO
-}
-
-async function downloadFormat(order: OrderItem) {
-  if (downloadingId.value) return;
-  downloadingId.value = order.id;
-  try {
-    const config = useRuntimeConfig();
-    const base = String(config.public.apiBase || "").replace(/\/$/, "");
-    const token = useCookie<string | null>("access_token").value;
-    const endpoint = formatEndpoint(order.orderCode);
-
-    const res = await fetch(`${base}/api/formats/${endpoint}/${order.id}`, {
-      method: "GET",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) throw new Error(`Error ${res.status}`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(
-      new Blob([blob], { type: "application/pdf" }),
-    );
-    window.open(url, "_blank");
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  } catch (e: any) {
-    alert(e?.message || "No se pudo generar el formato.");
-  } finally {
-    downloadingId.value = null;
-  }
-}
 </script>
 
 <template>
@@ -597,59 +580,12 @@ async function downloadFormat(order: OrderItem) {
                                   />
                                 </svg>
                               </button>
-                              <!-- Descargar formato -->
+                              <!-- Cancelar pedido -->
                               <button
                                 type="button"
-                                class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-black/5 hover:text-[#111827] transition"
-                                title="Descargar formato"
-                                :disabled="!!downloadingId"
-                                @click="downloadFormat(order)"
-                              >
-                                <svg
-                                  v-if="downloadingId === order.id"
-                                  class="h-4 w-4 animate-spin"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  stroke-width="2"
-                                >
-                                  <path
-                                    d="M12 2a10 10 0 1 0 10 10"
-                                    stroke-linecap="round"
-                                  />
-                                </svg>
-                                <svg
-                                  v-else
-                                  viewBox="0 0 24 24"
-                                  class="h-4 w-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  stroke-width="2"
-                                >
-                                  <path
-                                    d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-                                    stroke-linecap="round"
-                                  />
-                                  <polyline
-                                    points="7 10 12 15 17 10"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                  />
-                                  <line
-                                    x1="12"
-                                    y1="15"
-                                    x2="12"
-                                    y2="3"
-                                    stroke-linecap="round"
-                                  />
-                                </svg>
-                              </button>
-                              <!-- Eliminar -->
-                              <button
-                                type="button"
-                                class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
-                                title="Eliminar pedido"
-                                @click="confirmDelete(order)"
+                                class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-orange-50 hover:text-orange-500 transition"
+                                title="Cancelar pedido"
+                                @click="confirmCancel(order)"
                               >
                                 <svg
                                   viewBox="0 0 24 24"
@@ -658,14 +594,9 @@ async function downloadFormat(order: OrderItem) {
                                   stroke="currentColor"
                                   stroke-width="2"
                                 >
-                                  <polyline points="3 6 5 6 21 6" />
-                                  <path
-                                    d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"
-                                  />
-                                  <path d="M10 11v6M14 11v6" />
-                                  <path
-                                    d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"
-                                  />
+                                  <circle cx="12" cy="12" r="10" />
+                                  <line x1="15" y1="9" x2="9" y2="15" stroke-linecap="round" />
+                                  <line x1="9" y1="9" x2="15" y2="15" stroke-linecap="round" />
                                 </svg>
                               </button>
                             </div>
@@ -797,275 +728,206 @@ async function downloadFormat(order: OrderItem) {
         </div>
 
         <template v-else>
-          <!-- Tabs: Mañana / Esta semana -->
-          <div class="flex gap-2 mb-6">
-            <button
-              class="px-4 py-2 rounded-xl text-[14px] font-semibold transition"
-              :class="
-                kanbanTab === 'tomorrow'
-                  ? 'bg-white shadow-sm ring-1 ring-black/10 text-[#111827]'
-                  : 'text-gray-400 hover:text-[#111827] hover:bg-white/60'
-              "
-              @click="kanbanTab = 'tomorrow'"
-            >
-              Mañana ({{ tomorrowOrders.length }})
-            </button>
-            <button
-              class="px-4 py-2 rounded-xl text-[14px] font-semibold transition"
-              :class="
-                kanbanTab === 'week'
-                  ? 'bg-white shadow-sm ring-1 ring-black/10 text-[#111827]'
-                  : 'text-gray-400 hover:text-[#111827] hover:bg-white/60'
-              "
-              @click="kanbanTab = 'week'"
-            >
-              Esta semana ({{ weekOrders.length }})
-            </button>
-          </div>
+          <!-- Contenedor blanco principal -->
+          <div class="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
 
-          <!-- Error -->
-          <div
-            v-if="kanbanError"
-            class="rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200"
-          >
-            {{ kanbanError }}
-          </div>
-
-          <!-- Loading -->
-          <div v-else-if="kanbanLoading" class="py-14 text-center">
-            <div
-              class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-black/10 border-t-[#C9007C]"
-            ></div>
-          </div>
-
-          <!-- Columnas -->
-          <div v-else class="grid grid-cols-1 sm:grid-cols-3 gap-5 items-start">
-            <!-- ── Pendientes (CREATED) ── -->
-            <div
-              class="rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-sm"
-            >
-              <div class="px-4 py-3 bg-[#FFF0B3]">
-                <h3 class="font-semibold text-[14px] text-[#7A5F00]">
-                  Pendientes ({{ pendingOrders.length }})
-                </h3>
+            <!-- ── Topbar del tablero ── -->
+            <div class="px-6 pt-5 pb-4 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Tablero de producción</p>
+                <h2 class="mt-0.5 text-[18px] font-bold text-[#111827]">{{ selectedBranch.name }}</h2>
               </div>
-              <div class="bg-[#FFFDF4] p-3 space-y-3 min-h-[200px]">
-                <div
-                  v-for="order in pendingOrders"
-                  :key="order.id"
-                  class="bg-white rounded-xl p-4 shadow-sm ring-1 ring-black/5"
+
+              <!-- Tabs -->
+              <div class="flex gap-1 rounded-xl bg-gray-100 p-1">
+                <button
+                  class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
+                  :class="kanbanTab === 'tomorrow' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
+                  @click="kanbanTab = 'tomorrow'"
                 >
-                  <div class="flex items-center justify-between gap-2 mb-3">
-                    <span
-                      class="font-semibold text-[13px] text-[#111827] truncate"
-                      >{{ order.orderCode ?? "—" }}</span
-                    >
-                    <span
-                      class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap shrink-0"
-                      :style="{ ...typeColor(order.orderType) }"
-                    >
-                      {{ typeLabel(order.orderType) }}
-                    </span>
-                  </div>
-                  <div class="space-y-1.5 text-[12px] text-gray-500">
-                    <div class="flex items-center gap-2">
-                      <svg
-                        class="h-3.5 w-3.5 shrink-0 text-gray-400"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <rect x="3" y="4" width="18" height="18" rx="2" />
-                        <path d="M16 2v4M8 2v4M3 10h18" />
-                      </svg>
-                      {{ formatDate(order.deliveryDate) }}
-                    </div>
-                    <div
-                      v-if="order.customer?.fullName"
-                      class="flex items-center gap-2"
-                    >
-                      <svg
-                        class="h-3.5 w-3.5 shrink-0 text-gray-400"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                      {{ order.customer.fullName }}
-                    </div>
-                  </div>
-                  <button
-                    class="mt-3 w-full rounded-lg bg-[#FFF0B3] py-1.5 text-[12px] font-semibold text-[#7A5F00] hover:bg-[#FFE680] transition disabled:opacity-40"
-                    :disabled="updatingId === order.id"
-                    @click="advanceStatus(order)"
+                  <span class="text-[12px] font-semibold leading-tight">Para mañana <span class="font-normal opacity-60">({{ tomorrowOrders.length }})</span></span>
+                  <span class="text-[11px] capitalize opacity-50 leading-tight">{{ tomorrowLabel }}</span>
+                </button>
+                <button
+                  class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
+                  :class="kanbanTab === 'dayAfter' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
+                  @click="kanbanTab = 'dayAfter'"
+                >
+                  <span class="text-[12px] font-semibold leading-tight">Pasado mañana <span class="font-normal opacity-60">({{ dayAfterOrders.length }})</span></span>
+                  <span class="text-[11px] capitalize opacity-50 leading-tight">{{ dayAfterLabel }}</span>
+                </button>
+              </div>
+
+              <!-- Actualizar -->
+              <button
+                type="button"
+                class="flex items-center gap-1.5 rounded-xl bg-gray-100 px-3 h-9 text-[13px] text-gray-500 hover:bg-gray-200 transition disabled:opacity-40 shrink-0"
+                :disabled="kanbanLoading"
+                @click="loadKanbanOrders"
+              >
+                <svg
+                  class="h-3.5 w-3.5"
+                  :class="{ 'animate-spin': kanbanLoading }"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                >
+                  <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+                Actualizar
+              </button>
+            </div>
+
+            <!-- Error -->
+            <div v-if="kanbanError" class="m-5 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200">
+              {{ kanbanError }}
+            </div>
+
+            <!-- Loading -->
+            <div v-else-if="kanbanLoading" class="py-16 flex justify-center">
+              <div class="h-6 w-6 animate-spin rounded-full border-2 border-black/10 border-t-[#C9007C]"></div>
+            </div>
+
+            <!-- ── Columnas ── -->
+            <div v-else class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-black/[0.06]">
+
+              <!-- Pendientes (CREATED) -->
+              <div class="flex flex-col">
+                <div class="px-4 py-3 flex items-center gap-2 border-b border-black/[0.06]">
+                  <span class="h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0"></span>
+                  <span class="text-[13px] font-semibold text-[#111827]">Pendientes</span>
+                  <span class="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">{{ pendingOrders.length }}</span>
+                </div>
+                <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
+                  <div
+                    v-for="order in pendingOrders"
+                    :key="order.id"
+                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
+                    @click="openDetail(order)"
                   >
-                    {{
-                      updatingId === order.id
-                        ? "Actualizando…"
-                        : "Iniciar producción →"
-                    }}
-                  </button>
-                </div>
-                <div
-                  v-if="pendingOrders.length === 0"
-                  class="py-8 text-center text-[12px] text-gray-400"
-                >
-                  Sin pedidos pendientes
+                    <div class="h-1 bg-amber-400"></div>
+                    <div class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2">
+                      <span class="font-bold text-[13px] text-[#111827] leading-tight truncate">{{ order.orderCode ?? '—' }}</span>
+                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5" :style="{ ...typeColor(order.orderType) }">{{ typeLabel(order.orderType) }}</span>
+                    </div>
+                    <div class="px-3.5 pb-3 space-y-1.5 text-[12px] text-gray-500">
+                      <div v-if="order.customer?.fullName" class="flex items-center gap-1.5 truncate">
+                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span class="truncate">{{ order.customer.fullName }}</span>
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        {{ formatDate(order.deliveryDate) }}<span v-if="order.deliveryTime" class="text-gray-400"> · {{ order.deliveryTime }}</span>
+                      </div>
+                      <div v-if="order.remainingBalance && parseFloat(String(order.remainingBalance)) > 0" class="flex items-center gap-1.5 text-orange-500 font-medium">
+                        <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke-linecap="round"/></svg>
+                        Saldo pendiente
+                      </div>
+                    </div>
+                    <div class="border-t border-black/[0.06] px-3 py-2.5" @click.stop>
+                      <button
+                        class="w-full rounded-lg bg-amber-50 py-1.5 text-[12px] font-semibold text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
+                        :disabled="updatingId === order.id"
+                        @click="advanceStatus(order)"
+                      >{{ updatingId === order.id ? 'Actualizando…' : 'Iniciar producción →' }}</button>
+                    </div>
+                  </div>
+                  <div v-if="pendingOrders.length === 0" class="py-10 text-center text-[12px] text-gray-400">
+                    Sin pedidos pendientes
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- ── En producción (IN PROCESS) ── -->
-            <div
-              class="rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-sm"
-            >
-              <div class="px-4 py-3 bg-[#D4D0FF]">
-                <h3 class="font-semibold text-[14px] text-[#3730A3]">
-                  En producción ({{ inProcessOrders.length }})
-                </h3>
-              </div>
-              <div class="bg-[#F5F3FF] p-3 space-y-3 min-h-[200px]">
-                <div
-                  v-for="order in inProcessOrders"
-                  :key="order.id"
-                  class="bg-white rounded-xl p-4 shadow-sm ring-1 ring-black/5"
-                >
-                  <div class="flex items-center justify-between gap-2 mb-3">
-                    <span
-                      class="font-semibold text-[13px] text-[#111827] truncate"
-                      >{{ order.orderCode ?? "—" }}</span
-                    >
-                    <span
-                      class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap shrink-0"
-                      :style="{ ...typeColor(order.orderType) }"
-                    >
-                      {{ typeLabel(order.orderType) }}
-                    </span>
-                  </div>
-                  <div class="space-y-1.5 text-[12px] text-gray-500">
-                    <div class="flex items-center gap-2">
-                      <svg
-                        class="h-3.5 w-3.5 shrink-0 text-gray-400"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <rect x="3" y="4" width="18" height="18" rx="2" />
-                        <path d="M16 2v4M8 2v4M3 10h18" />
-                      </svg>
-                      {{ formatDate(order.deliveryDate) }}
-                    </div>
-                    <div
-                      v-if="order.customer?.fullName"
-                      class="flex items-center gap-2"
-                    >
-                      <svg
-                        class="h-3.5 w-3.5 shrink-0 text-gray-400"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                      {{ order.customer.fullName }}
-                    </div>
-                  </div>
-                  <button
-                    class="mt-3 w-full rounded-lg bg-[#D4D0FF] py-1.5 text-[12px] font-semibold text-[#3730A3] hover:bg-[#B8B3FF] transition disabled:opacity-40"
-                    :disabled="updatingId === order.id"
-                    @click="advanceStatus(order)"
+              <!-- En producción (IN PROCESS) -->
+              <div class="flex flex-col">
+                <div class="px-4 py-3 flex items-center gap-2 border-b border-black/[0.06]">
+                  <span class="h-2.5 w-2.5 rounded-full bg-violet-400 shrink-0"></span>
+                  <span class="text-[13px] font-semibold text-[#111827]">En producción</span>
+                  <span class="ml-auto rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-700">{{ inProcessOrders.length }}</span>
+                </div>
+                <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
+                  <div
+                    v-for="order in inProcessOrders"
+                    :key="order.id"
+                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
+                    @click="openDetail(order)"
                   >
-                    {{
-                      updatingId === order.id
-                        ? "Actualizando…"
-                        : "Marcar como listo →"
-                    }}
-                  </button>
-                </div>
-                <div
-                  v-if="inProcessOrders.length === 0"
-                  class="py-8 text-center text-[12px] text-gray-400"
-                >
-                  Sin pedidos en producción
+                    <div class="h-1 bg-violet-400"></div>
+                    <div class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2">
+                      <span class="font-bold text-[13px] text-[#111827] leading-tight truncate">{{ order.orderCode ?? '—' }}</span>
+                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5" :style="{ ...typeColor(order.orderType) }">{{ typeLabel(order.orderType) }}</span>
+                    </div>
+                    <div class="px-3.5 pb-3 space-y-1.5 text-[12px] text-gray-500">
+                      <div v-if="order.customer?.fullName" class="flex items-center gap-1.5 truncate">
+                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span class="truncate">{{ order.customer.fullName }}</span>
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        {{ formatDate(order.deliveryDate) }}<span v-if="order.deliveryTime" class="text-gray-400"> · {{ order.deliveryTime }}</span>
+                      </div>
+                      <div v-if="order.remainingBalance && parseFloat(String(order.remainingBalance)) > 0" class="flex items-center gap-1.5 text-orange-500 font-medium">
+                        <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke-linecap="round"/></svg>
+                        Saldo pendiente
+                      </div>
+                    </div>
+                    <div class="border-t border-black/[0.06] px-3 py-2.5" @click.stop>
+                      <button
+                        class="w-full rounded-lg bg-violet-50 py-1.5 text-[12px] font-semibold text-violet-700 hover:bg-violet-100 transition disabled:opacity-40"
+                        :disabled="updatingId === order.id"
+                        @click="advanceStatus(order)"
+                      >{{ updatingId === order.id ? 'Actualizando…' : 'Marcar como listo →' }}</button>
+                    </div>
+                  </div>
+                  <div v-if="inProcessOrders.length === 0" class="py-10 text-center text-[12px] text-gray-400">
+                    Sin pedidos en producción
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- ── Listo (DONE) ── -->
-            <div
-              class="rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-sm"
-            >
-              <div class="px-4 py-3 bg-[#B8F0C4]">
-                <h3 class="font-semibold text-[14px] text-[#166534]">
-                  Listo ({{ doneOrders.length }})
-                </h3>
-              </div>
-              <div class="bg-[#F0FFF4] p-3 space-y-3 min-h-[200px]">
-                <div
-                  v-for="order in doneOrders"
-                  :key="order.id"
-                  class="bg-white rounded-xl p-4 shadow-sm ring-1 ring-black/5"
-                >
-                  <div class="flex items-center justify-between gap-2 mb-3">
-                    <span
-                      class="font-semibold text-[13px] text-[#111827] truncate"
-                      >{{ order.orderCode ?? "—" }}</span
-                    >
-                    <span
-                      class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap shrink-0"
-                      :style="{ ...typeColor(order.orderType) }"
-                    >
-                      {{ typeLabel(order.orderType) }}
-                    </span>
-                  </div>
-                  <div class="space-y-1.5 text-[12px] text-gray-500">
-                    <div class="flex items-center gap-2">
-                      <svg
-                        class="h-3.5 w-3.5 shrink-0 text-gray-400"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <rect x="3" y="4" width="18" height="18" rx="2" />
-                        <path d="M16 2v4M8 2v4M3 10h18" />
-                      </svg>
-                      {{ formatDate(order.deliveryDate) }}
+              <!-- Listos (DONE) -->
+              <div class="flex flex-col">
+                <div class="px-4 py-3 flex items-center gap-2 border-b border-black/[0.06]">
+                  <span class="h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                  <span class="text-[13px] font-semibold text-[#111827]">Listos</span>
+                  <span class="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{{ doneOrders.length }}</span>
+                </div>
+                <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
+                  <div
+                    v-for="order in doneOrders"
+                    :key="order.id"
+                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
+                    @click="openDetail(order)"
+                  >
+                    <div class="h-1 bg-emerald-400"></div>
+                    <div class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2">
+                      <span class="font-bold text-[13px] text-[#111827] leading-tight truncate">{{ order.orderCode ?? '—' }}</span>
+                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5" :style="{ ...typeColor(order.orderType) }">{{ typeLabel(order.orderType) }}</span>
                     </div>
-                    <div
-                      v-if="order.customer?.fullName"
-                      class="flex items-center gap-2"
-                    >
-                      <svg
-                        class="h-3.5 w-3.5 shrink-0 text-gray-400"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                      {{ order.customer.fullName }}
+                    <div class="px-3.5 pb-4 space-y-1.5 text-[12px] text-gray-500">
+                      <div v-if="order.customer?.fullName" class="flex items-center gap-1.5 truncate">
+                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span class="truncate">{{ order.customer.fullName }}</span>
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        {{ formatDate(order.deliveryDate) }}<span v-if="order.deliveryTime" class="text-gray-400"> · {{ order.deliveryTime }}</span>
+                      </div>
+                      <div class="flex items-center gap-1.5 text-emerald-600 font-medium">
+                        <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        Listo para entregar
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div
-                  v-if="doneOrders.length === 0"
-                  class="py-8 text-center text-[12px] text-gray-400"
-                >
-                  Sin pedidos listos
+                  <div v-if="doneOrders.length === 0" class="py-10 text-center text-[12px] text-gray-400">
+                    Sin pedidos listos
+                  </div>
                 </div>
               </div>
+
             </div>
+            <!-- /columnas -->
           </div>
+          <!-- /contenedor blanco -->
         </template>
       </template>
     </div>
@@ -1077,7 +939,7 @@ async function downloadFormat(order: OrderItem) {
     @close="detailOpen = false"
   />
 
-  <!-- Delete confirm -->
+  <!-- ── CANCELAR PEDIDO ────────────────────────────────────────────── -->
   <Teleport to="body">
     <Transition
       enter-active-class="transition duration-150 ease-out"
@@ -1088,45 +950,51 @@ async function downloadFormat(order: OrderItem) {
       leave-to-class="opacity-0"
     >
       <div
-        v-if="deleteConfirm"
+        v-if="cancelConfirm"
         class="fixed inset-0 z-[110] flex items-center justify-center p-4"
       >
         <div
           class="absolute inset-0 bg-black/60"
-          @click="deleteConfirm = false"
+          @click="cancelConfirm = false"
         />
         <div
           class="relative z-10 w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 p-6"
         >
           <h3 class="text-[16px] font-bold text-[#111827]">
-            ¿Eliminar pedido?
+            ¿Cancelar pedido?
           </h3>
           <p class="mt-2 text-[13px] text-gray-500">
-            Se eliminará el pedido
+            Se cancelará el pedido
             <span class="font-semibold text-[#111827]">{{
-              deleteTarget?.orderCode
+              cancelTarget?.orderCode
             }}</span
-            >. Esta acción no se puede deshacer.
+            >. Ingresa el motivo de cancelación.
           </p>
+          <textarea
+            v-model="cancelReason"
+            rows="3"
+            placeholder="Motivo de cancelación..."
+            class="mt-4 w-full rounded-xl border border-black/10 bg-gray-50 px-3 py-2 text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#111827]/20 resize-none"
+          />
           <div class="mt-5 flex justify-end gap-2">
             <button
               type="button"
               class="h-9 px-4 rounded-xl text-[13px] ring-1 ring-black/10 hover:bg-black/5 transition"
-              @click="deleteConfirm = false"
+              @click="cancelConfirm = false"
             >
-              Cancelar
+              Volver
             </button>
             <button
               type="button"
-              class="h-9 px-4 rounded-xl text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 transition"
-              :disabled="deleting"
-              @click="executeDelete"
+              class="h-9 px-4 rounded-xl text-[13px] font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition"
+              :disabled="canceling || !cancelReason.trim()"
+              @click="executeCancel"
             >
-              <span v-if="deleting" class="flex items-center gap-2"
+              <span v-if="canceling" class="flex items-center gap-2"
                 ><span
                   class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"
               /></span>
-              <span v-else>Eliminar</span>
+              <span v-else>Cancelar pedido</span>
             </button>
           </div>
         </div>

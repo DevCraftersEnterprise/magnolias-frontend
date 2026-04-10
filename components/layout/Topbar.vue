@@ -11,13 +11,7 @@
       <div class="m-top__center">
         <h1 class="m-top__title">{{ title }}</h1>
 
-        <div v-if="!canSeeBranchSelect && selectedBranch" class="m-top__branch-readonly">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="m-top__branch-readonly-icon">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
-          <span class="m-top__branch-readonly-label">{{ selectedBranch?.name }}</span>
-        </div>
-
+        <!-- ADMIN / SUPER: selector de todas las sucursales -->
         <div v-if="canSeeBranchSelect && branches.length > 0" class="m-top__branch-wrapper">
           <svg class="m-top__branch-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
@@ -32,6 +26,30 @@
           <svg class="m-top__branch-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 9l6 6 6-6"/>
           </svg>
+        </div>
+
+        <!-- BAKER: selector entre sus sucursales asignadas -->
+        <div v-else-if="isBaker && bakerBranches.length > 1" class="m-top__branch-wrapper">
+          <svg class="m-top__branch-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <select
+            class="m-top__branch-select"
+            :value="selectedBranch?.id ?? ''"
+            @change="e => { const v = (e.target as HTMLSelectElement).value; selectedBranch = v ? (bakerBranches.find(b => b.id === v) ?? null) : null }">
+            <option v-for="b in bakerBranches" :key="b.id" :value="b.id">{{ b.name }}</option>
+          </select>
+          <svg class="m-top__branch-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </div>
+
+        <!-- Otros roles con sucursal única: solo lectura -->
+        <div v-else-if="!canSeeBranchSelect && selectedBranch" class="m-top__branch-readonly">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="m-top__branch-readonly-icon">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <span class="m-top__branch-readonly-label">{{ selectedBranch?.name }}</span>
         </div>
       </div>
   
@@ -61,10 +79,11 @@
   defineProps<{ title: string }>()
   defineEmits<{ (e: 'toggle'): void; (e: 'logout'): void }>()
   const { user, loading } = useAuthUser()
-  const { branches, selectedBranch } = useBranch()
+  const { branches, selectedBranch, bakerBranches } = useBranch()
 
     const username = computed(() => user.value?.username ?? '...')
     const role = computed(() => user.value?.role ?? '')
+    const isBaker = computed(() => user.value?.role === 'BAKER')
     const canSeeBranchSelect = computed(() => ['ADMIN', 'SUPER'].includes(user.value?.role ?? ''))
 
     const initials = computed(() => {

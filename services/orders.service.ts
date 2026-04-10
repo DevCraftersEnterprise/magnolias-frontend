@@ -429,10 +429,11 @@ export const ordersService = {
     })
   },
 
-  deleteOrder(id: string) {
-    return apiFetch<void>(`/api/orders/${id}`, {
+  cancelOrder(id: string, reason: string) {
+    return apiFetch<void>(`/api/orders/cancel`, {
       method: 'DELETE',
       auth: true,
+      body: JSON.stringify({ id, reason }),
     })
   },
 

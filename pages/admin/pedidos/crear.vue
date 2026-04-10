@@ -732,7 +732,6 @@ async function submitOrder() {
       flowers,
     }
 
-    console.log('[crear pedido] payload:', JSON.stringify(payload, null, 2))
     await ordersService.createOrder(payload)
     router.push('/admin/pedidos')
   } catch (e: any) {

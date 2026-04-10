@@ -5,6 +5,12 @@ useHead({ title: 'Panel · Magnolias' })
 import { dashboardService } from "~/services/dashboard.service";
 import OrderSummaryCard from "~/components/OrderSummaryCard.vue";
 const { selectedBranch } = useBranch();
+const { user } = useAuthUser();
+
+// Los pasteleros no tienen dashboard, redirigir a pedidos
+if (user.value?.role === 'BAKER') {
+  await navigateTo('/admin/pedidos', { replace: true })
+}
 
 type OrderSummaryItem = {
   key: string;
