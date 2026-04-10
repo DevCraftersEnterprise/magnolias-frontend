@@ -382,6 +382,7 @@ export type CreateOrderPayload = {
   // misc
   hasPhotoReference?: boolean
   requiresInvoice?: boolean
+  isCustomerPickup?: boolean
   transferAccount?: string
   deliveryAddress?: CreateOrderDeliveryAddress
   details: CreateOrderDetail[]

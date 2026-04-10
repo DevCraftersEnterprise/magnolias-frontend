@@ -229,6 +229,40 @@ function openDetail(order: OrderItem) {
   selectedOrder.value = order
   detailOpen.value    = true
 }
+
+// ─── Format download ─────────────────────────────────────────────────────────
+const downloadingId = ref<string | null>(null)
+
+function formatEndpoint(orderType: OrderType): string {
+  if (orderType === 'DOMICILIO') return 'domicilio'
+  if (orderType === 'EVENTO')    return 'evento'
+  if (orderType === 'VITRINA')   return 'vitrina'
+  return 'personalizado' // FLOR, PERSONALIZADO
+}
+
+async function downloadFormat(order: OrderItem) {
+  if (downloadingId.value) return
+  downloadingId.value = order.id
+  try {
+    const config = useRuntimeConfig()
+    const base   = String(config.public.apiBase || '').replace(/\/$/, '')
+    const token  = useCookie<string | null>('access_token').value
+    const endpoint = formatEndpoint(order.orderType)
+    const res = await fetch(`${base}/api/formats/${endpoint}/${order.id}`, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw new Error(`Error ${res.status}`)
+    const blob = await res.blob()
+    const url  = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+    window.open(url, '_blank')
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (e: any) {
+    alert(e?.message || 'No se pudo generar el formato.')
+  } finally {
+    downloadingId.value = null
+  }
+}
 </script>
 
 <template>
@@ -434,6 +468,23 @@ function openDetail(order: OrderItem) {
                               <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                            </button>
+                            <!-- Descargar formato -->
+                            <button
+                              type="button"
+                              class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-black/5 hover:text-[#111827] transition"
+                              title="Descargar formato"
+                              :disabled="!!downloadingId"
+                              @click="downloadFormat(order)"
+                            >
+                              <svg v-if="downloadingId === order.id" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2a10 10 0 1 0 10 10" stroke-linecap="round"/>
+                              </svg>
+                              <svg v-else viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round"/>
+                                <polyline points="7 10 12 15 17 10" stroke-linecap="round" stroke-linejoin="round"/>
+                                <line x1="12" y1="15" x2="12" y2="3" stroke-linecap="round"/>
                               </svg>
                             </button>
                             <!-- Eliminar -->

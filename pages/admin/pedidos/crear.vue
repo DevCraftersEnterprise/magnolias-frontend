@@ -724,6 +724,7 @@ async function submitOrder() {
       guestCount:           isEvento && step2.eventGuestCount ? Number(step2.eventGuestCount) : undefined,
       eventServices:        isEvento && eventServicesList.length ? eventServicesList : undefined,
       setupServiceCost:     serviceCost.value || undefined,
+      isCustomerPickup:     step2.orderType === 'FLOR' && florMode.value === 'vitrina' ? true : undefined,
       hasPhotoReference:    orderProducts.value.some(r => !!r.referenceFile),
       requiresInvoice:      step4.requiresInvoice || undefined,
       deliveryAddress,
@@ -2436,6 +2437,17 @@ function formatCustomerAddress(c: CustomerItem) {
                 </div>
                 <button type="button" @click="openDetailModal(i)" class="mt-1 text-[11px] text-[#FC9AD3] hover:text-[#C9007C] font-medium underline underline-offset-2 transition-colors">Ver detalle</button>
               </div>
+            </div>
+          </div>
+
+          <!-- Flowers list (FLOR orders) -->
+          <div v-if="step2.orderType === 'FLOR' && flowerRows.some(r => r.flowerId)" class="border-t border-black/5 px-5 py-3 space-y-1.5">
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Flores</p>
+            <div v-for="(row, i) in flowerRows.filter(r => r.flowerId)" :key="i" class="flex items-center gap-2 text-[12px] text-gray-700">
+              <span class="inline-block h-3 w-3 rounded-full flex-shrink-0 ring-1 ring-black/15" :style="{ background: row.colorId ? colorHex(row.colorId) : '#e5e7eb' }"/>
+              <span class="font-medium">{{ flowerCatalog.find(f => f.id === row.flowerId)?.name ?? row.flowerId }}</span>
+              <span v-if="row.colorId" class="text-gray-400">· {{ colorName(row.colorId) }}</span>
+              <span class="ml-auto text-gray-400">× {{ row.quantity }}</span>
             </div>
           </div>
 

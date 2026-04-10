@@ -606,6 +606,28 @@
                 </div>
               </div>
 
+              <!-- ─ 5. Flores ─ -->
+              <div v-if="activeData && activeData.orderFlowers && activeData.orderFlowers.length > 0">
+                <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  Flores ({{ activeData.orderFlowers.length }})
+                </p>
+                <div class="rounded-xl bg-[#F8F8F9] px-4 py-3 space-y-2">
+                  <div
+                    v-for="(f, i) in activeData.orderFlowers"
+                    :key="i"
+                    class="flex items-center gap-2.5 text-[13px] text-[#111827]"
+                  >
+                    <span
+                      class="inline-block h-3.5 w-3.5 rounded-full flex-shrink-0 ring-1 ring-black/15"
+                      :style="{ background: f.color?.value ?? '#e5e7eb' }"
+                    />
+                    <span class="font-medium">{{ f.flower?.name ?? '—' }}</span>
+                    <span v-if="f.color" class="text-gray-400 text-[12px]">· {{ f.color.name }}</span>
+                    <span class="ml-auto text-gray-500 text-[12px]">× {{ f.quantity }}</span>
+                  </div>
+                </div>
+              </div>
+
               <!-- ─ Auditoría ─ -->
               <div
                 v-if="activeCreatedBy || activeUpdatedBy"

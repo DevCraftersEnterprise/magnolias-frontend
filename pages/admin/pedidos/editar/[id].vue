@@ -782,8 +782,9 @@ async function submitOrder() {
         guestCount:          step2.eventGuestCount ? Number(step2.eventGuestCount) : undefined,
         eventServices:       eventServices.length ? eventServices : undefined,
       }),
-      setupServiceCost: serviceCost.value || undefined,
-      requiresInvoice: step4.requiresInvoice || undefined,
+      setupServiceCost:  serviceCost.value || undefined,
+      isCustomerPickup: step2.orderType === 'FLOR' && florMode.value === 'vitrina' ? true : undefined,
+      requiresInvoice:  step4.requiresInvoice || undefined,
       deliveryAddress,
       details,
       flowers,
@@ -988,8 +989,8 @@ function next() {
         <!-- ══════════════════════════════════════════════════════════════ -->
         <!-- STEP 2 — Tipo y logística                                      -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <div v-else-if="step === 2" class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.08)] overflow-hidden">
-          <div class="px-6 py-5 border-b border-black/10">
+        <div v-else-if="step === 2" class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.08)]">
+          <div class="px-6 py-5 border-b border-black/10 rounded-t-2xl overflow-hidden">
             <h2 class="text-[18px] font-bold text-[#111827]">Tipo y logística</h2>
             <p class="mt-0.5 text-[13px] text-gray-400">Elige el tipo de pedido y, si aplica, los detalles de entrega</p>
           </div>
@@ -1180,6 +1181,7 @@ function next() {
               <div class="space-y-2">
                 <div v-for="(row, i) in flowerRows" :key="i" class="flex items-center gap-2 rounded-xl ring-1 ring-black/10 bg-white px-3 py-2">
                   <span class="text-[12px] font-semibold text-gray-400 w-12 flex-shrink-0">Flor {{ i + 1 }}</span>
+                  <!-- Flor -->
                   <div class="relative flex-1 min-w-0">
                     <select v-model="row.flowerId" class="w-full appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer">
                       <option value="" disabled>Selecciona flor</option>
@@ -1187,9 +1189,27 @@ function next() {
                     </select>
                     <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </div>
+                  <!-- Color -->
+                  <div class="relative w-24 flex-shrink-0">
+                    <button type="button" @click.stop="openColorPicker = openColorPicker === colorPickerKey('fl',i) ? null : colorPickerKey('fl',i)" class="flex items-center gap-1.5 w-full rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] text-[#111827] ring-1 ring-black/8 focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60">
+                      <span v-if="row.colorId" class="inline-block h-3.5 w-3.5 rounded-full flex-shrink-0 ring-1 ring-black/15" :style="{ background: colorHex(row.colorId) }"/>
+                      <span class="truncate">{{ row.colorId ? colorName(row.colorId) : 'Color' }}</span>
+                      <svg class="ml-auto h-3 w-3 flex-shrink-0 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div v-if="openColorPicker === colorPickerKey('fl',i)" class="absolute z-20 mt-1 left-0 min-w-[140px] rounded-xl bg-white ring-1 ring-black/10 shadow-xl py-1 max-h-48 overflow-y-auto" @click.stop>
+                      <button type="button" @click="pickColor(row, '', colorPickerKey('fl',i))" class="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] text-gray-400 hover:bg-pink-50">— Ninguno</button>
+                      <button v-for="c in colorCatalog" :key="c.id" type="button" @click="pickColor(row, c.id, colorPickerKey('fl',i))" class="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] text-[#111827] hover:bg-pink-50" :class="{ 'bg-pink-50 font-semibold': row.colorId === c.id }">
+                        <span class="inline-block h-3.5 w-3.5 rounded-full flex-shrink-0 ring-1 ring-black/15" :style="{ background: c.value }"/>
+                        {{ c.name }}
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Cantidad -->
                   <input v-model.number="row.quantity" type="number" min="1" placeholder="Cant" class="w-14 rounded-lg bg-[#F3F3F4] px-2 py-1.5 text-[12px] text-center outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60" />
+                  <!-- Nota -->
                   <input v-model="row.note" type="text" placeholder="Nota" class="flex-1 min-w-0 rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60" />
                   <button v-if="flowerRows.length > 1" type="button" @click="removeFlowerRow(i)" class="flex-shrink-0 text-gray-300 hover:text-red-400 transition-colors"><svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8" stroke-linecap="round"/></svg></button>
+                  <span v-else class="h-4 w-4 flex-shrink-0"/>
                 </div>
               </div>
             </fieldset>
