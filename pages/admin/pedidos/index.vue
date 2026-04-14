@@ -230,21 +230,34 @@ async function loadKanbanOrders() {
 }
 
 async function advanceStatus(order: OrderItem) {
-  const next: Partial<Record<OrderStatus, OrderStatus>> = {
-    CREATED: "IN PROCESS",
-    "IN PROCESS": "DONE",
-  };
-  const nextStatus = next[order.status];
-  if (!nextStatus || updatingId.value) return;
+  if (updatingId.value) return;
   updatingId.value = order.id;
   try {
-    await ordersService.updateStatus(order.id, nextStatus);
-    order.status = nextStatus;
+    if (order.status === 'CREATED') {
+      await ordersService.markInProcess(order.id);
+      order.status = 'IN PROCESS';
+    } else if (order.status === 'IN PROCESS') {
+      await ordersService.markDone(order.id);
+      order.status = 'DONE';
+    }
   } catch (e: any) {
     console.error("Error actualizando estado:", e);
   } finally {
     updatingId.value = null;
   }
+}
+
+// ── Kanban confirm modal ──────────────────────────────────────────────
+const kanbanConfirmTarget = ref<OrderItem | null>(null)
+function requestAdvanceStatus(order: OrderItem) {
+  if (updatingId.value) return
+  kanbanConfirmTarget.value = order
+}
+async function confirmAdvanceStatus() {
+  const order = kanbanConfirmTarget.value
+  kanbanConfirmTarget.value = null
+  if (!order) return
+  await advanceStatus(order)
 }
 
 // ─── Lifecycle & watchers ─────────────────────────────────────────────────────
@@ -802,7 +815,7 @@ function openDetail(order: OrderItem) {
                     v-for="order in pendingOrders"
                     :key="order.id"
                     class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    @click="openDetail(order)"
+                    @click="navigateTo('/admin/pedidos/detalle/' + order.id)"
                   >
                     <div class="h-1 bg-amber-400"></div>
                     <div class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2">
@@ -827,7 +840,7 @@ function openDetail(order: OrderItem) {
                       <button
                         class="w-full rounded-lg bg-amber-50 py-1.5 text-[12px] font-semibold text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
                         :disabled="updatingId === order.id"
-                        @click="advanceStatus(order)"
+                        @click="requestAdvanceStatus(order)"
                       >{{ updatingId === order.id ? 'Actualizando…' : 'Iniciar producción →' }}</button>
                     </div>
                   </div>
@@ -849,7 +862,7 @@ function openDetail(order: OrderItem) {
                     v-for="order in inProcessOrders"
                     :key="order.id"
                     class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    @click="openDetail(order)"
+                    @click="navigateTo('/admin/pedidos/detalle/' + order.id)"
                   >
                     <div class="h-1 bg-violet-400"></div>
                     <div class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2">
@@ -874,7 +887,7 @@ function openDetail(order: OrderItem) {
                       <button
                         class="w-full rounded-lg bg-violet-50 py-1.5 text-[12px] font-semibold text-violet-700 hover:bg-violet-100 transition disabled:opacity-40"
                         :disabled="updatingId === order.id"
-                        @click="advanceStatus(order)"
+                        @click="requestAdvanceStatus(order)"
                       >{{ updatingId === order.id ? 'Actualizando…' : 'Marcar como listo →' }}</button>
                     </div>
                   </div>
@@ -896,7 +909,7 @@ function openDetail(order: OrderItem) {
                     v-for="order in doneOrders"
                     :key="order.id"
                     class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    @click="openDetail(order)"
+                    @click="navigateTo('/admin/pedidos/detalle/' + order.id)"
                   >
                     <div class="h-1 bg-emerald-400"></div>
                     <div class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2">
@@ -938,6 +951,54 @@ function openDetail(order: OrderItem) {
     :order="selectedOrder"
     @close="detailOpen = false"
   />
+
+  <!-- ── CONFIRMAR AVANCE DE ESTADO (KANBAN) ────────────────────── -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-150 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-100 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="kanbanConfirmTarget"
+        class="fixed inset-0 z-[110] flex items-center justify-center p-4"
+      >
+        <div class="absolute inset-0 bg-black/40" @click="kanbanConfirmTarget = null" />
+        <div class="relative z-10 w-full max-w-sm rounded-2xl bg-white shadow-xl ring-1 ring-black/10 overflow-hidden">
+          <div :class="['h-1.5', kanbanConfirmTarget.status === 'CREATED' ? 'bg-amber-400' : 'bg-violet-500']" />
+          <div class="px-6 pt-5 pb-6">
+            <h3 class="text-[16px] font-bold text-[#111827]">¿Confirmar cambio de estado?</h3>
+            <p class="mt-2 text-[13px] text-gray-500 leading-relaxed">
+              El pedido <span class="font-semibold text-[#111827]">{{ kanbanConfirmTarget.orderCode }}</span> pasará de
+              <span
+                class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold"
+                :style="{ backgroundColor: STATUS_COLORS[kanbanConfirmTarget.status]?.bg, color: STATUS_COLORS[kanbanConfirmTarget.status]?.text }"
+              >{{ STATUS_LABELS[kanbanConfirmTarget.status] }}</span>
+              a
+              <span :class="['inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold', kanbanConfirmTarget.status === 'CREATED' ? 'bg-amber-100 text-amber-800' : 'bg-violet-100 text-violet-800']">
+                {{ kanbanConfirmTarget.status === 'CREATED' ? 'En producción' : 'Listo' }}
+              </span>.
+            </p>
+            <div class="mt-5 flex gap-3">
+              <button
+                type="button"
+                class="flex-1 rounded-xl border border-black/10 py-2.5 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
+                @click="kanbanConfirmTarget = null"
+              >Cancelar</button>
+              <button
+                type="button"
+                :class="['flex-1 rounded-xl py-2.5 text-[13px] font-bold transition', kanbanConfirmTarget.status === 'CREATED' ? 'bg-amber-400 text-amber-950 hover:bg-amber-500' : 'bg-violet-500 text-white hover:bg-violet-600']"
+                @click="confirmAdvanceStatus"
+              >Confirmar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 
   <!-- ── CANCELAR PEDIDO ────────────────────────────────────────────── -->
   <Teleport to="body">

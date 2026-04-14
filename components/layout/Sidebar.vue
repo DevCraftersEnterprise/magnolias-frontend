@@ -1,7 +1,7 @@
 <template>
   <div class="m-side">
     <div class="m-side__brand">
-      <NuxtLink to="/admin">
+      <NuxtLink :to="user?.role === 'BAKER' ? '/admin/pedidos' : '/admin'">
         <img src="/img/magnolias-logo.png" alt="Magnolias" class="m-side__logo" />
       </NuxtLink>
     </div>

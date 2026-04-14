@@ -1,16 +1,23 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'admin' })
+definePageMeta({
+  layout: 'admin',
+  middleware: [
+    async function () {
+      const { ensureSession } = useAuth()
+      await ensureSession()
+      const { user } = useAuthUser()
+      if (user.value?.role === 'BAKER') {
+        return navigateTo('/admin/pedidos', { replace: true })
+      }
+    }
+  ]
+})
 useHead({ title: 'Panel · Magnolias' })
 
 import { dashboardService } from "~/services/dashboard.service";
 import OrderSummaryCard from "~/components/OrderSummaryCard.vue";
 const { selectedBranch } = useBranch();
 const { user } = useAuthUser();
-
-// Los pasteleros no tienen dashboard, redirigir a pedidos
-if (user.value?.role === 'BAKER') {
-  await navigateTo('/admin/pedidos', { replace: true })
-}
 
 type OrderSummaryItem = {
   key: string;
@@ -55,8 +62,10 @@ async function loadOrderStatistics() {
   }
 }
 
-onMounted(() => loadOrderStatistics());
-watch(selectedBranch, () => loadOrderStatistics());
+const isBaker = user.value?.role === 'BAKER'
+
+onMounted(() => { if (!isBaker) loadOrderStatistics() })
+watch(selectedBranch, () => { if (!isBaker) loadOrderStatistics() })
 </script>
 
 <template>

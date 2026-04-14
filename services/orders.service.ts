@@ -406,11 +406,27 @@ export const ordersService = {
     })
   },
 
-  updateStatus(id: string, status: OrderStatus) {
-    return apiFetch<OrderItem>(`/api/orders/${id}`, {
+  markInProcess(id: string) {
+    return apiFetch<OrderItem>(`/api/orders/in-process`, {
       method: 'PATCH',
       auth: true,
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ id }),
+    })
+  },
+
+  markDone(id: string) {
+    return apiFetch<OrderItem>(`/api/orders/done`, {
+      method: 'PATCH',
+      auth: true,
+      body: JSON.stringify({ id }),
+    })
+  },
+
+  markDelivered(id: string) {
+    return apiFetch<OrderItem>(`/api/orders/delivered`, {
+      method: 'PATCH',
+      auth: true,
+      body: JSON.stringify({ id }),
     })
   },
 
