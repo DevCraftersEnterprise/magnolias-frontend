@@ -2,17 +2,12 @@
 export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss'],
 
+  ssr: false,
+
   runtimeConfig: {
     public: {
       apiBase: '',
     },
-  },
-
-  nitro: {
-    preset: 'static',
-    prerender: {
-      crawlLinks: true,
-    }
   },
 
   app: {
