@@ -52,9 +52,11 @@ const pageTitle = computed(() => {
     '/admin/catalogos': 'Catálogos',
     '/admin/clientes': 'Clientes',
     '/admin/usuarios': 'Usuarios',
-
   }
-  return map[route.path] ?? 'Admin'
+  if (map[route.path]) return map[route.path]!
+  if (route.path.startsWith('/admin/pedidos/detalle/')) return 'Detalle de pedido'
+  if (route.path.startsWith('/admin/pedidos/editar/')) return 'Editar pedido'
+  return 'Admin'
 })
 
 function computeIsMobile() {

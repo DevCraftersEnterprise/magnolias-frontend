@@ -70,6 +70,31 @@ const cancelConfirm = ref(false);
 const canceling = ref(false);
 const cancelReason = ref('');
 
+const deliverTarget = ref<OrderItem | null>(null);
+const deliverConfirm = ref(false);
+const delivering = ref(false);
+
+function confirmDeliver(order: OrderItem) {
+  deliverTarget.value = order;
+  deliverConfirm.value = true;
+}
+
+async function executeDeliver() {
+  if (!deliverTarget.value || delivering.value) return;
+  delivering.value = true;
+  try {
+    await ordersService.markDelivered(deliverTarget.value.id);
+    deliverConfirm.value = false;
+    deliverTarget.value = null;
+    await loadOrders(true);
+  } catch (e: any) {
+    errorMsg.value = e?.message || 'No se pudo marcar como entregado.';
+    deliverConfirm.value = false;
+  } finally {
+    delivering.value = false;
+  }
+}
+
 const showingFrom = computed(() =>
   orders.value.length === 0 ? 0 : offset.value + 1,
 );
@@ -146,12 +171,14 @@ async function executeCancel() {
 }
 
 // ─── KANBAN STATE ─────────────────────────────────────────────────────────────
-type KanbanTab = "tomorrow" | "dayAfter";
+type KanbanTab = "tomorrow" | "dayAfter" | "all" | "range";
 const kanbanTab = ref<KanbanTab>("tomorrow");
 const kanbanLoading = ref(true);
 const kanbanError = ref("");
 const kanbanOrders = ref<OrderItem[]>([]);
 const updatingId = ref<string | null>(null);
+const rangeFrom = ref("");
+const rangeTo = ref("");
 
 const tomorrowStr = computed(() => {
   const d = new Date();
@@ -193,9 +220,25 @@ const dayAfterOrders = computed(() =>
     (o) => deliveryDateStr(o.deliveryDate) === dayAfterStr.value,
   ),
 );
-const activeKanbanOrders = computed(() =>
-  kanbanTab.value === "tomorrow" ? tomorrowOrders.value : dayAfterOrders.value,
-);
+const rangeOrders = computed(() => {
+  if (!rangeFrom.value && !rangeTo.value) return kanbanOrders.value
+  return kanbanOrders.value.filter((o) => {
+    const d = deliveryDateStr(o.deliveryDate)
+    if (rangeFrom.value && d < rangeFrom.value) return false
+    if (rangeTo.value && d > rangeTo.value) return false
+    return true
+  })
+})
+
+const activeKanbanOrders = computed(() => {
+  switch (kanbanTab.value) {
+    case "tomorrow":  return tomorrowOrders.value
+    case "dayAfter":  return dayAfterOrders.value
+    case "all":       return kanbanOrders.value
+    case "range":     return rangeOrders.value
+    default:          return tomorrowOrders.value
+  }
+});
 
 const pendingOrders = computed(() =>
   activeKanbanOrders.value.filter((o) => o.status === "CREATED"),
@@ -593,6 +636,20 @@ function openDetail(order: OrderItem) {
                                   />
                                 </svg>
                               </button>
+                              <!-- Marcar como entregado (solo DONE) -->
+                              <button
+                                type="button"
+                                class="grid h-8 w-8 place-items-center rounded-lg transition"
+                                :class="order.status === 'DONE' ? 'text-gray-400 hover:bg-green-50 hover:text-green-600' : 'text-gray-200 cursor-not-allowed'"
+                                :title="order.status === 'DONE' ? 'Marcar como entregado' : 'Solo se pueden entregar pedidos listos'"
+                                :disabled="order.status !== 'DONE'"
+                                @click="order.status === 'DONE' && confirmDeliver(order)"
+                              >
+                                <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                  <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                              </button>
                               <!-- Cancelar pedido -->
                               <button
                                 type="button"
@@ -745,49 +802,100 @@ function openDetail(order: OrderItem) {
           <div class="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
 
             <!-- ── Topbar del tablero ── -->
-            <div class="px-6 pt-5 pb-4 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Tablero de producción</p>
-                <h2 class="mt-0.5 text-[18px] font-bold text-[#111827]">{{ selectedBranch.name }}</h2>
+            <div class="px-6 pt-5 pb-4 border-b border-black/[0.06]">
+              <!-- Fila 1: título + tabs + actualizar -->
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Tablero de producción</p>
+                  <h2 class="mt-0.5 text-[18px] font-bold text-[#111827]">{{ selectedBranch.name }}</h2>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1">
+                  <button
+                    class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
+                    :class="kanbanTab === 'tomorrow' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
+                    @click="kanbanTab = 'tomorrow'"
+                  >
+                    <span class="text-[12px] font-semibold leading-tight">Para mañana <span class="font-normal opacity-60">({{ tomorrowOrders.length }})</span></span>
+                    <span class="text-[11px] capitalize opacity-50 leading-tight">{{ tomorrowLabel }}</span>
+                  </button>
+                  <button
+                    class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
+                    :class="kanbanTab === 'dayAfter' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
+                    @click="kanbanTab = 'dayAfter'"
+                  >
+                    <span class="text-[12px] font-semibold leading-tight">Pasado mañana <span class="font-normal opacity-60">({{ dayAfterOrders.length }})</span></span>
+                    <span class="text-[11px] capitalize opacity-50 leading-tight">{{ dayAfterLabel }}</span>
+                  </button>
+                  <button
+                    class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
+                    :class="kanbanTab === 'all' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
+                    @click="kanbanTab = 'all'"
+                  >
+                    <span class="text-[12px] font-semibold leading-tight">Todos <span class="font-normal opacity-60">({{ kanbanOrders.length }})</span></span>
+                    <span class="text-[11px] opacity-50 leading-tight">General</span>
+                  </button>
+                  <button
+                    class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
+                    :class="kanbanTab === 'range' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
+                    @click="kanbanTab = 'range'"
+                  >
+                    <span class="text-[12px] font-semibold leading-tight">Por rango <span class="font-normal opacity-60">({{ rangeOrders.length }})</span></span>
+                    <span class="text-[11px] opacity-50 leading-tight">Fechas</span>
+                  </button>
+                </div>
+
+                <!-- Actualizar -->
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 rounded-xl bg-gray-100 px-3 h-9 text-[13px] text-gray-500 hover:bg-gray-200 transition disabled:opacity-40 shrink-0"
+                  :disabled="kanbanLoading"
+                  @click="loadKanbanOrders"
+                >
+                  <svg
+                    class="h-3.5 w-3.5"
+                    :class="{ 'animate-spin': kanbanLoading }"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  >
+                    <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                  </svg>
+                  Actualizar
+                </button>
               </div>
 
-              <!-- Tabs -->
-              <div class="flex gap-1 rounded-xl bg-gray-100 p-1">
-                <button
-                  class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
-                  :class="kanbanTab === 'tomorrow' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
-                  @click="kanbanTab = 'tomorrow'"
-                >
-                  <span class="text-[12px] font-semibold leading-tight">Para mañana <span class="font-normal opacity-60">({{ tomorrowOrders.length }})</span></span>
-                  <span class="text-[11px] capitalize opacity-50 leading-tight">{{ tomorrowLabel }}</span>
-                </button>
-                <button
-                  class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
-                  :class="kanbanTab === 'dayAfter' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
-                  @click="kanbanTab = 'dayAfter'"
-                >
-                  <span class="text-[12px] font-semibold leading-tight">Pasado mañana <span class="font-normal opacity-60">({{ dayAfterOrders.length }})</span></span>
-                  <span class="text-[11px] capitalize opacity-50 leading-tight">{{ dayAfterLabel }}</span>
-                </button>
-              </div>
-
-              <!-- Actualizar -->
-              <button
-                type="button"
-                class="flex items-center gap-1.5 rounded-xl bg-gray-100 px-3 h-9 text-[13px] text-gray-500 hover:bg-gray-200 transition disabled:opacity-40 shrink-0"
-                :disabled="kanbanLoading"
-                @click="loadKanbanOrders"
+              <!-- Fila 2: date range picker (no afecta el layout de arriba) -->
+              <Transition
+                enter-active-class="transition duration-150"
+                enter-from-class="opacity-0 -translate-y-1"
+                enter-to-class="opacity-100 translate-y-0"
               >
-                <svg
-                  class="h-3.5 w-3.5"
-                  :class="{ 'animate-spin': kanbanLoading }"
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                >
-                  <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                </svg>
-                Actualizar
-              </button>
+                <div v-if="kanbanTab === 'range'" class="mt-3 flex flex-wrap items-center gap-2">
+                  <div class="flex items-center gap-1.5">
+                    <label class="text-[11px] font-semibold text-gray-400 whitespace-nowrap">Desde</label>
+                    <input
+                      v-model="rangeFrom"
+                      type="date"
+                      class="rounded-lg border border-black/10 bg-gray-50 px-3 py-1.5 text-[13px] text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#C9007C]/30"
+                    />
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <label class="text-[11px] font-semibold text-gray-400 whitespace-nowrap">Hasta</label>
+                    <input
+                      v-model="rangeTo"
+                      type="date"
+                      class="rounded-lg border border-black/10 bg-gray-50 px-3 py-1.5 text-[13px] text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#C9007C]/30"
+                    />
+                  </div>
+                  <button
+                    v-if="rangeFrom || rangeTo"
+                    type="button"
+                    class="rounded-lg bg-gray-100 px-3 py-1.5 text-[12px] text-gray-500 hover:bg-gray-200 transition"
+                    @click="rangeFrom = ''; rangeTo = ''"
+                  >Limpiar</button>
+                </div>
+              </Transition>
             </div>
 
             <!-- Error -->
@@ -964,97 +1072,161 @@ function openDetail(order: OrderItem) {
     >
       <div
         v-if="kanbanConfirmTarget"
-        class="fixed inset-0 z-[110] flex items-center justify-center p-4"
+        class="fixed inset-0 z-[110] flex items-center justify-center px-4"
       >
-        <div class="absolute inset-0 bg-black/40" @click="kanbanConfirmTarget = null" />
-        <div class="relative z-10 w-full max-w-sm rounded-2xl bg-white shadow-xl ring-1 ring-black/10 overflow-hidden">
-          <div :class="['h-1.5', kanbanConfirmTarget.status === 'CREATED' ? 'bg-amber-400' : 'bg-violet-500']" />
-          <div class="px-6 pt-5 pb-6">
-            <h3 class="text-[16px] font-bold text-[#111827]">¿Confirmar cambio de estado?</h3>
-            <p class="mt-2 text-[13px] text-gray-500 leading-relaxed">
-              El pedido <span class="font-semibold text-[#111827]">{{ kanbanConfirmTarget.orderCode }}</span> pasará de
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="kanbanConfirmTarget = null" />
+
+        <!-- Panel -->
+        <div class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden">
+
+          <!-- Ícono centrado -->
+          <div class="flex flex-col items-center pt-8 pb-5 px-8 text-center">
+            <div class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#FFBEE6]/40 ring-2 ring-[#FFBEE6]">
+              <svg class="h-7 w-7 text-[#C9007C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                <path d="M12 8v4l3 3"/>
+              </svg>
+            </div>
+            <h3 class="text-[17px] font-bold text-[#111827] leading-snug">Cambiar estado del pedido</h3>
+            <p class="mt-1.5 text-[13px] text-gray-500">
+              <span class="font-semibold text-[#111827]">{{ kanbanConfirmTarget.orderCode }}</span> pasará de
+            </p>
+            <!-- Flecha de estado -->
+            <div class="mt-3 flex items-center justify-center gap-2.5">
               <span
-                class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold"
+                class="inline-flex rounded-full px-3 py-1 text-[12px] font-bold"
                 :style="{ backgroundColor: STATUS_COLORS[kanbanConfirmTarget.status]?.bg, color: STATUS_COLORS[kanbanConfirmTarget.status]?.text }"
               >{{ STATUS_LABELS[kanbanConfirmTarget.status] }}</span>
-              a
-              <span :class="['inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold', kanbanConfirmTarget.status === 'CREATED' ? 'bg-amber-100 text-amber-800' : 'bg-violet-100 text-violet-800']">
+              <svg class="h-4 w-4 text-gray-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              <span class="inline-flex rounded-full px-3 py-1 text-[12px] font-bold bg-[#FFBEE6] text-[#C9007C]">
                 {{ kanbanConfirmTarget.status === 'CREATED' ? 'En producción' : 'Listo' }}
-              </span>.
-            </p>
-            <div class="mt-5 flex gap-3">
-              <button
-                type="button"
-                class="flex-1 rounded-xl border border-black/10 py-2.5 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
-                @click="kanbanConfirmTarget = null"
-              >Cancelar</button>
-              <button
-                type="button"
-                :class="['flex-1 rounded-xl py-2.5 text-[13px] font-bold transition', kanbanConfirmTarget.status === 'CREATED' ? 'bg-amber-400 text-amber-950 hover:bg-amber-500' : 'bg-violet-500 text-white hover:bg-violet-600']"
-                @click="confirmAdvanceStatus"
-              >Confirmar</button>
+              </span>
             </div>
+          </div>
+
+          <!-- Separador -->
+          <div class="mx-6 border-t border-black/[0.06]" />
+
+          <!-- Botones -->
+          <div class="flex gap-3 px-6 py-5">
+            <button
+              type="button"
+              class="flex-1 rounded-2xl border border-black/10 py-3 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
+              @click="kanbanConfirmTarget = null"
+            >Cancelar</button>
+            <button
+              type="button"
+              class="flex-1 rounded-2xl py-3 text-[13px] font-bold bg-[#C9007C] text-white hover:bg-[#a5006a] transition shadow-sm"
+              @click="confirmAdvanceStatus"
+            >Confirmar</button>
           </div>
         </div>
       </div>
     </Transition>
   </Teleport>
 
-  <!-- ── CANCELAR PEDIDO ────────────────────────────────────────────── -->
+  <!-- ── MARCAR ENTREGADO ─────────────────────────────────────────────── -->
   <Teleport to="body">
     <Transition
-      enter-active-class="transition duration-150 ease-out"
+      enter-active-class="transition duration-200"
       enter-from-class="opacity-0"
       enter-to-class="opacity-100"
-      leave-active-class="transition duration-100 ease-in"
+      leave-active-class="transition duration-150"
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div
-        v-if="cancelConfirm"
-        class="fixed inset-0 z-[110] flex items-center justify-center p-4"
-      >
-        <div
-          class="absolute inset-0 bg-black/60"
-          @click="cancelConfirm = false"
-        />
-        <div
-          class="relative z-10 w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 p-6"
-        >
-          <h3 class="text-[16px] font-bold text-[#111827]">
-            ¿Cancelar pedido?
-          </h3>
-          <p class="mt-2 text-[13px] text-gray-500">
-            Se cancelará el pedido
-            <span class="font-semibold text-[#111827]">{{
-              cancelTarget?.orderCode
-            }}</span
-            >. Ingresa el motivo de cancelación.
-          </p>
-          <textarea
-            v-model="cancelReason"
-            rows="3"
-            placeholder="Motivo de cancelación..."
-            class="mt-4 w-full rounded-xl border border-black/10 bg-gray-50 px-3 py-2 text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#111827]/20 resize-none"
-          />
-          <div class="mt-5 flex justify-end gap-2">
+      <div v-if="deliverConfirm" class="fixed inset-0 z-[110] flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="deliverConfirm = false" />
+        <div class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden">
+          <div class="flex flex-col items-center pt-8 pb-5 px-8 text-center">
+            <div class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-green-50 ring-2 ring-green-200">
+              <svg class="h-7 w-7 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
+            <h3 class="text-[17px] font-bold text-[#111827] leading-snug">Marcar como entregado</h3>
+            <p class="mt-1.5 text-[13px] text-gray-500 leading-relaxed">
+              ¿Confirmas que el pedido <span class="font-semibold text-[#111827]">{{ deliverTarget?.orderCode }}</span> fue entregado al cliente?
+            </p>
+            <p class="mt-1 text-[11px] text-gray-400">Esta acción no se puede deshacer.</p>
+          </div>
+          <div class="mx-6 border-t border-black/[0.06]" />
+          <div class="flex gap-3 px-6 py-5">
             <button
               type="button"
-              class="h-9 px-4 rounded-xl text-[13px] ring-1 ring-black/10 hover:bg-black/5 transition"
-              @click="cancelConfirm = false"
+              class="flex-1 rounded-2xl border border-black/10 py-3 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
+              @click="deliverConfirm = false"
+            >Cancelar</button>
+            <button
+              type="button"
+              class="flex-1 rounded-2xl py-3 text-[13px] font-bold bg-green-600 text-white hover:bg-green-700 transition shadow-sm disabled:opacity-50"
+              :disabled="delivering"
+              @click="executeDeliver"
             >
-              Volver
+              <span v-if="delivering" class="flex items-center justify-center gap-2">
+                <span class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              </span>
+              <span v-else>Confirmar entrega</span>
             </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- ── CANCELAR PEDIDO ────────────────────────────────────────────────── -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-200"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-150"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="cancelConfirm" class="fixed inset-0 z-[110] flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelConfirm = false" />
+        <div class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden">
+          <div class="flex flex-col items-center pt-8 pb-5 px-8 text-center">
+            <div class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-orange-50 ring-2 ring-orange-200">
+              <svg class="h-7 w-7 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round"/>
+                <line x1="12" y1="16" x2="12.01" y2="16" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3 class="text-[17px] font-bold text-[#111827] leading-snug">Cancelar pedido</h3>
+            <p class="mt-1.5 text-[13px] text-gray-500 leading-relaxed">
+              Se cancelará el pedido <span class="font-semibold text-[#111827]">{{ cancelTarget?.orderCode }}</span>.
+            </p>
+          </div>
+          <div class="mx-6 border-t border-black/[0.06]" />
+          <div class="px-6 pt-4 pb-2">
+            <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Motivo de cancelación</label>
+            <textarea
+              v-model="cancelReason"
+              rows="3"
+              placeholder="Escribe el motivo..."
+              class="w-full rounded-2xl border border-black/10 bg-gray-50 px-4 py-3 text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-300/50 resize-none"
+            />
+          </div>
+          <div class="flex gap-3 px-6 pb-5 pt-3">
             <button
               type="button"
-              class="h-9 px-4 rounded-xl text-[13px] font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition"
+              class="flex-1 rounded-2xl border border-black/10 py-3 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
+              @click="cancelConfirm = false"
+            >Volver</button>
+            <button
+              type="button"
+              class="flex-1 rounded-2xl py-3 text-[13px] font-bold bg-orange-500 text-white hover:bg-orange-600 transition shadow-sm disabled:opacity-50"
               :disabled="canceling || !cancelReason.trim()"
               @click="executeCancel"
             >
-              <span v-if="canceling" class="flex items-center gap-2"
-                ><span
-                  class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"
-              /></span>
+              <span v-if="canceling" class="flex items-center justify-center gap-2">
+                <span class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              </span>
               <span v-else>Cancelar pedido</span>
             </button>
           </div>

@@ -465,6 +465,7 @@ const minDeliveryDate = computed(() => {
 const step2AddressValid = computed(() => {
   if (!needsDelivery.value) return true
   if (step2.useCustomerAddr) return true
+  if (step2.orderType === 'EVENTO' && step2.useCommonAddr && step2.commonAddrId) return true
   return !!(step2.newAddr.street.trim() && step2.newAddr.number.trim() && step2.newAddr.neighborhood.trim())
 })
 
