@@ -77,6 +77,14 @@ export const usersService = {
     const qs = query.toString()
     return apiFetch<UsersResponse>(`/api/users${qs ? `?${qs}` : ''}`, {
       method: 'GET',
+      auth: true,
+    })
+  },
+
+  getBakersByBranch(branchId: string) {
+    return apiFetch<UserItem[]>(`/api/users/bakers/${branchId}`, {
+      method: 'GET',
+      auth: true,
     })
   },
 

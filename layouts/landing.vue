@@ -58,6 +58,15 @@
 
           <!-- Right: social icons -->
           <div class="flex items-center justify-end gap-3">
+            <NuxtLink
+              to="/login"
+              class="hidden md:inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-[#C9007C] hover:bg-[#a8006a] transition px-4 py-1.5 rounded-full"
+            >
+              <svg class="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+              </svg>
+              Ingresar
+            </NuxtLink>
             <a href="https://web.facebook.com/pasteleriasmagnolias" target="_blank" rel="noopener noreferrer"
                class="text-[#1E1E1E]/50 hover:text-[#1E1E1E] transition">
               <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor">
@@ -90,6 +99,16 @@
             @click="mobileOpen = false"
           >
             {{ link.label }}
+          </NuxtLink>
+          <NuxtLink
+            to="/login"
+            class="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#C9007C] hover:bg-[#C9007C]/5 transition"
+            @click="mobileOpen = false"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            Ingresar
           </NuxtLink>
         </div>
       </Transition>

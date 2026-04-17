@@ -40,6 +40,12 @@ export type OrderCustomer = {
   address?: OrderCustomerAddress
 }
 
+export type OrderAssignedBaker = {
+  id: string
+  name: string
+  lastname: string
+}
+
 export type OrderItem = {
   id: string
   orderCode: string
@@ -55,6 +61,7 @@ export type OrderItem = {
   createdBy?: OrderAuditUser
   updatedBy?: OrderAuditUser
   reference?: string | string[]
+  assignedBaker?: OrderAssignedBaker | null
   createdAt: string
   updatedAt: string
 }
@@ -75,6 +82,8 @@ export type OrderFilters = {
   clientPhone?: string
   orderStatus?: OrderStatus | ''
   orderDate?: string
+  startDate?: string
+  endDate?: string
   limit?: number
   offset?: number
 }
@@ -209,6 +218,12 @@ export type OrderDetailAuditUser = {
   role?: string
 }
 
+export type OrderPayment = {
+  id: string
+  paidAmount: string
+  createdAt: string
+}
+
 export type OrderDetail = {
   id: string
   orderType: OrderType
@@ -249,6 +264,7 @@ export type OrderDetail = {
   updatedAt: string
   details: OrderDetailItem[]
   orderFlowers: any[]
+  payments?: OrderPayment[]
 }
 
 // ─── Update order ──────────────────────────────────────────────────────────
@@ -451,6 +467,20 @@ export const ordersService = {
       auth: true,
       body: JSON.stringify({ id, reason }),
     })
+  },
+
+  assignOrder(bakerId: string, orderId: string, notes?: string) {
+    return apiFetch<{ id: string; assignedDate: string; notes: string | null; createdAt: string; updatedAt: string }>(
+      `/api/orders/${bakerId}/assign-order`,
+      { method: 'POST', auth: true, body: JSON.stringify({ orderId, ...(notes ? { notes } : {}) }) },
+    )
+  },
+
+  reassignOrder(newBakerId: string, orderId: string, notes?: string) {
+    return apiFetch<{ id: string; assignedDate: string; notes: string | null; createdAt: string; updatedAt: string }>(
+      `/api/orders/${newBakerId}/reassign-order`,
+      { method: 'PATCH', auth: true, body: JSON.stringify({ orderId, ...(notes ? { notes } : {}) }) },
+    )
   },
 
   createOrder(payload: CreateOrderPayload) {

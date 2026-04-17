@@ -645,6 +645,34 @@
                 </div>
               </div>
 
+              <!-- ─ 6. Historial de pagos ─ -->
+              <div v-if="activeData?.payments && activeData.payments.length > 0">
+                <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  Historial de pagos
+                </p>
+                <div class="rounded-xl overflow-hidden ring-1 ring-black/[0.07]">
+                  <div
+                    v-for="(pay, i) in [...activeData.payments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())"
+                    :key="pay.id"
+                    class="flex items-center justify-between px-4 py-3 bg-white text-[13px]"
+                    :class="i > 0 ? 'border-t border-black/[0.06]' : ''"
+                  >
+                    <div class="flex items-center gap-2.5">
+                      <div class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-green-50 ring-1 ring-green-200">
+                        <svg class="h-3.5 w-3.5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p class="font-semibold text-[#111827]">{{ pay.paidAmount }}</p>
+                        <p class="text-[11px] text-gray-400">{{ formatDateTime(pay.createdAt) }}</p>
+                      </div>
+                    </div>
+                    <span class="text-[11px] font-medium text-green-600 bg-green-50 rounded-full px-2.5 py-0.5 ring-1 ring-green-200">Abono</span>
+                  </div>
+                </div>
+              </div>
+
               <!-- ─ Auditoría ─ -->
               <div
                 v-if="activeCreatedBy || activeUpdatedBy"
