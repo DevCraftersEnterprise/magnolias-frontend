@@ -1,4 +1,4 @@
-import { apiFetch } from "./api.client";
+import { apiFetch } from "~/services/api.client";
 import type { OrderStatistics } from "~/types/dashboard.types";
 
 export const dashboardService = {

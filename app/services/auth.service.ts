@@ -1,4 +1,4 @@
-import { apiFetch } from './api.client'
+import { apiFetch } from '~/services/api.client'
 import type { LoginRequest, LoginResponse, RefreshRequest, RefreshResponse, ValidateTokenResponse } from '~/types/auth.types'
 
 export const authService = {

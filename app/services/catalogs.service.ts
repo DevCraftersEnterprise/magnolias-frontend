@@ -1,4 +1,4 @@
-import { apiFetch } from './api.client'
+import { apiFetch } from '~/services/api.client'
 import type { BreadTypeItem, ColorItem, CreateCatalogPayload, CreateColorPayload, FillingItem, FlavorItem, FlowerItem, FrostingItem, StyleItem, UpdateCatalogPayload } from '~/types/catalog.types';
 
 

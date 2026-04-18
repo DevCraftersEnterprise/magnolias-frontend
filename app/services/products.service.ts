@@ -1,20 +1,10 @@
 import { apiFetch } from '~/services/api.client'
-import type { CreateProductPayload, PatchProductPayload, ProductItem, ProductsFilters, ProductsResponse, UploadProductPicturesPayload } from '~/types/product.types'
-
+import type { CreateProductPayload, PatchProductPayload, ProductItem, ProductsFilters, ProductsResponse, UpdateFavoritePayload, UploadProductPicturesPayload } from '~/types/product.types'
 
 /** Devuelve la primera imagen del producto (si existe) */
 export function getProductImageUrl(p: ProductItem): string | null {
   const url = p?.pictures?.[0]?.imageUrl
   return url ? String(url).trim() : null
-}
-
-/** payload para PATCH /api/products/favorite */
-export type UpdateFavoritePayload = {
-  name: string
-  description: string
-  isFavorite: boolean
-  isActive: boolean
-  categoryId: string
 }
 
 export const productsService = {
