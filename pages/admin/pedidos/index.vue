@@ -306,7 +306,10 @@ async function loadRangeOrders() {
       startDate: rangeFrom.value || undefined,
       endDate: rangeTo.value || undefined,
     })
-    rangeKanbanOrders.value = data.items ?? []
+    const allRangeItems = data.items ?? []
+    rangeKanbanOrders.value = isBaker.value
+      ? allRangeItems.filter(o => o.assignments?.some(a => a.baker.id === user.value?.id))
+      : allRangeItems
   } catch (e: any) {
     kanbanError.value = e?.message || 'Error al cargar pedidos por rango.'
   } finally {
@@ -348,7 +351,10 @@ async function loadKanbanOrders() {
       limit: 200,
       offset: 0,
     });
-    kanbanOrders.value = data.items ?? [];
+    const allItems = data.items ?? [];
+    kanbanOrders.value = isBaker.value
+      ? allItems.filter(o => o.assignments?.some(a => a.baker.id === user.value?.id))
+      : allItems;
   } catch (e: any) {
     kanbanError.value = e?.message || "Error al cargar pedidos.";
   } finally {
@@ -420,6 +426,19 @@ const detailOpen = ref(false);
 function openDetail(order: OrderItem) {
   selectedOrder.value = order;
   detailOpen.value = true;
+}
+
+function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }) {
+  const patch = (list: OrderItem[]) => {
+    const idx = list.findIndex(o => o.id === payload.id);
+    if (idx !== -1) list[idx] = { ...list[idx], remainingBalance: payload.remainingBalance };
+  };
+  patch(orders.value);
+  patch(kanbanOrders.value);
+  patch(rangeKanbanOrders.value);
+  if (selectedOrder.value?.id === payload.id) {
+    selectedOrder.value = { ...selectedOrder.value, remainingBalance: payload.remainingBalance };
+  }
 }
 
 </script>
@@ -774,9 +793,15 @@ function openDetail(order: OrderItem) {
                               <!-- Cancelar pedido -->
                               <button
                                 type="button"
-                                class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-orange-50 hover:text-orange-500 transition"
-                                title="Cancelar pedido"
-                                @click="confirmCancel(order)"
+                                class="grid h-8 w-8 place-items-center rounded-lg transition"
+                                :class="['DELIVERED','CANCELED'].includes(order.status)
+                                  ? 'text-gray-200 cursor-not-allowed'
+                                  : 'text-gray-400 hover:bg-orange-50 hover:text-orange-500'"
+                                :title="['DELIVERED','CANCELED'].includes(order.status)
+                                  ? 'No se puede cancelar un pedido entregado o ya cancelado'
+                                  : 'Cancelar pedido'"
+                                :disabled="['DELIVERED','CANCELED'].includes(order.status)"
+                                @click="!['DELIVERED','CANCELED'].includes(order.status) && confirmCancel(order)"
                               >
                                 <svg
                                   viewBox="0 0 24 24"
@@ -1182,6 +1207,7 @@ function openDetail(order: OrderItem) {
     :open="detailOpen"
     :order="selectedOrder"
     @close="detailOpen = false"
+    @order-updated="onOrderPaymentUpdated"
   />
 
   <!-- ── CONFIRMAR AVANCE DE ESTADO (KANBAN) ────────────────────── -->

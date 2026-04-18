@@ -599,13 +599,13 @@
                           v-if="detail.writingLocation"
                           class="text-[11px] text-gray-500"
                         >
-                          Ubicación: {{ detail.writingLocation }}
+                          Ubicación: {{ locationLabel(detail.writingLocation) }}
                         </p>
                         <p
                           v-if="detail.pipingLocation"
                           class="text-[11px] text-gray-500"
                         >
-                          Piping: {{ detail.pipingLocation }}
+                          Piping: {{ locationLabel(detail.pipingLocation) }}
                         </p>
                       </div>
                       <!-- Notes -->
@@ -753,7 +753,30 @@ const props = defineProps<{
   order: OrderItem | null;
 }>();
 
-const emit = defineEmits<{ (e: "close"): void }>();
+const emit = defineEmits<{
+  (e: "close"): void;
+  (e: "order-updated", payload: { id: string; remainingBalance: string }): void;
+}>();
+
+// ── Location label translation ───────────────────────────────────────────────
+const LOCATION_LABELS: Record<string, string> = {
+  TOP: 'Arriba',
+  BOTTOM: 'Abajo',
+  CENTER: 'Centro',
+  LEFT: 'Izquierda',
+  RIGHT: 'Derecha',
+  TOP_LEFT: 'Arriba izquierda',
+  TOP_RIGHT: 'Arriba derecha',
+  BOTTOM_LEFT: 'Abajo izquierda',
+  BOTTOM_RIGHT: 'Abajo derecha',
+  FRONT: 'Frente',
+  BACK: 'Atrás',
+  SIDE: 'Lado',
+};
+function locationLabel(val?: string | null) {
+  if (!val) return '';
+  return LOCATION_LABELS[val.toUpperCase()] ?? val;
+}
 
 // ── Fetch full detail on open ────────────────────────────────────────────────
 const activeData = ref<OrderDetail | null>(null);
@@ -821,6 +844,10 @@ async function saveAbono() {
     activeData.value = await ordersService.getOrder(props.order.id);
     abonoAmount.value = "";
     abonoSuccess.value = true;
+    emit("order-updated", {
+      id: props.order.id,
+      remainingBalance: activeData.value?.remainingBalance ?? "0",
+    });
     setTimeout(() => {
       abonoSuccess.value = false;
     }, 3000);
