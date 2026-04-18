@@ -448,8 +448,15 @@ function openCreateProduct(cat: any) {
   productModal.value = { open: true, mode: 'create', categoryId: cat.id }
 }
 
-// después de crear producto -> abrir modal de fotos
+// después de crear producto -> agregar a la categoría, abrir la categoría, y abrir modal de fotos
 function onProductCreated(p: ProductItem) {
+  const cat = categories.value.find(c => c.id === productModal.value.categoryId)
+  if (cat) {
+    cat.products.push(p)
+    const s = new Set(openCategoryIds.value)
+    s.add(cat.id)
+    openCategoryIds.value = s
+  }
   picturesModal.value = { open: true, product: p }
 }
 

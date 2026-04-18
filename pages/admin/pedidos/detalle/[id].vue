@@ -256,7 +256,7 @@ function roundLabel(r?: string | null) {
                   <dl class="divide-y divide-black/[0.06]">
                     <div v-if="detail.productSize || detail.customSize" class="flex items-center justify-between px-6 py-3.5">
                       <dt class="text-[11px] font-semibold uppercase tracking-widest text-gray-400 shrink-0 mr-6">Tamaño</dt>
-                      <dd class="text-[15px] font-bold text-[#111827] text-right">{{ detail.productSize ?? detail.customSize }}</dd>
+                      <dd class="text-[15px] font-bold text-[#111827] text-right">{{ detail.productSize?.toUpperCase() === 'CUSTOM' ? detail.customSize : (detail.productSize ?? detail.customSize) }}</dd>
                     </div>
                     <div v-if="detail.flavor" class="flex items-center justify-between px-6 py-3.5">
                       <dt class="text-[11px] font-semibold uppercase tracking-widest text-gray-400 shrink-0 mr-6">Sabor</dt>

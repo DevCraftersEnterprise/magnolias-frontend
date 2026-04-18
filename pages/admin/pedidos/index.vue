@@ -734,9 +734,15 @@ function openDetail(order: OrderItem) {
                               <!-- Asignar / Reasignar pastelero -->
                               <button
                                 type="button"
-                                class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-purple-50 hover:text-[#7C00C9] transition"
-                                :title="(order.assignments?.length ?? 0) > 0 ? 'Reasignar pastelero' : 'Asignar pastelero'"
-                                @click.stop="openAssignModal(order)"
+                                class="grid h-8 w-8 place-items-center rounded-lg transition"
+                                :class="['IN PROCESS','DONE','DELIVERED'].includes(order.status)
+                                  ? 'text-gray-200 cursor-not-allowed'
+                                  : 'text-gray-400 hover:bg-purple-50 hover:text-[#7C00C9]'"
+                                :title="['IN PROCESS','DONE','DELIVERED'].includes(order.status)
+                                  ? 'No se puede reasignar en este estado'
+                                  : (order.assignments?.length ?? 0) > 0 ? 'Reasignar pastelero' : 'Asignar pastelero'"
+                                :disabled="['IN PROCESS','DONE','DELIVERED'].includes(order.status)"
+                                @click.stop="!['IN PROCESS','DONE','DELIVERED'].includes(order.status) && openAssignModal(order)"
                               >
                                 <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -745,14 +751,20 @@ function openDetail(order: OrderItem) {
                                   <line x1="22" y1="11" x2="16" y2="11"/>
                                 </svg>
                               </button>
-                              <!-- Marcar como entregado (solo DONE) -->
+                              <!-- Marcar como entregado (solo DONE + saldo en cero) -->
                               <button
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
-                                :class="order.status === 'DONE' ? 'text-gray-400 hover:bg-green-50 hover:text-green-600' : 'text-gray-200 cursor-not-allowed'"
-                                :title="order.status === 'DONE' ? 'Marcar como entregado' : 'Solo se pueden entregar pedidos listos'"
-                                :disabled="order.status !== 'DONE'"
-                                @click="order.status === 'DONE' && confirmDeliver(order)"
+                                :class="order.status === 'DONE' && (parseFloat((order.remainingBalance ?? '0').replace(/[^0-9.-]/g, '')) <= 0)
+                                  ? 'text-gray-400 hover:bg-green-50 hover:text-green-600'
+                                  : 'text-gray-200 cursor-not-allowed'"
+                                :title="order.status !== 'DONE'
+                                  ? 'Solo se pueden entregar pedidos listos'
+                                  : parseFloat((order.remainingBalance ?? '0').replace(/[^0-9.-]/g, '')) > 0
+                                    ? 'El pedido tiene saldo pendiente de pago'
+                                    : 'Marcar como entregado'"
+                                :disabled="order.status !== 'DONE' || parseFloat((order.remainingBalance ?? '0').replace(/[^0-9.-]/g, '')) > 0"
+                                @click="order.status === 'DONE' && parseFloat((order.remainingBalance ?? '0').replace(/[^0-9.-]/g, '')) <= 0 && confirmDeliver(order)"
                               >
                                 <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>

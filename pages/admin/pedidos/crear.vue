@@ -152,6 +152,23 @@ async function registerAndSelect() {
         : null,
     };
     const created = await customersService.createCustomer(payload);
+    // Si la API no devuelve la dirección anidada pero sí la enviamos, la reconstruimos
+    if (regForm.withAddress && !created.address?.street) {
+      (created as any).address = {
+        id: (created as any).address?.id ?? '',
+        street: regForm.address.street.trim(),
+        number: regForm.address.number.trim(),
+        neighborhood: regForm.address.neighborhood.trim(),
+        city: regForm.address.city.trim() || null,
+        postalCode: regForm.address.postalCode.trim() || null,
+        interphoneCode: regForm.address.interphoneCode.trim() || null,
+        betweenStreets: regForm.address.betweenStreets.trim() || null,
+        reference: regForm.address.reference.trim() || null,
+        notes: regForm.address.addressNotes.trim() || null,
+        createdAt: '',
+        updatedAt: '',
+      }
+    }
     selectedCustomer.value = created;
     results.value = [created];
     hasSearched.value = true;
@@ -2879,7 +2896,7 @@ function formatCustomerAddress(c: CustomerItem) {
                   />
                 </div>
                 <!-- Responsable del montaje -->
-                <div class="flex items-center gap-2 flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-1 min-w-[220px]">
                   <label
                     class="text-[13px] font-medium text-gray-700 flex-shrink-0"
                     >Responsable del montaje</label
@@ -2888,7 +2905,7 @@ function formatCustomerAddress(c: CustomerItem) {
                     v-model="step2.eventResponsibleName"
                     type="text"
                     placeholder="Nombre del responsable"
-                    class="flex-1 rounded-xl bg-white px-3 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60"
+                    class="flex-1 min-w-0 rounded-xl bg-white px-3 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60"
                   />
                 </div>
               </div>

@@ -539,7 +539,7 @@
                         <div v-if="detail.productSize || detail.customSize">
                           <p class="text-[10px] text-gray-400">Tamaño</p>
                           <p class="text-[12px] text-gray-700">
-                            {{ detail.productSize ?? detail.customSize }}
+                            {{ detail.productSize?.toUpperCase() === 'CUSTOM' ? detail.customSize : (detail.productSize ?? detail.customSize) }}
                           </p>
                         </div>
                         <div v-if="detail.flavor">
