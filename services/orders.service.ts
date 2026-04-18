@@ -44,6 +44,15 @@ export type OrderAssignedBaker = {
   id: string
   name: string
   lastname: string
+  role?: string
+  area?: string
+}
+
+export type OrderAssignment = {
+  id: string
+  baker: OrderAssignedBaker
+  assignedDate: string
+  notes?: string | null
 }
 
 export type OrderItem = {
@@ -61,7 +70,7 @@ export type OrderItem = {
   createdBy?: OrderAuditUser
   updatedBy?: OrderAuditUser
   reference?: string | string[]
-  assignedBaker?: OrderAssignedBaker | null
+  assignments?: OrderAssignment[]
   createdAt: string
   updatedAt: string
 }

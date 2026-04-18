@@ -107,7 +107,7 @@ const assigning = ref(false)
 
 async function openAssignModal(order: import('~/services/orders.service').OrderItem) {
   assignTarget.value = order
-  selectedBakerId.value = order.assignedBaker?.id ?? ''
+  selectedBakerId.value = order.assignments?.[0]?.baker.id ?? ''
   assignOpen.value = true
   bakersError.value = ''
   bakers.value = []
@@ -129,15 +129,10 @@ async function executeAssign() {
   assigning.value = true
   try {
     const orderId = assignTarget.value.id
-    const alreadyAssigned = !!assignTarget.value.assignedBaker
-    console.log('[executeAssign] orderId:', orderId)
-    console.log('[executeAssign] bakerId:', selectedBakerId.value)
-    console.log('[executeAssign] alreadyAssigned:', alreadyAssigned)
+    const alreadyAssigned = (assignTarget.value.assignments?.length ?? 0) > 0
     if (alreadyAssigned) {
-      console.log('[executeAssign] llamando reassignOrder → PATCH /api/orders/' + selectedBakerId.value + '/reassign-order', { orderId })
       await ordersService.reassignOrder(selectedBakerId.value, orderId)
     } else {
-      console.log('[executeAssign] llamando assignOrder → POST /api/orders/' + selectedBakerId.value + '/assign-order', { orderId })
       await ordersService.assignOrder(selectedBakerId.value, orderId)
     }
     const baker = bakers.value.find(b => b.id === selectedBakerId.value)
@@ -145,7 +140,7 @@ async function executeAssign() {
     if (idx !== -1 && baker) {
       orders.value[idx] = {
         ...orders.value[idx],
-        assignedBaker: { id: baker.id, name: baker.name, lastname: baker.lastname },
+        assignments: [{ id: '', baker: { id: baker.id, name: baker.name, lastname: baker.lastname }, assignedDate: new Date().toISOString(), notes: null }],
       }
     }
     assignOpen.value = false
@@ -634,8 +629,8 @@ function openDetail(order: OrderItem) {
 
                           <!-- Asignado a -->
                           <td class="px-4 py-3 whitespace-nowrap">
-                            <span v-if="order.assignedBaker" class="text-[13px] text-[#111827] font-medium">
-                              {{ order.assignedBaker.name }} {{ order.assignedBaker.lastname }}
+                            <span v-if="order.assignments?.[0]?.baker" class="text-[13px] text-[#111827] font-medium">
+                              {{ order.assignments[0].baker.name }} {{ order.assignments[0].baker.lastname }}
                             </span>
                             <span v-else class="text-[12px] text-gray-400 italic">Sin asignar</span>
                           </td>
@@ -740,7 +735,7 @@ function openDetail(order: OrderItem) {
                               <button
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-purple-50 hover:text-[#7C00C9] transition"
-                                :title="order.assignedBaker ? 'Reasignar pastelero' : 'Asignar pastelero'"
+                                :title="(order.assignments?.length ?? 0) > 0 ? 'Reasignar pastelero' : 'Asignar pastelero'"
                                 @click.stop="openAssignModal(order)"
                               >
                                 <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -841,8 +836,8 @@ function openDetail(order: OrderItem) {
                       </div>
                       <div>
                         <p class="text-gray-400">Asignado a</p>
-                        <p v-if="order.assignedBaker" class="text-[#111827] font-medium truncate">
-                          {{ order.assignedBaker.name }} {{ order.assignedBaker.lastname }}
+                        <p v-if="order.assignments?.[0]?.baker" class="text-[#111827] font-medium truncate">
+                          {{ order.assignments[0].baker.name }} {{ order.assignments[0].baker.lastname }}
                         </p>
                         <p v-else class="text-gray-400 italic">Sin asignar</p>
                       </div>
@@ -1375,13 +1370,13 @@ function openDetail(order: OrderItem) {
               </svg>
             </div>
             <h3 class="text-[17px] font-bold text-[#111827] leading-snug">
-              {{ assignTarget?.assignedBaker ? 'Reasignar pastelero' : 'Asignar pastelero' }}
+              {{ (assignTarget?.assignments?.length ?? 0) > 0 ? 'Reasignar pastelero' : 'Asignar pastelero' }}
             </h3>
             <p class="mt-1.5 text-[13px] text-gray-500">
               Pedido <span class="font-semibold text-[#111827]">{{ assignTarget?.orderCode }}</span>
             </p>
-            <p v-if="assignTarget?.assignedBaker" class="mt-1 text-[12px] text-gray-400">
-              Asignado actualmente a: <span class="font-medium text-gray-600">{{ assignTarget.assignedBaker.name }} {{ assignTarget.assignedBaker.lastname }}</span>
+            <p v-if="assignTarget?.assignments?.[0]?.baker" class="mt-1 text-[12px] text-gray-400">
+              Asignado actualmente a: <span class="font-medium text-gray-600">{{ assignTarget.assignments[0].baker.name }} {{ assignTarget.assignments[0].baker.lastname }}</span>
             </p>
           </div>
           <div class="mx-6 border-t border-black/[0.06]" />
@@ -1422,7 +1417,7 @@ function openDetail(order: OrderItem) {
               <span v-if="assigning" class="flex items-center justify-center gap-2">
                 <span class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
               </span>
-              <span v-else>{{ assignTarget?.assignedBaker ? 'Reasignar' : 'Asignar' }}</span>
+              <span v-else>{{ (assignTarget?.assignments?.length ?? 0) > 0 ? 'Reasignar' : 'Asignar' }}</span>
             </button>
           </div>
         </div>
