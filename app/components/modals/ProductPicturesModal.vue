@@ -7,16 +7,38 @@
         @dragover.prevent
         @drop.prevent="onDrop"
       >
-        <div class="mx-auto grid h-12 w-12 place-content-center rounded-xl bg-white shadow-sm ring-1 ring-black/5">
+        <div
+          class="mx-auto grid h-12 w-12 place-content-center rounded-xl bg-white shadow-sm ring-1 ring-black/5"
+        >
           <svg class="h-6 w-6 text-black/60" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M7 10l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path
+              d="M12 5v10"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M7 10l5-5 5 5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M5 19h14"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
           </svg>
         </div>
 
-        <p class="mt-3 text-sm font-semibold text-black/70">Arrastre o haga click para agregar archivo</p>
-        <p class="mt-1 text-xs text-black/45">PNG, JPG. Puede subir varias fotos.</p>
+        <p class="mt-3 text-sm font-semibold text-black/70">
+          Arrastre o haga click para agregar archivo
+        </p>
+        <p class="mt-1 text-xs text-black/45">
+          PNG, JPG. Puede subir varias fotos.
+        </p>
 
         <input
           ref="fileInput"
@@ -29,8 +51,7 @@
 
         <button
           type="button"
-          class="mt-4 h-10 rounded-xl bg-white px-4 text-sm font-semibold text-[#101541]
-                 shadow-sm ring-1 ring-black/5 hover:shadow"
+          class="mt-4 h-10 rounded-xl bg-white px-4 text-sm font-semibold text-[#101541] shadow-sm ring-1 ring-black/5 hover:shadow"
           @click="fileInput?.click()"
         >
           Elegir archivos
@@ -40,7 +61,9 @@
       <!-- Preview list -->
       <div v-if="files.length" class="space-y-2">
         <div class="flex items-center justify-between">
-          <p class="text-xs font-semibold text-black/60">Seleccionadas ({{ files.length }})</p>
+          <p class="text-xs font-semibold text-black/60">
+            Seleccionadas ({{ files.length }})
+          </p>
 
           <button
             type="button"
@@ -70,7 +93,10 @@
         </div>
       </div>
 
-      <div v-if="errorMsg" class="rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+      <div
+        v-if="errorMsg"
+        class="rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200"
+      >
         {{ errorMsg }}
       </div>
 
@@ -90,7 +116,7 @@
           :disabled="saving || files.length === 0"
           @click="upload"
         >
-          {{ saving ? 'Subiendo...' : 'Aceptar' }}
+          {{ saving ? "Subiendo..." : "Aceptar" }}
         </button>
       </div>
     </div>
@@ -98,72 +124,73 @@
 </template>
 
 <script setup lang="ts">
-import BaseModal from '~/components/modals/BaseModal.vue'
-import { productsService, type ProductItem } from '~/services/products.service'
+import BaseModal from "~/components/modals/BaseModal.vue";
+import { productsService } from "~/services/products.service";
+import type { ProductItem } from "~/types/product.types";
 
 const props = defineProps<{
-  open: boolean
-  product: ProductItem
-}>()
+  open: boolean;
+  product: ProductItem;
+}>();
 
 const emit = defineEmits<{
-  (e: 'close'): void
-  (e: 'uploaded'): void
-}>()
+  (e: "close"): void;
+  (e: "uploaded"): void;
+}>();
 
-const fileInput = ref<HTMLInputElement | null>(null)
-const files = ref<File[]>([])
-const previews = ref<string[]>([])
-const saving = ref(false)
-const errorMsg = ref('')
+const fileInput = ref<HTMLInputElement | null>(null);
+const files = ref<File[]>([]);
+const previews = ref<string[]>([]);
+const saving = ref(false);
+const errorMsg = ref("");
 
 watch(
   () => props.open,
   (v) => {
-    if (!v) return
-    errorMsg.value = ''
-    files.value = []
-    previews.value = []
-  }
-)
+    if (!v) return;
+    errorMsg.value = "";
+    files.value = [];
+    previews.value = [];
+  },
+);
 
 function addFiles(list: FileList | File[]) {
-  const arr = Array.from(list)
+  const arr = Array.from(list);
   arr.forEach((f) => {
-    if (!f.type.startsWith('image/')) return
-    files.value.push(f)
-    previews.value.push(URL.createObjectURL(f))
-  })
+    if (!f.type.startsWith("image/")) return;
+    files.value.push(f);
+    previews.value.push(URL.createObjectURL(f));
+  });
 }
 
 function onPick(e: Event) {
-  const input = e.target as HTMLInputElement
-  if (!input.files) return
-  addFiles(input.files)
-  input.value = ''
+  const input = e.target as HTMLInputElement;
+  if (!input.files) return;
+  addFiles(input.files);
+  input.value = "";
 }
 
 function onDrop(e: DragEvent) {
-  if (!e.dataTransfer?.files) return
-  addFiles(e.dataTransfer.files)
+  if (!e.dataTransfer?.files) return;
+  addFiles(e.dataTransfer.files);
 }
 
 function removeAt(i: number) {
-  const url = previews.value[i]
-  if (url) URL.revokeObjectURL(url)
-  files.value.splice(i, 1)
-  previews.value.splice(i, 1)
+  const url = previews.value[i];
+  if (url) URL.revokeObjectURL(url);
+  files.value.splice(i, 1);
+  previews.value.splice(i, 1);
 }
 
 function clearFiles() {
-  previews.value.forEach((u) => URL.revokeObjectURL(u))
-  files.value = []
-  previews.value = []
+  previews.value.forEach((u) => URL.revokeObjectURL(u));
+  files.value = [];
+  previews.value = [];
 }
 
 async function upload() {
-  errorMsg.value = ''
-  saving.value = true
+  errorMsg.value = "";
+  saving.value = true;
   try {
     await productsService.uploadPictures({
       id: props.product.id,
@@ -173,15 +200,15 @@ async function upload() {
       categoryId: props.product.category.id,
       isActive: props.product.isActive,
       files: files.value,
-    })
+    });
 
-    clearFiles()
-    emit('uploaded')
-    emit('close')
+    clearFiles();
+    emit("uploaded");
+    emit("close");
   } catch (e: any) {
-    errorMsg.value = e?.message || 'No se pudieron subir las fotos.'
+    errorMsg.value = e?.message || "No se pudieron subir las fotos.";
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 </script>

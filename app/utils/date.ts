@@ -11,3 +11,10 @@ export function formatDate(iso: string): string {
     const y = date.getUTCFullYear();
     return `${d}/${m}/${y}`;
 }
+
+export function formatTime(t: string): string {
+    if (!t) return '-';
+    const parts = t.split(':');
+    const h = parseInt(parts[0] ?? '0', 10);
+    return `${h % 12 || 12}:${parts[1] ?? '00'} ${h < 12 ? 'AM' : 'PM'}`;
+}

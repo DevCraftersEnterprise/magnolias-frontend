@@ -54,13 +54,40 @@
                   :disabled="downloading"
                   @click="downloadFormat()"
                 >
-                  <svg v-if="downloading" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    v-if="downloading"
+                    class="h-4 w-4 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <path d="M12 2a10 10 0 1 0 10 10" stroke-linecap="round" />
                   </svg>
-                  <svg v-else viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round" />
-                    <polyline points="7 10 12 15 17 10" stroke-linecap="round" stroke-linejoin="round" />
-                    <line x1="12" y1="15" x2="12" y2="3" stroke-linecap="round" />
+                  <svg
+                    v-else
+                    viewBox="0 0 24 24"
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                      stroke-linecap="round"
+                    />
+                    <polyline
+                      points="7 10 12 15 17 10"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <line
+                      x1="12"
+                      y1="15"
+                      x2="12"
+                      y2="3"
+                      stroke-linecap="round"
+                    />
                   </svg>
                 </button>
                 <button
@@ -539,7 +566,11 @@
                         <div v-if="detail.productSize || detail.customSize">
                           <p class="text-[10px] text-gray-400">Tamaño</p>
                           <p class="text-[12px] text-gray-700">
-                            {{ detail.productSize?.toUpperCase() === 'CUSTOM' ? detail.customSize : (detail.productSize ?? detail.customSize) }}
+                            {{
+                              detail.productSize?.toUpperCase() === "CUSTOM"
+                                ? detail.customSize
+                                : (detail.productSize ?? detail.customSize)
+                            }}
                           </p>
                         </div>
                         <div v-if="detail.flavor">
@@ -624,8 +655,16 @@
               </div>
 
               <!-- ─ 5. Flores ─ -->
-              <div v-if="activeData && activeData.orderFlowers && activeData.orderFlowers.length > 0">
-                <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              <div
+                v-if="
+                  activeData &&
+                  activeData.orderFlowers &&
+                  activeData.orderFlowers.length > 0
+                "
+              >
+                <p
+                  class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400"
+                >
                   Flores ({{ activeData.orderFlowers.length }})
                 </p>
                 <div class="rounded-xl bg-[#F8F8F9] px-4 py-3 space-y-2">
@@ -638,37 +677,70 @@
                       class="inline-block h-3.5 w-3.5 rounded-full flex-shrink-0 ring-1 ring-black/15"
                       :style="{ background: f.color?.value ?? '#e5e7eb' }"
                     />
-                    <span class="font-medium">{{ f.flower?.name ?? '—' }}</span>
-                    <span v-if="f.color" class="text-gray-400 text-[12px]">· {{ f.color.name }}</span>
-                    <span class="ml-auto text-gray-500 text-[12px]">× {{ f.quantity }}</span>
+                    <span class="font-medium">{{ f.flower?.name ?? "—" }}</span>
+                    <span v-if="f.color" class="text-gray-400 text-[12px]"
+                      >· {{ f.color.name }}</span
+                    >
+                    <span class="ml-auto text-gray-500 text-[12px]"
+                      >× {{ f.quantity }}</span
+                    >
                   </div>
                 </div>
               </div>
 
               <!-- ─ 6. Historial de pagos ─ -->
-              <div v-if="activeData?.payments && activeData.payments.length > 0">
-                <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              <div
+                v-if="activeData?.payments && activeData.payments.length > 0"
+              >
+                <p
+                  class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400"
+                >
                   Historial de pagos
                 </p>
-                <div class="rounded-xl overflow-hidden ring-1 ring-black/[0.07]">
+                <div
+                  class="rounded-xl overflow-hidden ring-1 ring-black/[0.07]"
+                >
                   <div
-                    v-for="(pay, i) in [...activeData.payments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())"
+                    v-for="(pay, i) in [...activeData.payments].sort(
+                      (a, b) =>
+                        new Date(b.createdAt).getTime() -
+                        new Date(a.createdAt).getTime(),
+                    )"
                     :key="pay.id"
                     class="flex items-center justify-between px-4 py-3 bg-white text-[13px]"
                     :class="i > 0 ? 'border-t border-black/[0.06]' : ''"
                   >
                     <div class="flex items-center gap-2.5">
-                      <div class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-green-50 ring-1 ring-green-200">
-                        <svg class="h-3.5 w-3.5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                      <div
+                        class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-green-50 ring-1 ring-green-200"
+                      >
+                        <svg
+                          class="h-3.5 w-3.5 text-green-600"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path
+                            d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                          />
                         </svg>
                       </div>
                       <div>
-                        <p class="font-semibold text-[#111827]">{{ pay.paidAmount }}</p>
-                        <p class="text-[11px] text-gray-400">{{ formatDateTime(pay.createdAt) }}</p>
+                        <p class="font-semibold text-[#111827]">
+                          {{ pay.paidAmount }}
+                        </p>
+                        <p class="text-[11px] text-gray-400">
+                          {{ formatDateTime(pay.createdAt) }}
+                        </p>
                       </div>
                     </div>
-                    <span class="text-[11px] font-medium text-green-600 bg-green-50 rounded-full px-2.5 py-0.5 ring-1 ring-green-200">Abono</span>
+                    <span
+                      class="text-[11px] font-medium text-green-600 bg-green-50 rounded-full px-2.5 py-0.5 ring-1 ring-green-200"
+                      >Abono</span
+                    >
                   </div>
                 </div>
               </div>
@@ -743,10 +815,8 @@ import {
   TYPE_LABELS,
   PAYMENT_METHOD_LABELS,
   DELIVERY_ROUND_LABELS,
-  type OrderItem,
-  type OrderDetail,
-  type OrderType,
 } from "~/services/orders.service";
+import type { OrderDetail, OrderItem, OrderType } from "~/types/order.types";
 
 const props = defineProps<{
   open: boolean;
@@ -760,21 +830,21 @@ const emit = defineEmits<{
 
 // ── Location label translation ───────────────────────────────────────────────
 const LOCATION_LABELS: Record<string, string> = {
-  TOP: 'Arriba',
-  BOTTOM: 'Abajo',
-  CENTER: 'Centro',
-  LEFT: 'Izquierda',
-  RIGHT: 'Derecha',
-  TOP_LEFT: 'Arriba izquierda',
-  TOP_RIGHT: 'Arriba derecha',
-  BOTTOM_LEFT: 'Abajo izquierda',
-  BOTTOM_RIGHT: 'Abajo derecha',
-  FRONT: 'Frente',
-  BACK: 'Atrás',
-  SIDE: 'Lado',
+  TOP: "Arriba",
+  BOTTOM: "Abajo",
+  CENTER: "Centro",
+  LEFT: "Izquierda",
+  RIGHT: "Derecha",
+  TOP_LEFT: "Arriba izquierda",
+  TOP_RIGHT: "Arriba derecha",
+  BOTTOM_LEFT: "Abajo izquierda",
+  BOTTOM_RIGHT: "Abajo derecha",
+  FRONT: "Frente",
+  BACK: "Atrás",
+  SIDE: "Lado",
 };
 function locationLabel(val?: string | null) {
-  if (!val) return '';
+  if (!val) return "";
   return LOCATION_LABELS[val.toUpperCase()] ?? val;
 }
 
@@ -944,10 +1014,10 @@ function roundLabel(r?: string | null) {
 const downloading = ref(false);
 
 function formatEndpoint(orderType?: OrderType): string {
-  if (orderType === 'DOMICILIO') return 'domicilio';
-  if (orderType === 'EVENTO')    return 'evento';
-  if (orderType === 'VITRINA')   return 'vitrina';
-  return 'personalizado'; // FLOR, PERSONALIZADO
+  if (orderType === "DOMICILIO") return "domicilio";
+  if (orderType === "EVENTO") return "evento";
+  if (orderType === "VITRINA") return "vitrina";
+  return "personalizado"; // FLOR, PERSONALIZADO
 }
 
 async function downloadFormat() {
@@ -955,21 +1025,26 @@ async function downloadFormat() {
   downloading.value = true;
   try {
     const config = useRuntimeConfig();
-    const base = String(config.public.apiBase || '').replace(/\/$/, '');
-    const token = useCookie<string | null>('access_token').value;
+    const base = String(config.public.apiBase || "").replace(/\/$/, "");
+    const token = useCookie<string | null>("access_token").value;
     const orderType = activeData.value?.orderType ?? props.order.orderType;
     const endpoint = formatEndpoint(orderType);
-    const res = await fetch(`${base}/api/formats/${endpoint}/${props.order.id}`, {
-      method: 'GET',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const res = await fetch(
+      `${base}/api/formats/${endpoint}/${props.order.id}`,
+      {
+        method: "GET",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      },
+    );
     if (!res.ok) throw new Error(`Error ${res.status}`);
     const blob = await res.blob();
-    const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-    window.open(url, '_blank');
+    const url = URL.createObjectURL(
+      new Blob([blob], { type: "application/pdf" }),
+    );
+    window.open(url, "_blank");
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   } catch (e: any) {
-    alert(e?.message || 'No se pudo generar el formato.');
+    alert(e?.message || "No se pudo generar el formato.");
   } finally {
     downloading.value = false;
   }

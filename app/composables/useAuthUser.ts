@@ -1,5 +1,5 @@
-import type { AuthUser } from '~/services/auth.service'
 import { authService } from '~/services/auth.service'
+import type { AuthUser } from '~/types/auth.types'
 
 export const useAuthUser = () => {
   const user = useState<AuthUser | null>('auth_user', () => null)

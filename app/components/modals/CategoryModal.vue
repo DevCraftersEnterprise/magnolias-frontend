@@ -26,7 +26,10 @@
         />
       </div>
 
-      <div v-if="errorMsg" class="rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+      <div
+        v-if="errorMsg"
+        class="rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200"
+      >
         {{ errorMsg }}
       </div>
 
@@ -44,7 +47,7 @@
           class="h-10 rounded-xl bg-[#111827] px-4 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-60"
           :disabled="saving"
         >
-          {{ saving ? 'Guardando...' : 'Guardar' }}
+          {{ saving ? "Guardando..." : "Guardar" }}
         </button>
       </div>
     </form>
@@ -52,59 +55,64 @@
 </template>
 
 <script setup lang="ts">
-import BaseModal from '~/components/modals/BaseModal.vue'
-import { categoriesService, type CategoryItem } from '~/services/categories.service'
+import BaseModal from "~/components/modals/BaseModal.vue";
+import { categoriesService } from "~/services/categories.service";
+import type { CategoryItem } from "~/types/product.types";
 
 const props = defineProps<{
-  open: boolean
-  mode: 'create' | 'edit'
-  category?: CategoryItem | null
-}>()
+  open: boolean;
+  mode: "create" | "edit";
+  category?: CategoryItem | null;
+}>();
 
 const emit = defineEmits<{
-  (e: 'close'): void
-  (e: 'saved'): void
-}>()
+  (e: "close"): void;
+  (e: "saved"): void;
+}>();
 
-const saving = ref(false)
-const errorMsg = ref('')
+const saving = ref(false);
+const errorMsg = ref("");
 
 const form = reactive({
-  name: '',
-  description: '',
-})
+  name: "",
+  description: "",
+});
 
 watch(
   () => props.open,
   (v) => {
-    if (!v) return
-    errorMsg.value = ''
-    form.name = props.mode === 'edit' ? (props.category?.name ?? '') : ''
-    form.description = props.mode === 'edit' ? (props.category?.description ?? '') : ''
+    if (!v) return;
+    errorMsg.value = "";
+    form.name = props.mode === "edit" ? (props.category?.name ?? "") : "";
+    form.description =
+      props.mode === "edit" ? (props.category?.description ?? "") : "";
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 async function onSubmit() {
-  errorMsg.value = ''
-  saving.value = true
+  errorMsg.value = "";
+  saving.value = true;
   try {
-    if (props.mode === 'create') {
-      await categoriesService.create({ name: form.name.trim(), description: form.description.trim() })
+    if (props.mode === "create") {
+      await categoriesService.create({
+        name: form.name.trim(),
+        description: form.description.trim(),
+      });
     } else {
-      if (!props.category?.id) throw new Error('ID requerido.')
+      if (!props.category?.id) throw new Error("ID requerido.");
       await categoriesService.patch(props.category.id, {
         name: form.name.trim(),
         description: form.description.trim(),
         isActive: true,
-      })
+      });
     }
-    emit('saved')
-    emit('close')
+    emit("saved");
+    emit("close");
   } catch (e: any) {
-    errorMsg.value = e?.message || 'No se pudo guardar.'
+    errorMsg.value = e?.message || "No se pudo guardar.";
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 </script>

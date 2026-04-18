@@ -278,11 +278,8 @@ import {
   onBeforeUnmount,
 } from "vue";
 import ConfirmModal from "~/components/ConfirmModal.vue";
-import type { ProductItem } from "~/services/categories.service";
-import {
-  productsService,
-  type ProductPicture,
-} from "~/services/products.service";
+import { productsService } from "~/services/products.service";
+import type { ProductItem, ProductPicture } from "~/types/product.types";
 
 type CategoryOption = {
   id: string;

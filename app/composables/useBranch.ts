@@ -1,4 +1,5 @@
-import { branchesService, type BranchResponse } from '~/services/branches.service'
+import { branchesService, } from '~/services/branches.service'
+import type { BranchResponse } from '~/types/branch.types'
 
 export const useBranch = () => {
     const branches = useState<BranchResponse[]>('branches', () => [])
