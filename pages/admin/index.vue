@@ -2,6 +2,7 @@
 definePageMeta({
   layout: "admin",
   middleware: ["auth", "baker-redirect"],
+  pageTitle: "Panel Administrativo",
 });
 useHead({ title: "Panel · Magnolias" });
 

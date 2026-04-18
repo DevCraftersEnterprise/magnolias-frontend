@@ -406,7 +406,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: "admin" });
+definePageMeta({ layout: "admin", pageTitle: "Productos" });
 useHead({ title: "Productos · Magnolias" });
 
 import { computed, onMounted, ref, watch, nextTick } from "vue";

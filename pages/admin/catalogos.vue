@@ -1,6 +1,6 @@
 <!-- pages/admin/catalogos.vue -->
 <script setup lang="ts">
-definePageMeta({ layout: "admin" });
+definePageMeta({ layout: "admin", pageTitle: "Catálogos" });
 useHead({ title: "Catálogos · Magnolias" });
 
 import { onMounted, ref } from "vue";

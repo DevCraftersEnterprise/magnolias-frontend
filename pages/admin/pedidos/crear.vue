@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: "admin" });
+definePageMeta({ layout: "admin", pageTitle: "Pedidos" });
 useHead({ title: "Crear Pedido · Magnolias" });
 
 import {
