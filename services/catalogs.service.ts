@@ -30,17 +30,6 @@ export type CreateColorPayload = {
   value: string // "#RRGGBB"
 }
 
-function withPagination(base: string, limit: number, offset: number, extra?: Record<string, any>) {
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
-  if (extra) {
-    Object.entries(extra).forEach(([k, v]) => {
-      if (v === undefined || v === null) return
-      params.set(k, String(v))
-    })
-  }
-  return `${base}?${params.toString()}`
-}
-
 export const catalogsService = {
   /** ===== GET ===== */
   getColors() {

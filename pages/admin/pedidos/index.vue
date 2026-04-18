@@ -13,7 +13,7 @@ import {
   type OrderType,
 } from "~/services/orders.service";
 import OrderDetailModal from "~/components/modals/OrderDetailModal.vue";
-import { usersService, type UserItem } from '~/services/users.service'
+import { usersService, type UserItem } from "~/services/users.service";
 
 const { user } = useAuthUser();
 const { selectedBranch } = useBranch();
@@ -21,20 +21,6 @@ const { selectedBranch } = useBranch();
 const isBaker = computed(() => user.value?.role === "BAKER");
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-function isoDate(d: Date) {
-  return d.toISOString().split("T")[0];
-}
-
-function formatDate(iso: string) {
-  if (!iso) return "—";
-  // El backend devuelve ISO datetime "2024-12-31T15:00:00Z"
-  const date = new Date(iso);
-  const d = String(date.getUTCDate()).padStart(2, "0");
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const y = date.getUTCFullYear();
-  return `${d}/${m}/${y}`;
-}
-
 function typeColor(t?: OrderType) {
   return t
     ? (TYPE_COLORS[t] ?? { bg: "#eee", text: "#333" })
@@ -69,7 +55,7 @@ function clearSearch() {
 const cancelTarget = ref<OrderItem | null>(null);
 const cancelConfirm = ref(false);
 const canceling = ref(false);
-const cancelReason = ref('');
+const cancelReason = ref("");
 
 const deliverTarget = ref<OrderItem | null>(null);
 const deliverConfirm = ref(false);
@@ -89,7 +75,7 @@ async function executeDeliver() {
     deliverTarget.value = null;
     await loadOrders(true);
   } catch (e: any) {
-    errorMsg.value = e?.message || 'No se pudo marcar como entregado.';
+    errorMsg.value = e?.message || "No se pudo marcar como entregado.";
     deliverConfirm.value = false;
   } finally {
     delivering.value = false;
@@ -97,59 +83,70 @@ async function executeDeliver() {
 }
 
 // ─── ASSIGNMENT STATE ─────────────────────────────────────────────────────────
-const assignTarget = ref<import('~/services/orders.service').OrderItem | null>(null)
-const assignOpen = ref(false)
-const bakers = ref<UserItem[]>([])
-const bakersLoading = ref(false)
-const bakersError = ref('')
-const selectedBakerId = ref('')
-const assigning = ref(false)
+const assignTarget = ref<import("~/services/orders.service").OrderItem | null>(
+  null,
+);
+const assignOpen = ref(false);
+const bakers = ref<UserItem[]>([]);
+const bakersLoading = ref(false);
+const bakersError = ref("");
+const selectedBakerId = ref("");
+const assigning = ref(false);
 
-async function openAssignModal(order: import('~/services/orders.service').OrderItem) {
-  assignTarget.value = order
-  selectedBakerId.value = order.assignments?.[0]?.baker.id ?? ''
-  assignOpen.value = true
-  bakersError.value = ''
-  bakers.value = []
-  bakersLoading.value = true
+async function openAssignModal(
+  order: import("~/services/orders.service").OrderItem,
+) {
+  assignTarget.value = order;
+  selectedBakerId.value = order.assignments?.[0]?.baker.id ?? "";
+  assignOpen.value = true;
+  bakersError.value = "";
+  bakers.value = [];
+  bakersLoading.value = true;
   try {
-    const branchId = selectedBranch.value?.id
-    if (!branchId) throw new Error('No hay sucursal seleccionada.')
-    const res = await usersService.getBakersByBranch(branchId)
-    bakers.value = Array.isArray(res) ? res : (res as any).items ?? []
+    const branchId = selectedBranch.value?.id;
+    if (!branchId) throw new Error("No hay sucursal seleccionada.");
+    const res = await usersService.getBakersByBranch(branchId);
+    bakers.value = Array.isArray(res) ? res : ((res as any).items ?? []);
   } catch (e: any) {
-    bakersError.value = e?.message || 'No se pudieron cargar los pasteleros.'
+    bakersError.value = e?.message || "No se pudieron cargar los pasteleros.";
   } finally {
-    bakersLoading.value = false
+    bakersLoading.value = false;
   }
 }
 
 async function executeAssign() {
-  if (!assignTarget.value || !selectedBakerId.value || assigning.value) return
-  assigning.value = true
+  if (!assignTarget.value || !selectedBakerId.value || assigning.value) return;
+  assigning.value = true;
   try {
-    const orderId = assignTarget.value.id
-    const alreadyAssigned = (assignTarget.value.assignments?.length ?? 0) > 0
+    const orderId = assignTarget.value.id;
+    const alreadyAssigned = (assignTarget.value.assignments?.length ?? 0) > 0;
     if (alreadyAssigned) {
-      await ordersService.reassignOrder(selectedBakerId.value, orderId)
+      await ordersService.reassignOrder(selectedBakerId.value, orderId);
     } else {
-      await ordersService.assignOrder(selectedBakerId.value, orderId)
+      await ordersService.assignOrder(selectedBakerId.value, orderId);
     }
-    const baker = bakers.value.find(b => b.id === selectedBakerId.value)
-    const idx = orders.value.findIndex(o => o.id === orderId)
+    const baker = bakers.value.find((b) => b.id === selectedBakerId.value);
+    const idx = orders.value.findIndex((o) => o.id === orderId);
     if (idx !== -1 && baker) {
       orders.value[idx] = {
         ...orders.value[idx],
-        assignments: [{ id: '', baker: { id: baker.id, name: baker.name, lastname: baker.lastname }, assignedDate: new Date().toISOString(), notes: null }],
-      }
+        assignments: [
+          {
+            id: "",
+            baker: { id: baker.id, name: baker.name, lastname: baker.lastname },
+            assignedDate: new Date().toISOString(),
+            notes: null,
+          },
+        ],
+      };
     }
-    assignOpen.value = false
-    assignTarget.value = null
+    assignOpen.value = false;
+    assignTarget.value = null;
   } catch (e: any) {
-    errorMsg.value = e?.message || 'No se pudo asignar el pastelero.'
-    assignOpen.value = false
+    errorMsg.value = e?.message || "No se pudo asignar el pastelero.";
+    assignOpen.value = false;
   } finally {
-    assigning.value = false
+    assigning.value = false;
   }
 }
 
@@ -207,7 +204,7 @@ async function nextPage() {
 
 function confirmCancel(order: OrderItem) {
   cancelTarget.value = order;
-  cancelReason.value = '';
+  cancelReason.value = "";
   cancelConfirm.value = true;
 }
 
@@ -218,7 +215,7 @@ async function executeCancel() {
     await ordersService.cancelOrder(cancelTarget.value.id, cancelReason.value);
     cancelConfirm.value = false;
     cancelTarget.value = null;
-    cancelReason.value = '';
+    cancelReason.value = "";
     await loadOrders(true);
   } catch (e: any) {
     errorMsg.value = e?.message || "No se pudo cancelar el pedido.";
@@ -253,13 +250,21 @@ const dayAfterStr = computed(() => {
 const tomorrowLabel = computed(() => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  return d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "short" });
+  return d.toLocaleDateString("es-MX", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  });
 });
 
 const dayAfterLabel = computed(() => {
   const d = new Date();
   d.setDate(d.getDate() + 2);
-  return d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "short" });
+  return d.toLocaleDateString("es-MX", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  });
 });
 
 // Filtra por fecha de entrega (comparando solo la parte de fecha del ISO)
@@ -278,53 +283,62 @@ const dayAfterOrders = computed(() =>
     (o) => deliveryDateStr(o.deliveryDate) === dayAfterStr.value,
   ),
 );
-const rangeKanbanOrders = ref<OrderItem[]>([])
-const rangeKanbanLoading = ref(false)
+const rangeKanbanOrders = ref<OrderItem[]>([]);
+const rangeKanbanLoading = ref(false);
 
 const rangeError = computed(() => {
   if (rangeFrom.value && rangeTo.value && rangeTo.value < rangeFrom.value)
-    return 'La fecha de término no puede ser menor a la fecha de inicio.'
-  return ''
-})
+    return "La fecha de término no puede ser menor a la fecha de inicio.";
+  return "";
+});
 
 async function loadRangeOrders() {
   if (rangeError.value) {
-    rangeKanbanOrders.value = []
-    return
+    rangeKanbanOrders.value = [];
+    return;
   }
   if (!rangeFrom.value && !rangeTo.value) {
-    rangeKanbanOrders.value = []
-    return
+    rangeKanbanOrders.value = [];
+    return;
   }
-  if (!selectedBranch.value?.id) return
-  rangeKanbanLoading.value = true
-  kanbanError.value = ''
+  if (!selectedBranch.value?.id) return;
+  rangeKanbanLoading.value = true;
+  kanbanError.value = "";
   try {
     const data = await ordersService.getOrders(selectedBranch.value.id, {
       limit: 200,
       offset: 0,
       startDate: rangeFrom.value || undefined,
       endDate: rangeTo.value || undefined,
-    })
-    const allRangeItems = data.items ?? []
-    const activeRangeItems = allRangeItems.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELED')
+    });
+    const allRangeItems = data.items ?? [];
+    const activeRangeItems = allRangeItems.filter(
+      (o) => o.status !== "DELIVERED" && o.status !== "CANCELED",
+    );
     rangeKanbanOrders.value = isBaker.value
-      ? activeRangeItems.filter(o => o.assignments?.some(a => a.baker.id === user.value?.id))
-      : activeRangeItems
+      ? activeRangeItems.filter((o) =>
+          o.assignments?.some((a) => a.baker.id === user.value?.id),
+        )
+      : activeRangeItems;
   } catch (e: any) {
-    kanbanError.value = e?.message || 'Error al cargar pedidos por rango.'
+    kanbanError.value = e?.message || "Error al cargar pedidos por rango.";
   } finally {
-    rangeKanbanLoading.value = false
+    rangeKanbanLoading.value = false;
   }
 }
 
 const activeKanbanOrders = computed(() => {
   switch (kanbanTab.value) {
-    case "tomorrow":  return tomorrowOrders.value
-    case "dayAfter":  return dayAfterOrders.value
-    case "all":       return kanbanOrders.value
-    case "range":     return rangeKanbanOrders.value
-    default:          return tomorrowOrders.value
+    case "tomorrow":
+      return tomorrowOrders.value;
+    case "dayAfter":
+      return dayAfterOrders.value;
+    case "all":
+      return kanbanOrders.value;
+    case "range":
+      return rangeKanbanOrders.value;
+    default:
+      return tomorrowOrders.value;
   }
 });
 
@@ -353,9 +367,13 @@ async function loadKanbanOrders() {
       offset: 0,
     });
     const allItems = data.items ?? [];
-    const activeItems = allItems.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELED');
+    const activeItems = allItems.filter(
+      (o) => o.status !== "DELIVERED" && o.status !== "CANCELED",
+    );
     kanbanOrders.value = isBaker.value
-      ? activeItems.filter(o => o.assignments?.some(a => a.baker.id === user.value?.id))
+      ? activeItems.filter((o) =>
+          o.assignments?.some((a) => a.baker.id === user.value?.id),
+        )
       : activeItems;
   } catch (e: any) {
     kanbanError.value = e?.message || "Error al cargar pedidos.";
@@ -368,12 +386,12 @@ async function advanceStatus(order: OrderItem) {
   if (updatingId.value) return;
   updatingId.value = order.id;
   try {
-    if (order.status === 'CREATED') {
+    if (order.status === "CREATED") {
       await ordersService.markInProcess(order.id);
-      order.status = 'IN PROCESS';
-    } else if (order.status === 'IN PROCESS') {
+      order.status = "IN PROCESS";
+    } else if (order.status === "IN PROCESS") {
       await ordersService.markDone(order.id);
-      order.status = 'DONE';
+      order.status = "DONE";
     }
   } catch (e: any) {
     console.error("Error actualizando estado:", e);
@@ -383,21 +401,21 @@ async function advanceStatus(order: OrderItem) {
 }
 
 function refreshKanban() {
-  if (kanbanTab.value === 'range') loadRangeOrders()
-  else loadKanbanOrders()
+  if (kanbanTab.value === "range") loadRangeOrders();
+  else loadKanbanOrders();
 }
 
 // ── Kanban confirm modal ──────────────────────────────────────────────
-const kanbanConfirmTarget = ref<OrderItem | null>(null)
+const kanbanConfirmTarget = ref<OrderItem | null>(null);
 function requestAdvanceStatus(order: OrderItem) {
-  if (updatingId.value) return
-  kanbanConfirmTarget.value = order
+  if (updatingId.value) return;
+  kanbanConfirmTarget.value = order;
 }
 async function confirmAdvanceStatus() {
-  const order = kanbanConfirmTarget.value
-  kanbanConfirmTarget.value = null
-  if (!order) return
-  await advanceStatus(order)
+  const order = kanbanConfirmTarget.value;
+  kanbanConfirmTarget.value = null;
+  if (!order) return;
+  await advanceStatus(order);
 }
 
 // ─── Lifecycle & watchers ─────────────────────────────────────────────────────
@@ -414,12 +432,12 @@ watch(selectedBranch, () => {
 watch([filterStatus, debouncedName], () => loadOrders(true));
 
 watch([rangeFrom, rangeTo], () => {
-  if (kanbanTab.value === 'range') loadRangeOrders()
-})
+  if (kanbanTab.value === "range") loadRangeOrders();
+});
 
 watch(kanbanTab, (tab) => {
-  if (tab === 'range') loadRangeOrders()
-})
+  if (tab === "range") loadRangeOrders();
+});
 
 // ─── Order detail modal ───────────────────────────────────────────────────────
 const selectedOrder = ref<OrderItem | null>(null);
@@ -430,19 +448,25 @@ function openDetail(order: OrderItem) {
   detailOpen.value = true;
 }
 
-function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }) {
+function onOrderPaymentUpdated(payload: {
+  id: string;
+  remainingBalance: string;
+}) {
   const patch = (list: OrderItem[]) => {
-    const idx = list.findIndex(o => o.id === payload.id);
-    if (idx !== -1) list[idx] = { ...list[idx], remainingBalance: payload.remainingBalance };
+    const idx = list.findIndex((o) => o.id === payload.id);
+    if (idx !== -1)
+      list[idx] = { ...list[idx], remainingBalance: payload.remainingBalance };
   };
   patch(orders.value);
   patch(kanbanOrders.value);
   patch(rangeKanbanOrders.value);
   if (selectedOrder.value?.id === payload.id) {
-    selectedOrder.value = { ...selectedOrder.value, remainingBalance: payload.remainingBalance };
+    selectedOrder.value = {
+      ...selectedOrder.value,
+      remainingBalance: payload.remainingBalance,
+    };
   }
 }
-
 </script>
 
 <template>
@@ -650,10 +674,18 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
 
                           <!-- Asignado a -->
                           <td class="px-4 py-3 whitespace-nowrap">
-                            <span v-if="order.assignments?.[0]?.baker" class="text-[13px] text-[#111827] font-medium">
-                              {{ order.assignments[0].baker.name }} {{ order.assignments[0].baker.lastname }}
+                            <span
+                              v-if="order.assignments?.[0]?.baker"
+                              class="text-[13px] text-[#111827] font-medium"
+                            >
+                              {{ order.assignments[0].baker.name }}
+                              {{ order.assignments[0].baker.lastname }}
                             </span>
-                            <span v-else class="text-[12px] text-gray-400 italic">Sin asignar</span>
+                            <span
+                              v-else
+                              class="text-[12px] text-gray-400 italic"
+                              >Sin asignar</span
+                            >
                           </td>
 
                           <!-- Fecha -->
@@ -756,54 +788,152 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                               <button
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
-                                :class="['IN PROCESS','DONE','DELIVERED','CANCELED'].includes(order.status)
-                                  ? 'text-gray-200 cursor-not-allowed'
-                                  : 'text-gray-400 hover:bg-purple-50 hover:text-[#7C00C9]'"
-                                :title="['IN PROCESS','DONE','DELIVERED','CANCELED'].includes(order.status)
-                                  ? 'No se puede reasignar en este estado'
-                                  : (order.assignments?.length ?? 0) > 0 ? 'Reasignar pastelero' : 'Asignar pastelero'"
-                                :disabled="['IN PROCESS','DONE','DELIVERED','CANCELED'].includes(order.status)"
-                                @click.stop="!['IN PROCESS','DONE','DELIVERED','CANCELED'].includes(order.status) && openAssignModal(order)"
+                                :class="
+                                  [
+                                    'IN PROCESS',
+                                    'DONE',
+                                    'DELIVERED',
+                                    'CANCELED',
+                                  ].includes(order.status)
+                                    ? 'text-gray-200 cursor-not-allowed'
+                                    : 'text-gray-400 hover:bg-purple-50 hover:text-[#7C00C9]'
+                                "
+                                :title="
+                                  [
+                                    'IN PROCESS',
+                                    'DONE',
+                                    'DELIVERED',
+                                    'CANCELED',
+                                  ].includes(order.status)
+                                    ? 'No se puede reasignar en este estado'
+                                    : (order.assignments?.length ?? 0) > 0
+                                      ? 'Reasignar pastelero'
+                                      : 'Asignar pastelero'
+                                "
+                                :disabled="
+                                  [
+                                    'IN PROCESS',
+                                    'DONE',
+                                    'DELIVERED',
+                                    'CANCELED',
+                                  ].includes(order.status)
+                                "
+                                @click.stop="
+                                  ![
+                                    'IN PROCESS',
+                                    'DONE',
+                                    'DELIVERED',
+                                    'CANCELED',
+                                  ].includes(order.status) &&
+                                  openAssignModal(order)
+                                "
                               >
-                                <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                                  <circle cx="9" cy="7" r="4"/>
-                                  <line x1="19" y1="8" x2="19" y2="14"/>
-                                  <line x1="22" y1="11" x2="16" y2="11"/>
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  class="h-4 w-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <path
+                                    d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+                                  />
+                                  <circle cx="9" cy="7" r="4" />
+                                  <line x1="19" y1="8" x2="19" y2="14" />
+                                  <line x1="22" y1="11" x2="16" y2="11" />
                                 </svg>
                               </button>
                               <!-- Marcar como entregado (solo DONE + saldo en cero) -->
                               <button
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
-                                :class="order.status === 'DONE' && (parseFloat((order.remainingBalance ?? '0').replace(/[^0-9.-]/g, '')) <= 0)
-                                  ? 'text-gray-400 hover:bg-green-50 hover:text-green-600'
-                                  : 'text-gray-200 cursor-not-allowed'"
-                                :title="order.status !== 'DONE'
-                                  ? 'Solo se pueden entregar pedidos listos'
-                                  : parseFloat((order.remainingBalance ?? '0').replace(/[^0-9.-]/g, '')) > 0
-                                    ? 'El pedido tiene saldo pendiente de pago'
-                                    : 'Marcar como entregado'"
-                                :disabled="order.status !== 'DONE' || parseFloat((order.remainingBalance ?? '0').replace(/[^0-9.-]/g, '')) > 0"
-                                @click="order.status === 'DONE' && parseFloat((order.remainingBalance ?? '0').replace(/[^0-9.-]/g, '')) <= 0 && confirmDeliver(order)"
+                                :class="
+                                  order.status === 'DONE' &&
+                                  parseFloat(
+                                    (order.remainingBalance ?? '0').replace(
+                                      /[^0-9.-]/g,
+                                      '',
+                                    ),
+                                  ) <= 0
+                                    ? 'text-gray-400 hover:bg-green-50 hover:text-green-600'
+                                    : 'text-gray-200 cursor-not-allowed'
+                                "
+                                :title="
+                                  order.status !== 'DONE'
+                                    ? 'Solo se pueden entregar pedidos listos'
+                                    : parseFloat(
+                                          (
+                                            order.remainingBalance ?? '0'
+                                          ).replace(/[^0-9.-]/g, ''),
+                                        ) > 0
+                                      ? 'El pedido tiene saldo pendiente de pago'
+                                      : 'Marcar como entregado'
+                                "
+                                :disabled="
+                                  order.status !== 'DONE' ||
+                                  parseFloat(
+                                    (order.remainingBalance ?? '0').replace(
+                                      /[^0-9.-]/g,
+                                      '',
+                                    ),
+                                  ) > 0
+                                "
+                                @click="
+                                  order.status === 'DONE' &&
+                                  parseFloat(
+                                    (order.remainingBalance ?? '0').replace(
+                                      /[^0-9.-]/g,
+                                      '',
+                                    ),
+                                  ) <= 0 &&
+                                  confirmDeliver(order)
+                                "
                               >
-                                <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                  <polyline points="22 4 12 14.01 9 11.01"/>
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  class="h-4 w-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <path
+                                    d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+                                  />
+                                  <polyline points="22 4 12 14.01 9 11.01" />
                                 </svg>
                               </button>
                               <!-- Cancelar pedido -->
                               <button
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
-                                :class="['DELIVERED','CANCELED'].includes(order.status)
-                                  ? 'text-gray-200 cursor-not-allowed'
-                                  : 'text-gray-400 hover:bg-orange-50 hover:text-orange-500'"
-                                :title="['DELIVERED','CANCELED'].includes(order.status)
-                                  ? 'No se puede cancelar un pedido entregado o ya cancelado'
-                                  : 'Cancelar pedido'"
-                                :disabled="['DELIVERED','CANCELED'].includes(order.status)"
-                                @click="!['DELIVERED','CANCELED'].includes(order.status) && confirmCancel(order)"
+                                :class="
+                                  ['DELIVERED', 'CANCELED'].includes(
+                                    order.status,
+                                  )
+                                    ? 'text-gray-200 cursor-not-allowed'
+                                    : 'text-gray-400 hover:bg-orange-50 hover:text-orange-500'
+                                "
+                                :title="
+                                  ['DELIVERED', 'CANCELED'].includes(
+                                    order.status,
+                                  )
+                                    ? 'No se puede cancelar un pedido entregado o ya cancelado'
+                                    : 'Cancelar pedido'
+                                "
+                                :disabled="
+                                  ['DELIVERED', 'CANCELED'].includes(
+                                    order.status,
+                                  )
+                                "
+                                @click="
+                                  !['DELIVERED', 'CANCELED'].includes(
+                                    order.status,
+                                  ) && confirmCancel(order)
+                                "
                               >
                                 <svg
                                   viewBox="0 0 24 24"
@@ -813,8 +943,20 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                                   stroke-width="2"
                                 >
                                   <circle cx="12" cy="12" r="10" />
-                                  <line x1="15" y1="9" x2="9" y2="15" stroke-linecap="round" />
-                                  <line x1="9" y1="9" x2="15" y2="15" stroke-linecap="round" />
+                                  <line
+                                    x1="15"
+                                    y1="9"
+                                    x2="9"
+                                    y2="15"
+                                    stroke-linecap="round"
+                                  />
+                                  <line
+                                    x1="9"
+                                    y1="9"
+                                    x2="15"
+                                    y2="15"
+                                    stroke-linecap="round"
+                                  />
                                 </svg>
                               </button>
                             </div>
@@ -875,8 +1017,12 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                       </div>
                       <div>
                         <p class="text-gray-400">Asignado a</p>
-                        <p v-if="order.assignments?.[0]?.baker" class="text-[#111827] font-medium truncate">
-                          {{ order.assignments[0].baker.name }} {{ order.assignments[0].baker.lastname }}
+                        <p
+                          v-if="order.assignments?.[0]?.baker"
+                          class="text-[#111827] font-medium truncate"
+                        >
+                          {{ order.assignments[0].baker.name }}
+                          {{ order.assignments[0].baker.lastname }}
                         </p>
                         <p v-else class="text-gray-400 italic">Sin asignar</p>
                       </div>
@@ -945,50 +1091,103 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
 
         <template v-else>
           <!-- Contenedor blanco principal -->
-          <div class="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden">
-
+          <div
+            class="rounded-2xl bg-white shadow-sm ring-1 ring-black/10 overflow-hidden"
+          >
             <!-- ── Topbar del tablero ── -->
             <div class="px-6 pt-5 pb-4 border-b border-black/[0.06]">
               <!-- Fila 1: título + tabs + actualizar -->
               <div class="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Tablero de producción</p>
-                  <h2 class="mt-0.5 text-[18px] font-bold text-[#111827]">{{ selectedBranch.name }}</h2>
+                  <p
+                    class="text-[10px] font-bold tracking-widest text-gray-400 uppercase"
+                  >
+                    Tablero de producción
+                  </p>
+                  <h2 class="mt-0.5 text-[18px] font-bold text-[#111827]">
+                    {{ selectedBranch.name }}
+                  </h2>
                 </div>
 
                 <!-- Tabs -->
                 <div class="flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1">
                   <button
                     class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
-                    :class="kanbanTab === 'tomorrow' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
+                    :class="
+                      kanbanTab === 'tomorrow'
+                        ? 'bg-white shadow-sm text-[#111827]'
+                        : 'text-gray-400 hover:text-gray-600'
+                    "
                     @click="kanbanTab = 'tomorrow'"
                   >
-                    <span class="text-[12px] font-semibold leading-tight">Para mañana <span class="font-normal opacity-60">({{ tomorrowOrders.length }})</span></span>
-                    <span class="text-[11px] capitalize opacity-50 leading-tight">{{ tomorrowLabel }}</span>
+                    <span class="text-[12px] font-semibold leading-tight"
+                      >Para mañana
+                      <span class="font-normal opacity-60"
+                        >({{ tomorrowOrders.length }})</span
+                      ></span
+                    >
+                    <span
+                      class="text-[11px] capitalize opacity-50 leading-tight"
+                      >{{ tomorrowLabel }}</span
+                    >
                   </button>
                   <button
                     class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
-                    :class="kanbanTab === 'dayAfter' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
+                    :class="
+                      kanbanTab === 'dayAfter'
+                        ? 'bg-white shadow-sm text-[#111827]'
+                        : 'text-gray-400 hover:text-gray-600'
+                    "
                     @click="kanbanTab = 'dayAfter'"
                   >
-                    <span class="text-[12px] font-semibold leading-tight">Pasado mañana <span class="font-normal opacity-60">({{ dayAfterOrders.length }})</span></span>
-                    <span class="text-[11px] capitalize opacity-50 leading-tight">{{ dayAfterLabel }}</span>
+                    <span class="text-[12px] font-semibold leading-tight"
+                      >Pasado mañana
+                      <span class="font-normal opacity-60"
+                        >({{ dayAfterOrders.length }})</span
+                      ></span
+                    >
+                    <span
+                      class="text-[11px] capitalize opacity-50 leading-tight"
+                      >{{ dayAfterLabel }}</span
+                    >
                   </button>
                   <button
                     class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
-                    :class="kanbanTab === 'all' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
+                    :class="
+                      kanbanTab === 'all'
+                        ? 'bg-white shadow-sm text-[#111827]'
+                        : 'text-gray-400 hover:text-gray-600'
+                    "
                     @click="kanbanTab = 'all'"
                   >
-                    <span class="text-[12px] font-semibold leading-tight">Todos <span class="font-normal opacity-60">({{ kanbanOrders.length }})</span></span>
-                    <span class="text-[11px] opacity-50 leading-tight">General</span>
+                    <span class="text-[12px] font-semibold leading-tight"
+                      >Todos
+                      <span class="font-normal opacity-60"
+                        >({{ kanbanOrders.length }})</span
+                      ></span
+                    >
+                    <span class="text-[11px] opacity-50 leading-tight"
+                      >General</span
+                    >
                   </button>
                   <button
                     class="flex flex-col items-start px-4 py-2 rounded-lg text-left transition"
-                    :class="kanbanTab === 'range' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-400 hover:text-gray-600'"
+                    :class="
+                      kanbanTab === 'range'
+                        ? 'bg-white shadow-sm text-[#111827]'
+                        : 'text-gray-400 hover:text-gray-600'
+                    "
                     @click="kanbanTab = 'range'"
                   >
-                    <span class="text-[12px] font-semibold leading-tight">Por rango <span class="font-normal opacity-60">({{ rangeKanbanOrders.length }})</span></span>
-                    <span class="text-[11px] opacity-50 leading-tight">Fechas</span>
+                    <span class="text-[12px] font-semibold leading-tight"
+                      >Por rango
+                      <span class="font-normal opacity-60"
+                        >({{ rangeKanbanOrders.length }})</span
+                      ></span
+                    >
+                    <span class="text-[11px] opacity-50 leading-tight"
+                      >Fechas</span
+                    >
                   </button>
                 </div>
 
@@ -1002,10 +1201,18 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                   <svg
                     class="h-3.5 w-3.5"
                     :class="{ 'animate-spin': kanbanLoading }"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
                   >
-                    <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                    <path d="M23 4v6h-6" />
+                    <path d="M1 20v-6h6" />
+                    <path
+                      d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                    />
                   </svg>
                   Actualizar
                 </button>
@@ -1017,9 +1224,15 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                 enter-from-class="opacity-0 -translate-y-1"
                 enter-to-class="opacity-100 translate-y-0"
               >
-                <div v-if="kanbanTab === 'range'" class="mt-3 flex flex-wrap items-center gap-2">
+                <div
+                  v-if="kanbanTab === 'range'"
+                  class="mt-3 flex flex-wrap items-center gap-2"
+                >
                   <div class="flex items-center gap-1.5">
-                    <label class="text-[11px] font-semibold text-gray-400 whitespace-nowrap">Desde</label>
+                    <label
+                      class="text-[11px] font-semibold text-gray-400 whitespace-nowrap"
+                      >Desde</label
+                    >
                     <input
                       v-model="rangeFrom"
                       type="date"
@@ -1027,7 +1240,10 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                     />
                   </div>
                   <div class="flex items-center gap-1.5">
-                    <label class="text-[11px] font-semibold text-gray-400 whitespace-nowrap">Hasta</label>
+                    <label
+                      class="text-[11px] font-semibold text-gray-400 whitespace-nowrap"
+                      >Hasta</label
+                    >
                     <input
                       v-model="rangeTo"
                       type="date"
@@ -1038,11 +1254,31 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                     v-if="rangeFrom || rangeTo"
                     type="button"
                     class="rounded-lg bg-gray-100 px-3 py-1.5 text-[12px] text-gray-500 hover:bg-gray-200 transition"
-                    @click="rangeFrom = ''; rangeTo = ''; rangeKanbanOrders.value = []"
-                  >Limpiar</button>
+                    @click="
+                      rangeFrom = '';
+                      rangeTo = '';
+                      rangeKanbanOrders.value = [];
+                    "
+                  >
+                    Limpiar
+                  </button>
                   <!-- Validation error -->
-                  <p v-if="rangeError" class="w-full text-[12px] font-medium text-red-600 flex items-center gap-1">
-                    <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                  <p
+                    v-if="rangeError"
+                    class="w-full text-[12px] font-medium text-red-600 flex items-center gap-1"
+                  >
+                    <svg
+                      class="h-3.5 w-3.5 shrink-0"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v4M12 16h.01" />
+                    </svg>
                     {{ rangeError }}
                   </p>
                 </div>
@@ -1050,24 +1286,43 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
             </div>
 
             <!-- Error -->
-            <div v-if="kanbanError" class="m-5 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200">
+            <div
+              v-if="kanbanError"
+              class="m-5 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200"
+            >
               {{ kanbanError }}
             </div>
 
             <!-- Loading -->
-            <div v-else-if="kanbanLoading || rangeKanbanLoading" class="py-16 flex justify-center">
-              <div class="h-6 w-6 animate-spin rounded-full border-2 border-black/10 border-t-[#C9007C]"></div>
+            <div
+              v-else-if="kanbanLoading || rangeKanbanLoading"
+              class="py-16 flex justify-center"
+            >
+              <div
+                class="h-6 w-6 animate-spin rounded-full border-2 border-black/10 border-t-[#C9007C]"
+              ></div>
             </div>
 
             <!-- ── Columnas ── -->
-            <div v-else class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-black/[0.06]">
-
+            <div
+              v-else
+              class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-black/[0.06]"
+            >
               <!-- Pendientes (CREATED) -->
               <div class="flex flex-col">
-                <div class="px-4 py-3 flex items-center gap-2 border-b border-black/[0.06]">
-                  <span class="h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0"></span>
-                  <span class="text-[13px] font-semibold text-[#111827]">Pendientes</span>
-                  <span class="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">{{ pendingOrders.length }}</span>
+                <div
+                  class="px-4 py-3 flex items-center gap-2 border-b border-black/[0.06]"
+                >
+                  <span
+                    class="h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0"
+                  ></span>
+                  <span class="text-[13px] font-semibold text-[#111827]"
+                    >Pendientes</span
+                  >
+                  <span
+                    class="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700"
+                    >{{ pendingOrders.length }}</span
+                  >
                 </div>
                 <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
                   <div
@@ -1077,33 +1332,97 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                     @click="navigateTo('/admin/pedidos/detalle/' + order.id)"
                   >
                     <div class="h-1 bg-amber-400"></div>
-                    <div class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2">
-                      <span class="font-bold text-[13px] text-[#111827] leading-tight truncate">{{ order.orderCode ?? '—' }}</span>
-                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5" :style="{ ...typeColor(order.orderType) }">{{ typeLabel(order.orderType) }}</span>
+                    <div
+                      class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2"
+                    >
+                      <span
+                        class="font-bold text-[13px] text-[#111827] leading-tight truncate"
+                        >{{ order.orderCode ?? "—" }}</span
+                      >
+                      <span
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5"
+                        :style="{ ...typeColor(order.orderType) }"
+                        >{{ typeLabel(order.orderType) }}</span
+                      >
                     </div>
-                    <div class="px-3.5 pb-3 space-y-1.5 text-[12px] text-gray-500">
-                      <div v-if="order.customer?.fullName" class="flex items-center gap-1.5 truncate">
-                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        <span class="truncate">{{ order.customer.fullName }}</span>
+                    <div
+                      class="px-3.5 pb-3 space-y-1.5 text-[12px] text-gray-500"
+                    >
+                      <div
+                        v-if="order.customer?.fullName"
+                        class="flex items-center gap-1.5 truncate"
+                      >
+                        <svg
+                          class="h-3 w-3 shrink-0 text-gray-400"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span class="truncate">{{
+                          order.customer.fullName
+                        }}</span>
                       </div>
                       <div class="flex items-center gap-1.5">
-                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                        {{ formatDate(order.deliveryDate) }}<span v-if="order.deliveryTime" class="text-gray-400"> · {{ order.deliveryTime }}</span>
+                        <svg
+                          class="h-3 w-3 shrink-0 text-gray-400"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <rect x="3" y="4" width="18" height="18" rx="2" />
+                          <path d="M16 2v4M8 2v4M3 10h18" />
+                        </svg>
+                        {{ formatDate(order.deliveryDate)
+                        }}<span v-if="order.deliveryTime" class="text-gray-400">
+                          · {{ order.deliveryTime }}</span
+                        >
                       </div>
-                      <div v-if="order.remainingBalance && parseFloat(String(order.remainingBalance)) > 0" class="flex items-center gap-1.5 text-orange-500 font-medium">
-                        <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke-linecap="round"/></svg>
+                      <div
+                        v-if="
+                          order.remainingBalance &&
+                          parseFloat(String(order.remainingBalance)) > 0
+                        "
+                        class="flex items-center gap-1.5 text-orange-500 font-medium"
+                      >
+                        <svg
+                          class="h-3 w-3 shrink-0"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 8v4M12 16h.01" stroke-linecap="round" />
+                        </svg>
                         Saldo pendiente
                       </div>
                     </div>
-                    <div class="border-t border-black/[0.06] px-3 py-2.5" @click.stop>
+                    <div
+                      class="border-t border-black/[0.06] px-3 py-2.5"
+                      @click.stop
+                    >
                       <button
                         class="w-full rounded-lg bg-amber-50 py-1.5 text-[12px] font-semibold text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
                         :disabled="updatingId === order.id"
                         @click="requestAdvanceStatus(order)"
-                      >{{ updatingId === order.id ? 'Actualizando…' : 'Iniciar producción →' }}</button>
+                      >
+                        {{
+                          updatingId === order.id
+                            ? "Actualizando…"
+                            : "Iniciar producción →"
+                        }}
+                      </button>
                     </div>
                   </div>
-                  <div v-if="pendingOrders.length === 0" class="py-10 text-center text-[12px] text-gray-400">
+                  <div
+                    v-if="pendingOrders.length === 0"
+                    class="py-10 text-center text-[12px] text-gray-400"
+                  >
                     Sin pedidos pendientes
                   </div>
                 </div>
@@ -1111,10 +1430,19 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
 
               <!-- En producción (IN PROCESS) -->
               <div class="flex flex-col">
-                <div class="px-4 py-3 flex items-center gap-2 border-b border-black/[0.06]">
-                  <span class="h-2.5 w-2.5 rounded-full bg-violet-400 shrink-0"></span>
-                  <span class="text-[13px] font-semibold text-[#111827]">En producción</span>
-                  <span class="ml-auto rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-700">{{ inProcessOrders.length }}</span>
+                <div
+                  class="px-4 py-3 flex items-center gap-2 border-b border-black/[0.06]"
+                >
+                  <span
+                    class="h-2.5 w-2.5 rounded-full bg-violet-400 shrink-0"
+                  ></span>
+                  <span class="text-[13px] font-semibold text-[#111827]"
+                    >En producción</span
+                  >
+                  <span
+                    class="ml-auto rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-700"
+                    >{{ inProcessOrders.length }}</span
+                  >
                 </div>
                 <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
                   <div
@@ -1124,33 +1452,97 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                     @click="navigateTo('/admin/pedidos/detalle/' + order.id)"
                   >
                     <div class="h-1 bg-violet-400"></div>
-                    <div class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2">
-                      <span class="font-bold text-[13px] text-[#111827] leading-tight truncate">{{ order.orderCode ?? '—' }}</span>
-                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5" :style="{ ...typeColor(order.orderType) }">{{ typeLabel(order.orderType) }}</span>
+                    <div
+                      class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2"
+                    >
+                      <span
+                        class="font-bold text-[13px] text-[#111827] leading-tight truncate"
+                        >{{ order.orderCode ?? "—" }}</span
+                      >
+                      <span
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5"
+                        :style="{ ...typeColor(order.orderType) }"
+                        >{{ typeLabel(order.orderType) }}</span
+                      >
                     </div>
-                    <div class="px-3.5 pb-3 space-y-1.5 text-[12px] text-gray-500">
-                      <div v-if="order.customer?.fullName" class="flex items-center gap-1.5 truncate">
-                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        <span class="truncate">{{ order.customer.fullName }}</span>
+                    <div
+                      class="px-3.5 pb-3 space-y-1.5 text-[12px] text-gray-500"
+                    >
+                      <div
+                        v-if="order.customer?.fullName"
+                        class="flex items-center gap-1.5 truncate"
+                      >
+                        <svg
+                          class="h-3 w-3 shrink-0 text-gray-400"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span class="truncate">{{
+                          order.customer.fullName
+                        }}</span>
                       </div>
                       <div class="flex items-center gap-1.5">
-                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                        {{ formatDate(order.deliveryDate) }}<span v-if="order.deliveryTime" class="text-gray-400"> · {{ order.deliveryTime }}</span>
+                        <svg
+                          class="h-3 w-3 shrink-0 text-gray-400"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <rect x="3" y="4" width="18" height="18" rx="2" />
+                          <path d="M16 2v4M8 2v4M3 10h18" />
+                        </svg>
+                        {{ formatDate(order.deliveryDate)
+                        }}<span v-if="order.deliveryTime" class="text-gray-400">
+                          · {{ order.deliveryTime }}</span
+                        >
                       </div>
-                      <div v-if="order.remainingBalance && parseFloat(String(order.remainingBalance)) > 0" class="flex items-center gap-1.5 text-orange-500 font-medium">
-                        <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke-linecap="round"/></svg>
+                      <div
+                        v-if="
+                          order.remainingBalance &&
+                          parseFloat(String(order.remainingBalance)) > 0
+                        "
+                        class="flex items-center gap-1.5 text-orange-500 font-medium"
+                      >
+                        <svg
+                          class="h-3 w-3 shrink-0"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 8v4M12 16h.01" stroke-linecap="round" />
+                        </svg>
                         Saldo pendiente
                       </div>
                     </div>
-                    <div class="border-t border-black/[0.06] px-3 py-2.5" @click.stop>
+                    <div
+                      class="border-t border-black/[0.06] px-3 py-2.5"
+                      @click.stop
+                    >
                       <button
                         class="w-full rounded-lg bg-violet-50 py-1.5 text-[12px] font-semibold text-violet-700 hover:bg-violet-100 transition disabled:opacity-40"
                         :disabled="updatingId === order.id"
                         @click="requestAdvanceStatus(order)"
-                      >{{ updatingId === order.id ? 'Actualizando…' : 'Marcar como listo →' }}</button>
+                      >
+                        {{
+                          updatingId === order.id
+                            ? "Actualizando…"
+                            : "Marcar como listo →"
+                        }}
+                      </button>
                     </div>
                   </div>
-                  <div v-if="inProcessOrders.length === 0" class="py-10 text-center text-[12px] text-gray-400">
+                  <div
+                    v-if="inProcessOrders.length === 0"
+                    class="py-10 text-center text-[12px] text-gray-400"
+                  >
                     Sin pedidos en producción
                   </div>
                 </div>
@@ -1158,10 +1550,19 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
 
               <!-- Listos (DONE) -->
               <div class="flex flex-col">
-                <div class="px-4 py-3 flex items-center gap-2 border-b border-black/[0.06]">
-                  <span class="h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></span>
-                  <span class="text-[13px] font-semibold text-[#111827]">Listos</span>
-                  <span class="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{{ doneOrders.length }}</span>
+                <div
+                  class="px-4 py-3 flex items-center gap-2 border-b border-black/[0.06]"
+                >
+                  <span
+                    class="h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"
+                  ></span>
+                  <span class="text-[13px] font-semibold text-[#111827]"
+                    >Listos</span
+                  >
+                  <span
+                    class="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700"
+                    >{{ doneOrders.length }}</span
+                  >
                 </div>
                 <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
                   <div
@@ -1171,31 +1572,81 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                     @click="navigateTo('/admin/pedidos/detalle/' + order.id)"
                   >
                     <div class="h-1 bg-emerald-400"></div>
-                    <div class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2">
-                      <span class="font-bold text-[13px] text-[#111827] leading-tight truncate">{{ order.orderCode ?? '—' }}</span>
-                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5" :style="{ ...typeColor(order.orderType) }">{{ typeLabel(order.orderType) }}</span>
+                    <div
+                      class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2"
+                    >
+                      <span
+                        class="font-bold text-[13px] text-[#111827] leading-tight truncate"
+                        >{{ order.orderCode ?? "—" }}</span
+                      >
+                      <span
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5"
+                        :style="{ ...typeColor(order.orderType) }"
+                        >{{ typeLabel(order.orderType) }}</span
+                      >
                     </div>
-                    <div class="px-3.5 pb-4 space-y-1.5 text-[12px] text-gray-500">
-                      <div v-if="order.customer?.fullName" class="flex items-center gap-1.5 truncate">
-                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        <span class="truncate">{{ order.customer.fullName }}</span>
+                    <div
+                      class="px-3.5 pb-4 space-y-1.5 text-[12px] text-gray-500"
+                    >
+                      <div
+                        v-if="order.customer?.fullName"
+                        class="flex items-center gap-1.5 truncate"
+                      >
+                        <svg
+                          class="h-3 w-3 shrink-0 text-gray-400"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span class="truncate">{{
+                          order.customer.fullName
+                        }}</span>
                       </div>
                       <div class="flex items-center gap-1.5">
-                        <svg class="h-3 w-3 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                        {{ formatDate(order.deliveryDate) }}<span v-if="order.deliveryTime" class="text-gray-400"> · {{ order.deliveryTime }}</span>
+                        <svg
+                          class="h-3 w-3 shrink-0 text-gray-400"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <rect x="3" y="4" width="18" height="18" rx="2" />
+                          <path d="M16 2v4M8 2v4M3 10h18" />
+                        </svg>
+                        {{ formatDate(order.deliveryDate)
+                        }}<span v-if="order.deliveryTime" class="text-gray-400">
+                          · {{ order.deliveryTime }}</span
+                        >
                       </div>
-                      <div class="flex items-center gap-1.5 text-emerald-600 font-medium">
-                        <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                      <div
+                        class="flex items-center gap-1.5 text-emerald-600 font-medium"
+                      >
+                        <svg
+                          class="h-3 w-3 shrink-0"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2.5"
+                          stroke-linecap="round"
+                        >
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
                         Listo para entregar
                       </div>
                     </div>
                   </div>
-                  <div v-if="doneOrders.length === 0" class="py-10 text-center text-[12px] text-gray-400">
+                  <div
+                    v-if="doneOrders.length === 0"
+                    class="py-10 text-center text-[12px] text-gray-400"
+                  >
                     Sin pedidos listos
                   </div>
                 </div>
               </div>
-
             </div>
             <!-- /columnas -->
           </div>
@@ -1227,32 +1678,73 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
         class="fixed inset-0 z-[110] flex items-center justify-center px-4"
       >
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="kanbanConfirmTarget = null" />
+        <div
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          @click="kanbanConfirmTarget = null"
+        />
 
         <!-- Panel -->
-        <div class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden">
-
+        <div
+          class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden"
+        >
           <!-- Ícono centrado -->
           <div class="flex flex-col items-center pt-8 pb-5 px-8 text-center">
-            <div class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#FFBEE6]/40 ring-2 ring-[#FFBEE6]">
-              <svg class="h-7 w-7 text-[#C9007C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
-                <path d="M12 8v4l3 3"/>
+            <div
+              class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#FFBEE6]/40 ring-2 ring-[#FFBEE6]"
+            >
+              <svg
+                class="h-7 w-7 text-[#C9007C]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"
+                />
+                <path d="M12 8v4l3 3" />
               </svg>
             </div>
-            <h3 class="text-[17px] font-bold text-[#111827] leading-snug">Cambiar estado del pedido</h3>
+            <h3 class="text-[17px] font-bold text-[#111827] leading-snug">
+              Cambiar estado del pedido
+            </h3>
             <p class="mt-1.5 text-[13px] text-gray-500">
-              <span class="font-semibold text-[#111827]">{{ kanbanConfirmTarget.orderCode }}</span> pasará de
+              <span class="font-semibold text-[#111827]">{{
+                kanbanConfirmTarget.orderCode
+              }}</span>
+              pasará de
             </p>
             <!-- Flecha de estado -->
             <div class="mt-3 flex items-center justify-center gap-2.5">
               <span
                 class="inline-flex rounded-full px-3 py-1 text-[12px] font-bold"
-                :style="{ backgroundColor: STATUS_COLORS[kanbanConfirmTarget.status]?.bg, color: STATUS_COLORS[kanbanConfirmTarget.status]?.text }"
-              >{{ STATUS_LABELS[kanbanConfirmTarget.status] }}</span>
-              <svg class="h-4 w-4 text-gray-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-              <span class="inline-flex rounded-full px-3 py-1 text-[12px] font-bold bg-[#FFBEE6] text-[#C9007C]">
-                {{ kanbanConfirmTarget.status === 'CREATED' ? 'En producción' : 'Listo' }}
+                :style="{
+                  backgroundColor:
+                    STATUS_COLORS[kanbanConfirmTarget.status]?.bg,
+                  color: STATUS_COLORS[kanbanConfirmTarget.status]?.text,
+                }"
+                >{{ STATUS_LABELS[kanbanConfirmTarget.status] }}</span
+              >
+              <svg
+                class="h-4 w-4 text-gray-300 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              >
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+              <span
+                class="inline-flex rounded-full px-3 py-1 text-[12px] font-bold bg-[#FFBEE6] text-[#C9007C]"
+              >
+                {{
+                  kanbanConfirmTarget.status === "CREATED"
+                    ? "En producción"
+                    : "Listo"
+                }}
               </span>
             </div>
           </div>
@@ -1266,12 +1758,16 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
               type="button"
               class="flex-1 rounded-2xl border border-black/10 py-3 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
               @click="kanbanConfirmTarget = null"
-            >Cancelar</button>
+            >
+              Cancelar
+            </button>
             <button
               type="button"
               class="flex-1 rounded-2xl py-3 text-[13px] font-bold bg-[#C9007C] text-white hover:bg-[#a5006a] transition shadow-sm"
               @click="confirmAdvanceStatus"
-            >Confirmar</button>
+            >
+              Confirmar
+            </button>
           </div>
         </div>
       </div>
@@ -1288,21 +1784,47 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="deliverConfirm" class="fixed inset-0 z-[110] flex items-center justify-center px-4">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="deliverConfirm = false" />
-        <div class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden">
+      <div
+        v-if="deliverConfirm"
+        class="fixed inset-0 z-[110] flex items-center justify-center px-4"
+      >
+        <div
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          @click="deliverConfirm = false"
+        />
+        <div
+          class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden"
+        >
           <div class="flex flex-col items-center pt-8 pb-5 px-8 text-center">
-            <div class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-green-50 ring-2 ring-green-200">
-              <svg class="h-7 w-7 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
+            <div
+              class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-green-50 ring-2 ring-green-200"
+            >
+              <svg
+                class="h-7 w-7 text-green-600"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
             </div>
-            <h3 class="text-[17px] font-bold text-[#111827] leading-snug">Marcar como entregado</h3>
+            <h3 class="text-[17px] font-bold text-[#111827] leading-snug">
+              Marcar como entregado
+            </h3>
             <p class="mt-1.5 text-[13px] text-gray-500 leading-relaxed">
-              ¿Confirmas que el pedido <span class="font-semibold text-[#111827]">{{ deliverTarget?.orderCode }}</span> fue entregado al cliente?
+              ¿Confirmas que el pedido
+              <span class="font-semibold text-[#111827]">{{
+                deliverTarget?.orderCode
+              }}</span>
+              fue entregado al cliente?
             </p>
-            <p class="mt-1 text-[11px] text-gray-400">Esta acción no se puede deshacer.</p>
+            <p class="mt-1 text-[11px] text-gray-400">
+              Esta acción no se puede deshacer.
+            </p>
           </div>
           <div class="mx-6 border-t border-black/[0.06]" />
           <div class="flex gap-3 px-6 py-5">
@@ -1310,15 +1832,22 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
               type="button"
               class="flex-1 rounded-2xl border border-black/10 py-3 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
               @click="deliverConfirm = false"
-            >Cancelar</button>
+            >
+              Cancelar
+            </button>
             <button
               type="button"
               class="flex-1 rounded-2xl py-3 text-[13px] font-bold bg-green-600 text-white hover:bg-green-700 transition shadow-sm disabled:opacity-50"
               :disabled="delivering"
               @click="executeDeliver"
             >
-              <span v-if="delivering" class="flex items-center justify-center gap-2">
-                <span class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              <span
+                v-if="delivering"
+                class="flex items-center justify-center gap-2"
+              >
+                <span
+                  class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"
+                />
               </span>
               <span v-else>Confirmar entrega</span>
             </button>
@@ -1338,25 +1867,58 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="cancelConfirm" class="fixed inset-0 z-[110] flex items-center justify-center px-4">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelConfirm = false" />
-        <div class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden">
+      <div
+        v-if="cancelConfirm"
+        class="fixed inset-0 z-[110] flex items-center justify-center px-4"
+      >
+        <div
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          @click="cancelConfirm = false"
+        />
+        <div
+          class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden"
+        >
           <div class="flex flex-col items-center pt-8 pb-5 px-8 text-center">
-            <div class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-orange-50 ring-2 ring-orange-200">
-              <svg class="h-7 w-7 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round"/>
-                <line x1="12" y1="16" x2="12.01" y2="16" stroke-linecap="round"/>
+            <div
+              class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-orange-50 ring-2 ring-orange-200"
+            >
+              <svg
+                class="h-7 w-7 text-orange-500"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round" />
+                <line
+                  x1="12"
+                  y1="16"
+                  x2="12.01"
+                  y2="16"
+                  stroke-linecap="round"
+                />
               </svg>
             </div>
-            <h3 class="text-[17px] font-bold text-[#111827] leading-snug">Cancelar pedido</h3>
+            <h3 class="text-[17px] font-bold text-[#111827] leading-snug">
+              Cancelar pedido
+            </h3>
             <p class="mt-1.5 text-[13px] text-gray-500 leading-relaxed">
-              Se cancelará el pedido <span class="font-semibold text-[#111827]">{{ cancelTarget?.orderCode }}</span>.
+              Se cancelará el pedido
+              <span class="font-semibold text-[#111827]">{{
+                cancelTarget?.orderCode
+              }}</span
+              >.
             </p>
           </div>
           <div class="mx-6 border-t border-black/[0.06]" />
           <div class="px-6 pt-4 pb-2">
-            <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Motivo de cancelación</label>
+            <label
+              class="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5"
+              >Motivo de cancelación</label
+            >
             <textarea
               v-model="cancelReason"
               rows="3"
@@ -1369,15 +1931,22 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
               type="button"
               class="flex-1 rounded-2xl border border-black/10 py-3 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
               @click="cancelConfirm = false"
-            >Volver</button>
+            >
+              Volver
+            </button>
             <button
               type="button"
               class="flex-1 rounded-2xl py-3 text-[13px] font-bold bg-orange-500 text-white hover:bg-orange-600 transition shadow-sm disabled:opacity-50"
               :disabled="canceling || !cancelReason.trim()"
               @click="executeCancel"
             >
-              <span v-if="canceling" class="flex items-center justify-center gap-2">
-                <span class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              <span
+                v-if="canceling"
+                class="flex items-center justify-center gap-2"
+              >
+                <span
+                  class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"
+                />
               </span>
               <span v-else>Cancelar pedido</span>
             </button>
@@ -1397,48 +1966,117 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="assignOpen" class="fixed inset-0 z-[110] flex items-center justify-center px-4">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="assignOpen = false" />
-        <div class="relative z-10 w-full max-w-[400px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden">
+      <div
+        v-if="assignOpen"
+        class="fixed inset-0 z-[110] flex items-center justify-center px-4"
+      >
+        <div
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          @click="assignOpen = false"
+        />
+        <div
+          class="relative z-10 w-full max-w-[400px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden"
+        >
           <div class="flex flex-col items-center pt-8 pb-5 px-8 text-center">
-            <div class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#E6ABFA]/40 ring-2 ring-[#E6ABFA]">
-              <svg class="h-7 w-7 text-[#7C00C9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <line x1="19" y1="8" x2="19" y2="14"/>
-                <line x1="22" y1="11" x2="16" y2="11"/>
+            <div
+              class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#E6ABFA]/40 ring-2 ring-[#E6ABFA]"
+            >
+              <svg
+                class="h-7 w-7 text-[#7C00C9]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <line x1="19" y1="8" x2="19" y2="14" />
+                <line x1="22" y1="11" x2="16" y2="11" />
               </svg>
             </div>
             <h3 class="text-[17px] font-bold text-[#111827] leading-snug">
-              {{ (assignTarget?.assignments?.length ?? 0) > 0 ? 'Reasignar pastelero' : 'Asignar pastelero' }}
+              {{
+                (assignTarget?.assignments?.length ?? 0) > 0
+                  ? "Reasignar pastelero"
+                  : "Asignar pastelero"
+              }}
             </h3>
             <p class="mt-1.5 text-[13px] text-gray-500">
-              Pedido <span class="font-semibold text-[#111827]">{{ assignTarget?.orderCode }}</span>
+              Pedido
+              <span class="font-semibold text-[#111827]">{{
+                assignTarget?.orderCode
+              }}</span>
             </p>
-            <p v-if="assignTarget?.assignments?.[0]?.baker" class="mt-1 text-[12px] text-gray-400">
-              Asignado actualmente a: <span class="font-medium text-gray-600">{{ assignTarget.assignments[0].baker.name }} {{ assignTarget.assignments[0].baker.lastname }}</span>
+            <p
+              v-if="assignTarget?.assignments?.[0]?.baker"
+              class="mt-1 text-[12px] text-gray-400"
+            >
+              Asignado actualmente a:
+              <span class="font-medium text-gray-600"
+                >{{ assignTarget.assignments[0].baker.name }}
+                {{ assignTarget.assignments[0].baker.lastname }}</span
+              >
             </p>
           </div>
           <div class="mx-6 border-t border-black/[0.06]" />
           <div class="px-6 py-5">
-            <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Pastelero</label>
-            <div v-if="bakersLoading" class="h-10 rounded-xl bg-gray-100 animate-pulse" />
-            <p v-else-if="bakersError" class="text-[13px] text-red-600 py-2 flex items-center gap-1.5">
-              <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            <label
+              class="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2"
+              >Pastelero</label
+            >
+            <div
+              v-if="bakersLoading"
+              class="h-10 rounded-xl bg-gray-100 animate-pulse"
+            />
+            <p
+              v-else-if="bakersError"
+              class="text-[13px] text-red-600 py-2 flex items-center gap-1.5"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4M12 16h.01" />
+              </svg>
               {{ bakersError }}
             </p>
-            <p v-else-if="bakers.length === 0" class="text-[13px] text-gray-400 py-2">No hay pasteleros en esta sucursal.</p>
+            <p
+              v-else-if="bakers.length === 0"
+              class="text-[13px] text-gray-400 py-2"
+            >
+              No hay pasteleros en esta sucursal.
+            </p>
             <div v-else class="relative">
               <select
                 v-model="selectedBakerId"
                 class="w-full h-10 appearance-none rounded-xl bg-gray-50 pl-3 pr-9 text-[13px] text-[#111827] ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-[#7C00C9]/30"
               >
                 <option value="" disabled>Selecciona un pastelero…</option>
-                <option v-for="baker in bakers" :key="baker.id" :value="baker.id">
+                <option
+                  v-for="baker in bakers"
+                  :key="baker.id"
+                  :value="baker.id"
+                >
                   {{ baker.name }} {{ baker.lastname }}
                 </option>
               </select>
-              <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+              <svg
+                class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
           </div>
           <div class="mx-6 border-t border-black/[0.06]" />
@@ -1447,17 +2085,28 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
               type="button"
               class="flex-1 rounded-2xl border border-black/10 py-3 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
               @click="assignOpen = false"
-            >Cancelar</button>
+            >
+              Cancelar
+            </button>
             <button
               type="button"
               class="flex-1 rounded-2xl py-3 text-[13px] font-bold bg-[#7C00C9] text-white hover:bg-[#6500a8] transition shadow-sm disabled:opacity-50"
               :disabled="assigning || !selectedBakerId"
               @click="executeAssign"
             >
-              <span v-if="assigning" class="flex items-center justify-center gap-2">
-                <span class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              <span
+                v-if="assigning"
+                class="flex items-center justify-center gap-2"
+              >
+                <span
+                  class="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"
+                />
               </span>
-              <span v-else>{{ (assignTarget?.assignments?.length ?? 0) > 0 ? 'Reasignar' : 'Asignar' }}</span>
+              <span v-else>{{
+                (assignTarget?.assignments?.length ?? 0) > 0
+                  ? "Reasignar"
+                  : "Asignar"
+              }}</span>
             </button>
           </div>
         </div>

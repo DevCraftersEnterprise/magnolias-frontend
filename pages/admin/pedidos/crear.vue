@@ -155,7 +155,7 @@ async function registerAndSelect() {
     // Si la API no devuelve la dirección anidada pero sí la enviamos, la reconstruimos
     if (regForm.withAddress && !created.address?.street) {
       (created as any).address = {
-        id: (created as any).address?.id ?? '',
+        id: (created as any).address?.id ?? "",
         street: regForm.address.street.trim(),
         number: regForm.address.number.trim(),
         neighborhood: regForm.address.neighborhood.trim(),
@@ -165,9 +165,9 @@ async function registerAndSelect() {
         betweenStreets: regForm.address.betweenStreets.trim() || null,
         reference: regForm.address.reference.trim() || null,
         notes: regForm.address.addressNotes.trim() || null,
-        createdAt: '',
-        updatedAt: '',
-      }
+        createdAt: "",
+        updatedAt: "",
+      };
     }
     selectedCustomer.value = created;
     results.value = [created];
@@ -682,11 +682,7 @@ function formatMXN(n: number) {
     currency: "MXN",
   }).format(n || 0);
 }
-function formatDate(d: string) {
-  if (!d) return "";
-  const [y, m, day] = d.split("-");
-  return `${day}/${m}/${y}`;
-}
+
 function formatTime(t: string) {
   if (!t) return "";
   const parts = t.split(":");
