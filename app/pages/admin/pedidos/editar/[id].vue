@@ -621,23 +621,7 @@ function catalogLabel(arr: { id: string; name: string }[], id: string) {
 function optionLabel(opts: { value: string; label: string }[], val: string) {
   return opts.find((o) => o.value === val)?.label ?? "—";
 }
-function formatMXN(n: number) {
-  return new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
-  }).format(n || 0);
-}
-function formatDate(d: string) {
-  if (!d) return "";
-  const [y, m, day] = d.split("-");
-  return `${day}/${m}/${y}`;
-}
-function formatTime(t: string) {
-  if (!t) return "";
-  const parts = t.split(":");
-  const h = parseInt(parts[0] ?? "0", 10);
-  return `${h % 12 || 12}:${parts[1] ?? "00"} ${h < 12 ? "AM" : "PM"}`;
-}
+
 function formatCustomerAddress(c: CustomerItem) {
   const a = c.address;
   if (!a) return "";

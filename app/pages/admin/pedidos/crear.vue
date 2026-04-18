@@ -662,25 +662,9 @@ function closeDetailModal() {
 function catalogLabel(arr: { id: string; name: string }[], id: string) {
   return arr.find((x) => x.id === id)?.name ?? "—";
 }
+
 function optionLabel(opts: { value: string; label: string }[], val: string) {
   return opts.find((o) => o.value === val)?.label ?? "—";
-}
-function formatMXN(n: number) {
-  return new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
-  }).format(n || 0);
-}
-
-function formatTime(t: string) {
-  if (!t) return "";
-  const parts = t.split(":");
-  const hStr = parts[0] ?? "0";
-  const mStr = parts[1] ?? "00";
-  const h = parseInt(hStr, 10);
-  const ampm = h < 12 ? "AM" : "PM";
-  const hour12 = h % 12 || 12;
-  return `${hour12}:${mStr} ${ampm}`;
 }
 
 const subtotal = computed(() =>

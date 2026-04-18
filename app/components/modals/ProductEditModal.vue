@@ -476,21 +476,6 @@ async function deleteSelectedPicture() {
   }
 }
 
-function normalizeError(error: any, fallback: string) {
-  const data = error?.data ?? error?.response?._data ?? error?.response?.data;
-
-  if (Array.isArray(data)) return data.join(", ");
-  if (typeof data === "string") return data;
-
-  if (data && typeof data === "object") {
-    const firstValue = Object.values(data)[0];
-    if (Array.isArray(firstValue)) return String(firstValue[0] ?? fallback);
-    if (typeof firstValue === "string") return firstValue;
-  }
-
-  return error?.message || fallback;
-}
-
 function onKey(e: KeyboardEvent) {
   if (e.key === "Escape" && props.modelValue && !confirmOpen.value) {
     close();

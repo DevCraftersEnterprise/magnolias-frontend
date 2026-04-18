@@ -968,22 +968,6 @@ function nameInitials(name: string) {
   return parts[0]?.slice(0, 2).toUpperCase() ?? "??";
 }
 
-function formatDate(iso: string) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const mon = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return `${day}/${mon}/${d.getUTCFullYear()}`;
-}
-
-function formatDateTime(iso: string) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  const date = `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
-  const time = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
-  return `${date} ${time}`;
-}
-
 function typeColor(t?: OrderType) {
   return t
     ? (TYPE_COLORS[t] ?? { bg: "#eee", text: "#333" })
