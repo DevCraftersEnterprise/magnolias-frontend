@@ -307,9 +307,10 @@ async function loadRangeOrders() {
       endDate: rangeTo.value || undefined,
     })
     const allRangeItems = data.items ?? []
+    const activeRangeItems = allRangeItems.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELED')
     rangeKanbanOrders.value = isBaker.value
-      ? allRangeItems.filter(o => o.assignments?.some(a => a.baker.id === user.value?.id))
-      : allRangeItems
+      ? activeRangeItems.filter(o => o.assignments?.some(a => a.baker.id === user.value?.id))
+      : activeRangeItems
   } catch (e: any) {
     kanbanError.value = e?.message || 'Error al cargar pedidos por rango.'
   } finally {
@@ -352,9 +353,10 @@ async function loadKanbanOrders() {
       offset: 0,
     });
     const allItems = data.items ?? [];
+    const activeItems = allItems.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELED');
     kanbanOrders.value = isBaker.value
-      ? allItems.filter(o => o.assignments?.some(a => a.baker.id === user.value?.id))
-      : allItems;
+      ? activeItems.filter(o => o.assignments?.some(a => a.baker.id === user.value?.id))
+      : activeItems;
   } catch (e: any) {
     kanbanError.value = e?.message || "Error al cargar pedidos.";
   } finally {
@@ -754,14 +756,14 @@ function onOrderPaymentUpdated(payload: { id: string; remainingBalance: string }
                               <button
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
-                                :class="['IN PROCESS','DONE','DELIVERED'].includes(order.status)
+                                :class="['IN PROCESS','DONE','DELIVERED','CANCELED'].includes(order.status)
                                   ? 'text-gray-200 cursor-not-allowed'
                                   : 'text-gray-400 hover:bg-purple-50 hover:text-[#7C00C9]'"
-                                :title="['IN PROCESS','DONE','DELIVERED'].includes(order.status)
+                                :title="['IN PROCESS','DONE','DELIVERED','CANCELED'].includes(order.status)
                                   ? 'No se puede reasignar en este estado'
                                   : (order.assignments?.length ?? 0) > 0 ? 'Reasignar pastelero' : 'Asignar pastelero'"
-                                :disabled="['IN PROCESS','DONE','DELIVERED'].includes(order.status)"
-                                @click.stop="!['IN PROCESS','DONE','DELIVERED'].includes(order.status) && openAssignModal(order)"
+                                :disabled="['IN PROCESS','DONE','DELIVERED','CANCELED'].includes(order.status)"
+                                @click.stop="!['IN PROCESS','DONE','DELIVERED','CANCELED'].includes(order.status) && openAssignModal(order)"
                               >
                                 <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
