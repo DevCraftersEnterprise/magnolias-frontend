@@ -1,16 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
   layout: "admin",
-  middleware: [
-    async function () {
-      const { ensureSession } = useAuth();
-      await ensureSession();
-      const { user } = useAuthUser();
-      if (user.value?.role === "BAKER") {
-        return navigateTo("/admin/pedidos", { replace: true });
-      }
-    },
-  ],
+  middleware: ["auth", "baker-redirect"],
 });
 useHead({ title: "Panel · Magnolias" });
 
