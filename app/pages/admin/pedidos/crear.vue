@@ -968,14 +968,6 @@ function next() {
   if (!canNext.value) return;
   if (step.value < STEPS.length) step.value++;
 }
-
-function formatCustomerAddress(c: CustomerItem) {
-  const a = c.address;
-  if (!a) return "";
-  return [a.street, a.number ? `#${a.number}` : null, a.neighborhood, a.city]
-    .filter(Boolean)
-    .join(", ");
-}
 </script>
 
 <template>

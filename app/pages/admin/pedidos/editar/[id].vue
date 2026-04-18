@@ -586,13 +586,6 @@ const PAYMENT_TYPES = [
   { value: "TRANSFERENCIA", label: "Transferencia" },
 ];
 
-const ORDER_TYPE_LABELS: Record<string, string> = {
-  DOMICILIO: "Domicilio",
-  VITRINA: "Vitrina",
-  FLOR: "Flor",
-  EVENTO: "Evento",
-};
-
 const step4 = reactive({
   paymentType: "EFECTIVO",
   paymentMode: "FULL" as "FULL" | "DEPOSIT",

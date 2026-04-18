@@ -87,18 +87,6 @@ watch(debouncedPhone, () => loadCustomers(true));
 onMounted(() => loadCustomers(true));
 
 /** ===== Helpers UI ===== */
-function formatAddress(c: CustomerItem) {
-  const a = c.address;
-  if (!a) return "—";
-  const parts = [
-    a.street,
-    a.number ? `#${a.number}` : null,
-    a.neighborhood,
-    a.city,
-  ].filter(Boolean);
-  return parts.length ? parts.join(" ") : "—";
-}
-
 function shortText(v: string | null | undefined, max = 32) {
   if (!v) return "—";
   const s = String(v);

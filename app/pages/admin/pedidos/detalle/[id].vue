@@ -124,12 +124,6 @@ function resetZoom() {
 watch(lightboxSrc, () => resetZoom());
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function formatDate(iso: string) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
-}
-
 function typeColor(t?: OrderType) {
   return t
     ? (TYPE_COLORS[t] ?? { bg: "#eee", text: "#333" })
