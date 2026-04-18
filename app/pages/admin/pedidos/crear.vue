@@ -636,13 +636,6 @@ const PAYMENT_TYPES = [
   { value: "TRANSFERENCIA", label: "Transferencia" },
 ];
 
-const ORDER_TYPE_LABELS: Record<string, string> = {
-  DOMICILIO: "Domicilio",
-  VITRINA: "Vitrina",
-  FLOR: "Flor",
-  EVENTO: "Evento",
-};
-
 const step4 = reactive({
   paymentType: "EFECTIVO",
   paymentMode: "FULL" as "FULL" | "DEPOSIT",
@@ -4360,7 +4353,7 @@ function formatCustomerAddress(c: CustomerItem) {
             <span
               class="inline-block rounded-full bg-[#FC9AD3]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#C9007C]"
             >
-              {{ ORDER_TYPE_LABELS[step2.orderType] ?? step2.orderType }}
+              {{ TYPE_LABELS[step2.orderType] ?? step2.orderType }}
             </span>
           </div>
 

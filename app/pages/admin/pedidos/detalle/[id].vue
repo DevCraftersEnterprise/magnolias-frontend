@@ -2,14 +2,7 @@
 definePageMeta({ layout: "admin", pageTitle: "Detalle de pedido" });
 useHead({ title: "Detalle de pedido · Magnolias" });
 
-import {
-  ordersService,
-  STATUS_LABELS,
-  STATUS_COLORS,
-  TYPE_LABELS,
-  TYPE_COLORS,
-  DELIVERY_ROUND_LABELS,
-} from "~/services/orders.service";
+import { ordersService } from "~/services/orders.service";
 import type { OrderDetail, OrderStatus, OrderType } from "~/types/order.types";
 
 const route = useRoute();

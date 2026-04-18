@@ -1,8 +1,6 @@
 import { apiFetch } from '~/services/api.client'
 import type { CreateCustomerRequest, CustomerItem, CustomersResponse, UpdateCustomerRequest } from '~/types/customer.types'
 
-
-
 export const customersService = {
   getCustomers(params: {
     phone?: string

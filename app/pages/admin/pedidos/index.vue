@@ -2,13 +2,7 @@
 definePageMeta({ layout: "admin", pageTitle: "Pedidos" });
 useHead({ title: "Pedidos · Magnolias" });
 
-import {
-  ordersService,
-  TYPE_LABELS,
-  STATUS_LABELS,
-  TYPE_COLORS,
-  STATUS_COLORS,
-} from "~/services/orders.service";
+import { ordersService } from "~/services/orders.service";
 import OrderDetailModal from "~/components/modals/OrderDetailModal.vue";
 import { usersService } from "~/services/users.service";
 import type { OrderItem, OrderStatus, OrderType } from "~/types/order.types";

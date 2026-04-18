@@ -807,15 +807,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ordersService,
-  STATUS_LABELS,
-  STATUS_COLORS,
-  TYPE_COLORS,
-  TYPE_LABELS,
-  PAYMENT_METHOD_LABELS,
-  DELIVERY_ROUND_LABELS,
-} from "~/services/orders.service";
+import { ordersService } from "~/services/orders.service";
 import type { OrderDetail, OrderItem, OrderType } from "~/types/order.types";
 
 const props = defineProps<{
