@@ -55,9 +55,9 @@
 </template>
 
 <script setup lang="ts">
-import BaseModal from "~/components/modals/BaseModal.vue";
 import { categoriesService } from "~/services/categories.service";
 import type { CategoryItem } from "~/types/product.types";
+import BaseModal from "~/components/modals/BaseModal.vue";
 
 const props = defineProps<{
   open: boolean;

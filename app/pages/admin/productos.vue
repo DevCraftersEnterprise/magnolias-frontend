@@ -558,12 +558,12 @@ onMounted(async () => {
 
 /// =========================
 /// modales
+import { categoriesService } from "~/services/categories.service";
+import type { CategoryItem, ProductItem } from "~/types/product.types";
 import CategoryModal from "~/components/modals/CategoryModal.vue";
 import ProductModal from "~/components/modals/ProductModal.vue";
 import ProductPicturesModal from "~/components/modals/ProductPicturesModal.vue";
 import ProductEditModal from "~/components/modals/ProductEditModal.vue";
-import { categoriesService } from "~/services/categories.service";
-import type { CategoryItem, ProductItem } from "~/types/product.types";
 
 // estados
 const categoryModal = ref({

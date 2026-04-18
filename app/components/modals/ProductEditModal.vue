@@ -269,15 +269,6 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  reactive,
-  ref,
-  watch,
-  onMounted,
-  onBeforeUnmount,
-} from "vue";
-import ConfirmModal from "~/components/ConfirmModal.vue";
 import { productsService } from "~/services/products.service";
 import type { ProductItem, ProductPicture } from "~/types/product.types";
 

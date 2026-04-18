@@ -2,15 +2,12 @@
 definePageMeta({ layout: "admin", pageTitle: "Clientes" });
 useHead({ title: "Clientes · Magnolias" });
 
-import { computed, onMounted, ref, watch } from "vue";
 import {
   customersService, // ✅ ESTE es el payload real del POST
 } from "~/services/customers.service";
 
-import ConfirmModal from "~/components/ConfirmModal.vue";
-import CustomerCreateModal, {
-  type CustomerCreateForm,
-} from "~/components/modals/CustomerCreateModal.vue";
+import { type CustomerCreateForm } from "~/components/modals/CustomerCreateModal.vue";
+import CustomerCreateModal from "~/components/modals/CustomerCreateModal.vue";
 import type {
   CreateCustomerRequest,
   CustomerItem,

@@ -2,9 +2,8 @@
 definePageMeta({ layout: "admin", pageTitle: "Sucursales" });
 useHead({ title: "Sucursales · Magnolias" });
 
-import SucursalCard from "~/components/SucursalCard.vue";
-import SucursalModal from "~/components/modals/SucursalModal.vue";
 import SucursalEditModal from "~/components/modals/SucursalEditModal.vue";
+import SucursalModal from "~/components/modals/SucursalModal.vue";
 import { branchesService } from "~/services/branches.service";
 import type { BranchResponse } from "~/types/branch.types";
 

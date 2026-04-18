@@ -3,15 +3,11 @@
 definePageMeta({ layout: "admin", pageTitle: "Catálogos" });
 useHead({ title: "Catálogos · Magnolias" });
 
-import { onMounted, ref } from "vue";
-import CatalogEditModal, {
-  type CatalogEditPayload,
-} from "~/components/modals/CatalogEditModal.vue";
-import ConfirmModal from "~/components/ConfirmModal.vue";
-import ColorEditModal, {
-  type ColorEditPayload,
-} from "~/components/modals/ColorEditModal.vue";
+import { type CatalogEditPayload } from "~/components/modals/CatalogEditModal.vue";
+import { type ColorEditPayload } from "~/components/modals/ColorEditModal.vue";
 import { catalogsService } from "~/services/catalogs.service";
+import CatalogEditModal from "~/components/modals/CatalogEditModal.vue";
+import ColorEditModal from "~/components/modals/ColorEditModal.vue";
 import type {
   BreadTypeItem,
   ColorItem,
