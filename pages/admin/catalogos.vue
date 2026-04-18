@@ -596,12 +596,20 @@ const cards = [
                   Cargar más
                 </button>
               </div>
+
+              <div v-if="!colorsLoading && (card.items?.value ?? []).length === 0" class="flex flex-col items-center gap-1 py-6 text-center">
+                <span class="text-[12px] text-[#9CA3AF]">Sin elementos registrados</span>
+              </div>
             </template>
 
             <!-- Colores -->
             <template v-else>
               <div v-if="colorsLoading" class="px-3 py-2 text-[13px] text-[#6B7280]">
                 Cargando…
+              </div>
+
+              <div v-if="!colorsLoading && colors.length === 0" class="flex flex-col items-center gap-1 py-6 text-center">
+                <span class="text-[12px] text-[#9CA3AF]">Sin colores registrados</span>
               </div>
 
               <button

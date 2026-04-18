@@ -68,8 +68,8 @@ async function loadCustomers(reset = false) {
 
     customers.value = (data.items ?? []).filter(x => x.isActive)
 
-    pagination.value.totalPages = data.pagination.totalPages
-    pagination.value.currentPage = data.pagination.currentPage
+    pagination.value.totalPages = Math.max(1, data.pagination.totalPages)
+    pagination.value.currentPage = Math.max(1, data.pagination.currentPage)
     pagination.value.total = data.total
   } catch (e: any) {
     console.error(e)
