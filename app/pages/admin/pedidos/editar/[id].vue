@@ -615,14 +615,6 @@ function optionLabel(opts: { value: string; label: string }[], val: string) {
   return opts.find((o) => o.value === val)?.label ?? "—";
 }
 
-function formatCustomerAddress(c: CustomerItem) {
-  const a = c.address;
-  if (!a) return "";
-  return [a.street, a.number ? `#${a.number}` : null, a.neighborhood, a.city]
-    .filter(Boolean)
-    .join(", ");
-}
-
 const subtotal = computed(() =>
   orderProducts.value.reduce((s, r) => s + r.price * r.qty, 0),
 );
