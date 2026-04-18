@@ -82,9 +82,8 @@ async function nextPage() {
 const createOpen = ref(false)
 const editingUser = ref<UserItem | null>(null)
 
-function onUserCreated(user: UserItem) {
-  users.value.unshift(user)
-  pagination.value.total++
+function onUserCreated(_user: UserItem) {
+  loadUsers(true)
 }
 
 const roleLabels: Record<string, string> = {
@@ -197,8 +196,7 @@ function roleBadge(r: string) {
                       <th class="px-4 py-3 text-[12px] font-semibold text-gray-600 w-[22%]">Nombre</th>
                       <th class="px-4 py-3 text-[12px] font-semibold text-gray-600 w-[18%]">Usuario</th>
                       <th class="px-4 py-3 text-[12px] font-semibold text-gray-600 w-[14%]">Rol</th>
-                      <th class="px-4 py-3 text-[12px] font-semibold text-gray-600 w-[16%]">Área</th>
-                      <th class="px-4 py-3 text-[12px] font-semibold text-gray-600 w-[16%]">Teléfono</th>
+                      <th class="px-4 py-3 text-[12px] font-semibold text-gray-600 w-[20%]">Área</th>
                       <th class="px-4 py-3 text-[12px] font-semibold text-gray-600 w-[14%]">Estado</th>
                     </tr>
                   </thead>
@@ -223,9 +221,6 @@ function roleBadge(r: string) {
                       <td class="px-4 py-3 text-[13px] text-gray-700 truncate">
                         {{ u.area || '—' }}
                       </td>
-                      <td class="px-4 py-3 text-[13px] text-gray-700 whitespace-nowrap">
-                        {{ u.phone || '—' }}
-                      </td>
                       <td class="px-4 py-3">
                         <span
                           class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
@@ -237,7 +232,7 @@ function roleBadge(r: string) {
                       </td>
                     </tr>
                     <tr v-if="users.length === 0">
-                      <td colspan="6" class="px-4 py-10 text-center text-[13px] text-gray-500">
+                      <td colspan="5" class="px-4 py-10 text-center text-[13px] text-gray-500">
                         No hay usuarios para mostrar.
                       </td>
                     </tr>
@@ -265,7 +260,7 @@ function roleBadge(r: string) {
                 </div>
                 <div class="mt-3 space-y-1.5 text-[13px]">
                   <div class="flex gap-2"><span class="text-gray-400 w-16 shrink-0">Área</span><span class="text-gray-700">{{ u.area || '—' }}</span></div>
-                  <div class="flex gap-2"><span class="text-gray-400 w-16 shrink-0">Teléfono</span><span class="text-gray-700">{{ u.phone || '—' }}</span></div>
+
                   <div class="flex gap-2"><span class="text-gray-400 w-16 shrink-0">Estado</span>
                     <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="u.isActive ? 'bg-green-100 text-green-700' : 'bg-black/8 text-black/50'">
                       <span class="h-1.5 w-1.5 rounded-full" :class="u.isActive ? 'bg-green-500' : 'bg-black/30'"></span>
