@@ -7,6 +7,7 @@ const props = defineProps<{
 
 const mapContainer = ref<HTMLDivElement | null>(null);
 let mapInstance: any = null;
+let markerInstance: any = null;
 
 function openInGoogleMaps() {
     window.open(`https://www.google.com/maps?q=${props.latitude},${props.longitude}`, '_blank', 'noopener,noreferrer');
@@ -43,8 +44,17 @@ onMounted(async () => {
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapInstance);
 
-    L.marker([props.latitude, props.longitude], { icon: pinkIcon })
+    markerInstance = L.marker([props.latitude, props.longitude], { icon: pinkIcon })
         .addTo(mapInstance);
+
+    watch(
+        () => [props.latitude, props.longitude] as [number, number],
+        ([lat, lng]) => {
+            if (!mapInstance || !markerInstance) return;
+            mapInstance.setView([lat, lng], 15);
+            markerInstance.setLatLng([lat, lng]);
+        },
+    );
 });
 </script>
 
