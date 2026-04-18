@@ -202,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ProductItem } from "~/services/products.service";
+import type { ProductItem } from "~/types/product.types";
 
 definePageMeta({ layout: "landing" });
 useHead({ title: "Productos · Magnolias" });

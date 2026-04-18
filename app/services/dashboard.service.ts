@@ -1,21 +1,5 @@
 import { apiFetch } from "./api.client";
-
-export type OrderStatistics = {
-    total: number,
-    data: {
-        created: number,
-        in_process: number,
-        done: number,
-        delivered: number,
-        cancelled: number,
-        order_type_counts: {
-            personalizado: number;
-            vitrina: number;
-            evento: number;
-            domicilio: number;
-        }
-    }
-}
+import type { OrderStatistics } from "~/types/dashboard.types";
 
 export const dashboardService = {
 

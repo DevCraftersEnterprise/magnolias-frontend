@@ -8,12 +8,11 @@ import {
   STATUS_LABELS,
   TYPE_COLORS,
   STATUS_COLORS,
-  type OrderItem,
-  type OrderStatus,
-  type OrderType,
 } from "~/services/orders.service";
 import OrderDetailModal from "~/components/modals/OrderDetailModal.vue";
-import { usersService, type UserItem } from "~/services/users.service";
+import { usersService } from "~/services/users.service";
+import type { OrderItem, OrderStatus, OrderType } from "~/types/order.types";
+import type { UserItem } from "~/types/user.types";
 
 const { user } = useAuthUser();
 const { selectedBranch } = useBranch();
@@ -83,9 +82,7 @@ async function executeDeliver() {
 }
 
 // ─── ASSIGNMENT STATE ─────────────────────────────────────────────────────────
-const assignTarget = ref<import("~/services/orders.service").OrderItem | null>(
-  null,
-);
+const assignTarget = ref<import("~/types/order.types").OrderItem | null>(null);
 const assignOpen = ref(false);
 const bakers = ref<UserItem[]>([]);
 const bakersLoading = ref(false);
@@ -93,9 +90,7 @@ const bakersError = ref("");
 const selectedBakerId = ref("");
 const assigning = ref(false);
 
-async function openAssignModal(
-  order: import("~/services/orders.service").OrderItem,
-) {
+async function openAssignModal(order: import("~/types/order.types").OrderItem) {
   assignTarget.value = order;
   selectedBakerId.value = order.assignments?.[0]?.baker.id ?? "";
   assignOpen.value = true;

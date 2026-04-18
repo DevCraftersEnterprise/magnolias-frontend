@@ -361,8 +361,8 @@
 
 <script setup lang="ts">
 import BranchMap from "~/components/BranchMap.vue";
-import type { ProductItem } from "~/services/categories.service";
-import type { BranchResponse } from "~/services/branches.service";
+import type { BranchResponse } from "~/types/branch.types";
+import type { ProductItem } from "~/types/product.types";
 
 definePageMeta({ layout: "landing" });
 useHead({ title: "Inicio · Magnolias" });

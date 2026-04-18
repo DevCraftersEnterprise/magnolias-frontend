@@ -3,12 +3,9 @@ definePageMeta({ layout: "admin", pageTitle: "Usuarios" });
 useHead({ title: "Usuarios · Magnolias" });
 
 import { computed, onMounted, ref, watch } from "vue";
-import {
-  usersService,
-  type UserItem,
-  type UserRole,
-} from "~/services/users.service";
+import { usersService } from "~/services/users.service";
 import UserModal from "~/components/modals/UserModal.vue";
+import type { UserItem, UserRole } from "~/types/user.types";
 
 const loading = ref(true);
 const errorMsg = ref("");

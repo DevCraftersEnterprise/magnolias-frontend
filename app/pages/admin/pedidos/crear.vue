@@ -2,34 +2,30 @@
 definePageMeta({ layout: "admin", pageTitle: "Pedidos" });
 useHead({ title: "Crear Pedido · Magnolias" });
 
-import {
-  customersService,
-  type CustomerItem,
-  type CreateCustomerRequest,
-} from "~/services/customers.service";
-import {
-  catalogsService,
-  type FlowerItem,
-  type ColorItem,
-  type BreadTypeItem,
-  type FillingItem,
-  type FlavorItem,
-  type FrostingItem,
-  type StyleItem,
-} from "~/services/catalogs.service";
+import { customersService } from "~/services/customers.service";
+import { catalogsService } from "~/services/catalogs.service";
 import {
   productsService,
   getProductImageUrl,
 } from "~/services/products.service";
-import type { ProductItem } from "~/services/categories.service";
-import {
-  ordersService,
-  type CreateOrderPayload,
-} from "~/services/orders.service";
-import {
-  addressesService,
-  type CommonAddress,
-} from "~/services/addresses.service";
+import { ordersService } from "~/services/orders.service";
+import { addressesService } from "~/services/addresses.service";
+import type {
+  CreateCustomerRequest,
+  CustomerItem,
+} from "~/types/customer.types";
+import type {
+  BreadTypeItem,
+  ColorItem,
+  FillingItem,
+  FlavorItem,
+  FlowerItem,
+  FrostingItem,
+  StyleItem,
+} from "~/types/catalog.types";
+import type { CommonAddress } from "~/types/address.types";
+import type { ProductItem } from "~/types/product.types";
+import type { CreateOrderPayload } from "~/types/order.types";
 
 const router = useRouter();
 

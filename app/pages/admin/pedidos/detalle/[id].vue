@@ -9,10 +9,8 @@ import {
   TYPE_LABELS,
   TYPE_COLORS,
   DELIVERY_ROUND_LABELS,
-  type OrderDetail,
-  type OrderType,
-  type OrderStatus,
 } from "~/services/orders.service";
+import type { OrderDetail, OrderStatus, OrderType } from "~/types/order.types";
 
 const route = useRoute();
 const id = route.params.id as string;

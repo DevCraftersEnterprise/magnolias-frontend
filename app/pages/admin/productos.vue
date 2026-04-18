@@ -409,30 +409,12 @@
 definePageMeta({ layout: "admin", pageTitle: "Productos" });
 useHead({ title: "Productos · Magnolias" });
 
-import { computed, onMounted, ref, watch, nextTick } from "vue";
-
-/** =========================
- * Types
- * ========================= */
-
-type ProductsResponse = {
-  items: ProductItem[];
-  total: number;
-  pagination: {
-    limit: number;
-    offset: number;
-    totalPages: number;
-    currentPage: number;
-  };
-};
-
 /** =========================
  * State
  * ========================= */
 const loading = ref(true);
 const errorMsg = ref("");
 
-const products = ref<ProductItem[]>([]);
 const categories = ref<CategoryItem[]>([]);
 const openCategoryIds = ref<Set<string>>(new Set());
 
@@ -476,7 +458,7 @@ function toggleCategory(id: string) {
 /** =========================
  * Favorite (solo 1)
  * ========================= */
-import { productsService, type ProductItem } from "~/services/products.service";
+import { productsService } from "~/services/products.service";
 
 /** Devuelve el primer producto marcado como favorito buscando en todas las categorías */
 function findCurrentFavorite(): ProductItem | undefined {
@@ -580,10 +562,8 @@ import CategoryModal from "~/components/modals/CategoryModal.vue";
 import ProductModal from "~/components/modals/ProductModal.vue";
 import ProductPicturesModal from "~/components/modals/ProductPicturesModal.vue";
 import ProductEditModal from "~/components/modals/ProductEditModal.vue";
-import {
-  categoriesService,
-  type CategoryItem,
-} from "~/services/categories.service";
+import { categoriesService } from "~/services/categories.service";
+import type { CategoryItem, ProductItem } from "~/types/product.types";
 
 // estados
 const categoryModal = ref({

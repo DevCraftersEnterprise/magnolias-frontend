@@ -11,16 +11,16 @@ import ConfirmModal from "~/components/ConfirmModal.vue";
 import ColorEditModal, {
   type ColorEditPayload,
 } from "~/components/modals/ColorEditModal.vue";
-import {
-  catalogsService,
-  type ColorItem,
-  type BreadTypeItem,
-  type FillingItem,
-  type FlavorItem,
-  type FrostingItem,
-  type StyleItem,
-  type FlowerItem,
-} from "~/services/catalogs.service";
+import { catalogsService } from "~/services/catalogs.service";
+import type {
+  BreadTypeItem,
+  ColorItem,
+  FillingItem,
+  FlavorItem,
+  FlowerItem,
+  FrostingItem,
+  StyleItem,
+} from "~/types/catalog.types";
 
 type BlockKey =
   | "pan"

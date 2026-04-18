@@ -4,16 +4,18 @@ useHead({ title: "Clientes · Magnolias" });
 
 import { computed, onMounted, ref, watch } from "vue";
 import {
-  customersService,
-  type CustomerItem,
-  type CreateCustomerRequest, // ✅ ESTE es el payload real del POST
+  customersService, // ✅ ESTE es el payload real del POST
 } from "~/services/customers.service";
 
 import ConfirmModal from "~/components/ConfirmModal.vue";
 import CustomerCreateModal, {
   type CustomerCreateForm,
 } from "~/components/modals/CustomerCreateModal.vue";
-import { type UpdateCustomerRequest } from "~/services/customers.service";
+import type {
+  CreateCustomerRequest,
+  CustomerItem,
+  UpdateCustomerRequest,
+} from "~/types/customer.types";
 
 const loading = ref(true);
 const errorMsg = ref("");

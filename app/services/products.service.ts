@@ -1,57 +1,6 @@
 import { apiFetch } from '~/services/api.client'
-import type { ProductItem } from './categories.service';
+import type { CreateProductPayload, PatchProductPayload, ProductItem, ProductsFilters, ProductsResponse, UploadProductPicturesPayload } from '~/types/product.types'
 
-export type CategoryMini = { id: string; name: string }
-export type ProductPicture = {
-  id: string
-  imageUrl: string
-  isActive: boolean
-}
-
-
-export type ProductsResponse = {
-  items: ProductItem[]
-  total: number
-  pagination: {
-    limit: number
-    offset: number
-    totalPages: number
-    currentPage: number
-  }
-}
-
-export type ProductsFilters = Partial<{
-  name: string
-  categoryId: string
-  isActive: boolean
-  isFavorite: boolean
-}>
-
-export type CreateProductPayload = {
-  name: string
-  description: string
-  isFavorite: boolean
-  categoryId: string
-}
-
-export type UploadProductPicturesPayload = {
-  id: string
-  name: string
-  description: string
-  isFavorite: boolean
-  categoryId: string
-  isActive: boolean
-  files: File[]
-}
-
-export type PatchProductPayload = {
-  id: string
-  name: string
-  description: string
-  isFavorite: boolean
-  categoryId: string
-  isActive: boolean
-}
 
 /** Devuelve la primera imagen del producto (si existe) */
 export function getProductImageUrl(p: ProductItem): string | null {

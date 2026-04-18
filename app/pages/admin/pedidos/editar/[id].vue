@@ -2,32 +2,30 @@
 definePageMeta({ layout: "admin", pageTitle: "Editar Pedido" });
 useHead({ title: "Editar Pedido · Magnolias" });
 
-import {
-  customersService,
-  type CustomerItem,
-} from "~/services/customers.service";
-import {
-  catalogsService,
-  type FlowerItem,
-  type ColorItem,
-  type BreadTypeItem,
-  type FillingItem,
-  type FlavorItem,
-  type FrostingItem,
-  type StyleItem,
-} from "~/services/catalogs.service";
+import { customersService } from "~/services/customers.service";
+import { catalogsService } from "~/services/catalogs.service";
 import {
   productsService,
   getProductImageUrl,
 } from "~/services/products.service";
-import type { ProductItem } from "~/services/categories.service";
-import {
-  ordersService,
-  type UpdateOrderDetailPayload,
-  type UpdateOrderPayload,
-  type CreateOrderDeliveryAddress,
-  type OrderDetail,
-} from "~/services/orders.service";
+import { ordersService } from "~/services/orders.service";
+import type { CustomerItem } from "~/types/customer.types";
+import type {
+  BreadTypeItem,
+  ColorItem,
+  FillingItem,
+  FlavorItem,
+  FlowerItem,
+  FrostingItem,
+  StyleItem,
+} from "~/types/catalog.types";
+import type { ProductItem } from "~/types/product.types";
+import type {
+  CreateOrderDeliveryAddress,
+  OrderDetail,
+  UpdateOrderDetailPayload,
+  UpdateOrderPayload,
+} from "~/types/order.types";
 
 const router = useRouter();
 const routeP = useRoute();
@@ -850,7 +848,7 @@ function populateFromOrder(order: OrderDetail) {
       createdAt: "",
       updatedAt: "",
       pictures: (d.product?.pictures ??
-        []) as import("~/services/categories.service").ProductPicture[],
+        []) as import("~/types/product.types").ProductPicture[],
     };
     return {
       product,

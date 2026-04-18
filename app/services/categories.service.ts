@@ -1,43 +1,5 @@
 import { apiFetch } from '~/services/api.client'
-
-export type ProductPicture = {
-  id: string
-  imageUrl: string
-  isActive: boolean
-}
-
-export type ProductItem = {
-  id: string
-  name: string
-  description: string
-  isFavorite: boolean
-  isActive: boolean
-  category: {
-    id: string
-  }
-  createdAt: string
-  updatedAt: string
-  pictures: ProductPicture[]
-}
-
-export type CategoryItem = {
-  id: string
-  name: string
-  description: string
-  isActive: boolean
-  products: ProductItem[]
-}
-
-export type CreateCategoryPayload = {
-  name: string
-  description: string
-}
-
-export type PatchCategoryPayload = Partial<{
-  name: string
-  description: string
-  isActive: boolean
-}>
+import type { CategoryItem, CreateCategoryPayload, PatchCategoryPayload } from '~/types/product.types'
 
 export const categoriesService = {
   getAll() {
