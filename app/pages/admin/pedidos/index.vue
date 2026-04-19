@@ -26,10 +26,6 @@ function typeLabel(t?: OrderType) {
 const loading = ref(true);
 const errorMsg = ref("");
 const orders = ref<OrderItem[]>([]);
-const offset = ref(0);
-const limit = ref(15);
-const hasMore = ref(false);
-const total = ref(0);
 
 const filterStatus = ref<OrderStatus | "">("");
 
@@ -38,6 +34,22 @@ const {
   debouncedQuery: debouncedName,
   clear: clearSearch,
 } = useDebounceSearch(() => loadOrders(true));
+
+const {
+  pagination,
+  update: paginationUpdate,
+  reset: paginationReset,
+  canPrev,
+  canNext,
+  showingFrom,
+  showingTo,
+  prevPage,
+  nextPage,
+} = usePagination(loadOrders, 15);
+
+const showPagination = computed(
+  () => !loading.value && (canPrev.value || canNext.value),
+);
 
 const cancelTarget = ref<OrderItem | null>(null);
 const cancelConfirm = ref(false);
@@ -133,14 +145,6 @@ async function executeAssign() {
   }
 }
 
-const showingFrom = computed(() =>
-  orders.value.length === 0 ? 0 : offset.value + 1,
-);
-const showingTo = computed(() => offset.value + orders.value.length);
-const showPagination = computed(
-  () => !loading.value && (offset.value > 0 || hasMore.value),
-);
-
 async function loadOrders(reset = false) {
   if (isBaker.value) return;
   if (!selectedBranch.value?.id) {
@@ -154,35 +158,22 @@ async function loadOrders(reset = false) {
   errorMsg.value = "";
   try {
     if (reset) {
-      offset.value = 0;
+      paginationReset();
       orders.value = [];
     }
     const data = await ordersService.getOrders(selectedBranch.value.id, {
       orderStatus: filterStatus.value || undefined,
       name: debouncedName.value || undefined,
-      limit: limit.value,
-      offset: offset.value,
+      limit: pagination.value.limit,
+      offset: pagination.value.offset,
     });
     orders.value = data.items ?? [];
-    total.value = data.total;
-    hasMore.value = data.pagination.currentPage < data.pagination.totalPages;
+    paginationUpdate(data.pagination, data.total);
   } catch (e: any) {
     errorMsg.value = e?.message || "Error al cargar pedidos.";
   } finally {
     loading.value = false;
   }
-}
-
-async function prevPage() {
-  if (offset.value === 0) return;
-  offset.value = Math.max(0, offset.value - limit.value);
-  await loadOrders(false);
-}
-
-async function nextPage() {
-  if (!hasMore.value) return;
-  offset.value += limit.value;
-  await loadOrders(false);
 }
 
 function confirmCancel(order: OrderItem) {
@@ -1005,20 +996,22 @@ function onOrderPaymentUpdated(payload: {
                 class="mt-4 flex flex-wrap items-center justify-between gap-3 text-[13px] text-gray-500"
               >
                 <span
-                  >Mostrando {{ showingFrom }}–{{ showingTo }} de
-                  {{ total }}</span
+                  >Mostrando {{ showingFrom(orders.length) }}–{{
+                    showingTo(orders.length)
+                  }}
+                  de {{ pagination.total }}</span
                 >
                 <div class="flex gap-2">
                   <button
                     class="h-8 px-3 rounded-lg ring-1 ring-black/10 bg-white hover:bg-black/5 disabled:opacity-40 transition text-[13px]"
-                    :disabled="offset === 0"
+                    :disabled="!canPrev"
                     @click="prevPage"
                   >
                     Anterior
                   </button>
                   <button
                     class="h-8 px-3 rounded-lg ring-1 ring-black/10 bg-white hover:bg-black/5 disabled:opacity-40 transition text-[13px]"
-                    :disabled="!hasMore"
+                    :disabled="!canNext"
                     @click="nextPage"
                   >
                     Siguiente
