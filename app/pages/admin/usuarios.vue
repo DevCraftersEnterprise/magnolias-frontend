@@ -29,11 +29,11 @@ const {
 
 const roleFilter = ref<UserRole | "">("");
 
-async function loadUsers(shoudlReset = false) {
+async function loadUsers(shouldReset = false) {
   loading.value = true;
   errorMsg.value = "";
   try {
-    if (shoudlReset) {
+    if (shouldReset) {
       reset();
       users.value = [];
     }
