@@ -6,15 +6,7 @@ useHead({ title: "Catálogos · Magnolias" });
 import { type CatalogEditPayload } from "~/components/modals/CatalogEditModal.vue";
 import { type ColorEditPayload } from "~/components/modals/ColorEditModal.vue";
 import { catalogsService } from "~/services/catalogs.service";
-import type {
-  BreadTypeItem,
-  ColorItem,
-  FillingItem,
-  FlavorItem,
-  FlowerItem,
-  FrostingItem,
-  StyleItem,
-} from "~/types/catalog.types";
+import type { BreadTypeItem, ColorItem } from "~/types/catalog.types";
 
 type BlockKey =
   | "pan"
@@ -69,145 +61,40 @@ async function loadBreadTypes() {
 }
 
 /** ====== Rellenos (API real) ====== */
-const fillings = ref<FillingItem[]>([]);
-const fillingsLoading = ref(false);
-const fillingsLM = useLoadMore(loadFillings);
-
-async function loadFillings() {
-  fillingsLoading.value = true;
-  try {
-    const data = await catalogsService.getFillings(
-      fillingsLM.limit.value,
-      fillingsLM.offset.value,
-    );
-
-    fillings.value = [
-      ...fillings.value,
-      ...(data.items ?? []).filter((x) => x.isActive),
-    ];
-    fillingsLM.update(data.pagination);
-  } finally {
-    fillingsLoading.value = false;
-  }
-}
-
-async function resetFillings() {
-  fillings.value = [];
-  fillingsLM.reset();
-  await loadFillings();
-}
+const fillingsBlock = useCatalogBlock(
+  (limit, offset) => catalogsService.getFillings(limit, offset),
+  { filterActive: true },
+);
 
 /** ====== Sabores (API real) ====== */
-const flavorsLoading = ref(false);
-const flavors = ref<FlavorItem[]>([]);
-const flavorsLM = useLoadMore(loadFlavors);
-
-async function loadFlavors() {
-  flavorsLoading.value = true;
-  try {
-    const data = await catalogsService.getFlavors(
-      flavorsLM.limit.value,
-      flavorsLM.offset.value,
-    );
-    flavors.value = [
-      ...flavors.value,
-      ...(data.items ?? []).filter((x) => x.isActive),
-    ];
-    flavorsLM.update(data.pagination);
-  } finally {
-    flavorsLoading.value = false;
-  }
-}
-
-async function resetFlavors() {
-  flavors.value = [];
-  flavorsLM.reset();
-  await loadFlavors();
-}
+const flavorsBlock = useCatalogBlock(
+  (limit, offset) => catalogsService.getFlavors(limit, offset),
+  { filterActive: true },
+);
 
 /** ====== Frostings (API real) ====== */
-const frostingsLoading = ref(false);
-const frostings = ref<FrostingItem[]>([]);
-const frostingsLM = useLoadMore(loadFrostings);
-
-async function loadFrostings() {
-  frostingsLoading.value = true;
-  try {
-    const data = await catalogsService.getFrostings(
-      frostingsLM.limit.value,
-      frostingsLM.offset.value,
-    );
-    frostings.value = [...frostings.value, ...data.items];
-    frostingsLM.update(data.pagination);
-  } finally {
-    frostingsLoading.value = false;
-  }
-}
-
-async function resetFrostings() {
-  frostings.value = [];
-  frostingsLM.reset();
-  await loadFrostings();
-}
+const frostingsBlock = useCatalogBlock((limit, offset) =>
+  catalogsService.getFrostings(limit, offset),
+);
 
 /** ====== Styles (API real) ====== */
-const stylesLoading = ref(false);
-const styles = ref<StyleItem[]>([]);
-const stylesLM = useLoadMore(loadStyles);
-
-async function loadStyles() {
-  stylesLoading.value = true;
-  try {
-    const data = await catalogsService.getStyles(
-      stylesLM.limit.value,
-      stylesLM.offset.value,
-    );
-    styles.value = [...styles.value, ...data.items];
-    stylesLM.update(data.pagination);
-  } finally {
-    stylesLoading.value = false;
-  }
-}
-
-async function resetStyles() {
-  styles.value = [];
-  stylesLM.reset();
-  await loadStyles();
-}
+const stylesBlock = useCatalogBlock((limit, offset) =>
+  catalogsService.getStyles(limit, offset),
+);
 
 /** ====== Flowers (API real) ====== */
-const flowersLoading = ref(false);
-const flowers = ref<FlowerItem[]>([]);
-const flowersLM = useLoadMore(loadFlowers);
-
-async function loadFlowers() {
-  flowersLoading.value = true;
-  try {
-    const data = await catalogsService.getFlowers(
-      flowersLM.limit.value,
-      flowersLM.offset.value,
-    );
-    flowers.value = [...flowers.value, ...data.items];
-    flowersLM.update(data.pagination);
-  } finally {
-    flowersLoading.value = false;
-  }
-}
-
-async function resetFlowers() {
-  flowers.value = [];
-  flowersLM.reset();
-  await loadFlowers();
-}
+const flowersBlock = useCatalogBlock((limit, offset) =>
+  catalogsService.getFlowers(limit, offset),
+);
 
 onMounted(() => {
   loadColors();
   loadBreadTypes();
-  loadFillings();
-  loadFlavors();
-  loadFrostings();
-  loadStyles();
-  loadFlowers();
+  fillingsBlock.load();
+  flavorsBlock.load();
+  frostingsBlock.load();
+  stylesBlock.load();
+  flowersBlock.load();
 });
 
 /** Seleccionado (para el rosita) */
@@ -288,32 +175,32 @@ function openDelete(block: BlockKey, item: AnyItem) {
 
       relleno: async () => {
         await catalogsService.deleteFilling(item.id);
-        await resetFillings();
+        await fillingsBlock.reset();
         if (selected.value.relleno === item.name) selected.value.relleno = null;
       },
 
       sabor: async () => {
         await catalogsService.deleteFlavor(item.id);
-        await resetFlavors();
+        await flavorsBlock.reset();
         if (selected.value.sabor === item.name) selected.value.sabor = null;
       },
 
       cubierta: async () => {
         await catalogsService.deleteFrosting(item.id);
-        await resetFrostings();
+        await frostingsBlock.reset();
         if (selected.value.cubierta === item.name)
           selected.value.cubierta = null;
       },
 
       estilo: async () => {
         await catalogsService.deleteStyle(item.id);
-        await resetStyles();
+        await stylesBlock.reset();
         if (selected.value.estilo === item.name) selected.value.estilo = null;
       },
 
       flor: async () => {
         await catalogsService.deleteFlower(item.id);
-        await resetFlowers();
+        await flowersBlock.reset();
         if (selected.value.flor === item.name) selected.value.flor = null;
       },
 
@@ -366,7 +253,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
         name: payload.name,
         description: payload.description ?? "",
       });
-      await resetFillings();
+      await fillingsBlock.reset();
       return;
     }
 
@@ -375,7 +262,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
         name: payload.name,
         description: payload.description ?? "",
       });
-      await resetFlavors();
+      await flavorsBlock.reset();
       return;
     }
 
@@ -384,7 +271,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
         name: payload.name,
         description: payload.description ?? "",
       });
-      await resetFrostings();
+      await frostingsBlock.reset();
       return;
     }
 
@@ -393,7 +280,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
         name: payload.name,
         description: payload.description ?? "",
       });
-      await resetStyles();
+      await stylesBlock.reset();
       return;
     }
 
@@ -402,7 +289,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
         name: payload.name,
         description: payload.description ?? "",
       });
-      await resetFlowers();
+      await flowersBlock.reset();
       return;
     }
 
@@ -426,7 +313,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       description: payload.description ?? "",
       isActive: true,
     });
-    await resetFillings();
+    await fillingsBlock.reset();
     return;
   }
 
@@ -436,7 +323,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       description: payload.description ?? "",
       isActive: true,
     });
-    await resetFlavors();
+    await flavorsBlock.reset();
     return;
   }
 
@@ -446,7 +333,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       description: payload.description ?? "",
       isActive: true,
     });
-    await resetFrostings();
+    await frostingsBlock.reset();
     return;
   }
 
@@ -456,7 +343,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       description: payload.description ?? "",
       isActive: true,
     });
-    await resetStyles();
+    await stylesBlock.reset();
     return;
   }
 
@@ -466,7 +353,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       description: payload.description ?? "",
       isActive: true,
     });
-    await resetFlowers();
+    await flowersBlock.reset();
     return;
   }
 }
@@ -482,16 +369,36 @@ async function onSaveColor(payload: ColorEditPayload) {
 /** Config para no repetir */
 const cards = [
   { key: "pan", title: "Tipos de pan", items: panes, lm: null },
-  { key: "relleno", title: "Rellenos", items: fillings, lm: fillingsLM },
-  { key: "sabor", title: "Sabores", items: flavors, lm: flavorsLM },
-  { key: "flor", title: "Flores", items: flowers, lm: flowersLM },
-  { key: "estilo", title: "Estilos", items: styles, lm: stylesLM },
+  {
+    key: "relleno",
+    title: "Rellenos",
+    items: fillingsBlock.items,
+    lm: fillingsBlock.lm,
+  },
+  {
+    key: "sabor",
+    title: "Sabores",
+    items: flavorsBlock.items,
+    lm: flavorsBlock.lm,
+  },
+  {
+    key: "flor",
+    title: "Flores",
+    items: flowersBlock.items,
+    lm: flowersBlock.lm,
+  },
+  {
+    key: "estilo",
+    title: "Estilos",
+    items: stylesBlock.items,
+    lm: stylesBlock.lm,
+  },
   { key: "color", title: "Colores", items: null, lm: null },
   {
     key: "cubierta",
     title: "Tipos de cubierta",
-    items: frostings,
-    lm: frostingsLM,
+    items: frostingsBlock.items,
+    lm: frostingsBlock.lm,
   },
 ];
 </script>
