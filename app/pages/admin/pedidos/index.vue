@@ -133,7 +133,7 @@ async function executeAssign() {
             notes: null,
           },
         ],
-      };
+      } as OrderItem;
     }
     assignOpen.value = false;
     assignTarget.value = null;
@@ -199,7 +199,7 @@ async function executeCancel() {
   }
 }
 
-// ─── KANBAN STATE ─────────────────────────────────────────────────────────────
+// ─── Kanban state ───────────────────────────────────────────────────────────
 type KanbanTab = "tomorrow" | "dayAfter" | "all" | "range";
 const kanbanTab = ref<KanbanTab>("tomorrow");
 const kanbanLoading = ref(true);
@@ -379,7 +379,7 @@ function refreshKanban() {
   else loadKanbanOrders();
 }
 
-// ── Kanban confirm modal ──────────────────────────────────────────────
+// ─── Kanban confirm modal ───────────────────────────────────────────────────
 const kanbanConfirmTarget = ref<OrderItem | null>(null);
 function requestAdvanceStatus(order: OrderItem) {
   if (updatingId.value) return;
@@ -429,7 +429,10 @@ function onOrderPaymentUpdated(payload: {
   const patch = (list: OrderItem[]) => {
     const idx = list.findIndex((o) => o.id === payload.id);
     if (idx !== -1)
-      list[idx] = { ...list[idx], remainingBalance: payload.remainingBalance };
+      list[idx] = {
+        ...list[idx],
+        remainingBalance: payload.remainingBalance,
+      } as OrderItem;
   };
   patch(orders.value);
   patch(kanbanOrders.value);
@@ -1203,7 +1206,7 @@ function onOrderPaymentUpdated(payload: {
                     @click="
                       rangeFrom = '';
                       rangeTo = '';
-                      rangeKanbanOrders.value = [];
+                      rangeKanbanOrders = [];
                     "
                   >
                     Limpiar

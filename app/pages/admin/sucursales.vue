@@ -1,17 +1,18 @@
 <script setup lang="ts">
-definePageMeta({ layout: "admin", pageTitle: "Sucursales" });
-useHead({ title: "Sucursales · Magnolias" });
-
 import { branchesService } from "~/services/branches.service";
 import type { BranchResponse } from "~/types/branch.types";
 
+definePageMeta({ layout: "admin", pageTitle: "Sucursales" });
+useHead({ title: "Sucursales · Magnolias" });
+
+// ─── State ───────────────────────────────────────────────────────────────────
 const loading = ref(true);
 const errorMsg = ref("");
 const showModal = ref(false);
 const editingBranch = ref<BranchResponse | null>(null);
-
 const branches = ref<BranchResponse[]>([]);
 
+// ─── Load ────────────────────────────────────────────────────────────────────
 async function loadBranches() {
   try {
     const data = await branchesService.getBranches();
@@ -33,6 +34,7 @@ function onBranchUpdated(branch: BranchResponse) {
   if (idx !== -1) branches.value[idx] = branch;
 }
 
+// ─── Lifecycle ───────────────────────────────────────────────────────────────
 onMounted(() => loadBranches());
 </script>
 

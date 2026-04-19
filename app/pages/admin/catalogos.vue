@@ -8,6 +8,7 @@ import { type ColorEditPayload } from "~/components/modals/ColorEditModal.vue";
 import { catalogsService } from "~/services/catalogs.service";
 import type { BreadTypeItem, ColorItem } from "~/types/catalog.types";
 
+// ─── Types & constants ──────────────────────────────────────────────────────
 type BlockKey =
   | "pan"
   | "relleno"
@@ -27,13 +28,13 @@ const blockLabel: Record<BlockKey, string> = {
   cubierta: "tipo de cubierta",
 };
 
-const modalTitle = ref(""); // ✅ título dinámico
+const modalTitle = ref("");
 
-/** ====== Colores (API real) ====== */
+// ─── Colors ─────────────────────────────────────────────────────────────────
 const colorsLoading = ref(true);
 const colors = ref<ColorItem[]>([]);
 const colorOpen = ref(false);
-const colorMode = ref<"create" | "edit">("create"); // si después quieres editar, ahorita solo create
+const colorMode = ref<"create" | "edit">("create");
 const colorModel = ref<ColorEditPayload | null>(null);
 
 async function loadColors() {
@@ -46,7 +47,7 @@ async function loadColors() {
   }
 }
 
-/** ====== Tipos de pan (API real) ====== */
+// ─── Bread types ───────────────────────────────────────────────────────────
 const panesLoading = ref(true);
 const panes = ref<BreadTypeItem[]>([]);
 
@@ -60,33 +61,26 @@ async function loadBreadTypes() {
   }
 }
 
-/** ====== Rellenos (API real) ====== */
+// ─── Catalog blocks ─────────────────────────────────────────────────────────
 const fillingsBlock = useCatalogBlock(
   (limit, offset) => catalogsService.getFillings(limit, offset),
   { filterActive: true },
 );
-
-/** ====== Sabores (API real) ====== */
 const flavorsBlock = useCatalogBlock(
   (limit, offset) => catalogsService.getFlavors(limit, offset),
   { filterActive: true },
 );
-
-/** ====== Frostings (API real) ====== */
 const frostingsBlock = useCatalogBlock((limit, offset) =>
   catalogsService.getFrostings(limit, offset),
 );
-
-/** ====== Styles (API real) ====== */
 const stylesBlock = useCatalogBlock((limit, offset) =>
   catalogsService.getStyles(limit, offset),
 );
-
-/** ====== Flowers (API real) ====== */
 const flowersBlock = useCatalogBlock((limit, offset) =>
   catalogsService.getFlowers(limit, offset),
 );
 
+// ─── Lifecycle ─────────────────────────────────────────────────────────────
 onMounted(() => {
   loadColors();
   loadBreadTypes();
@@ -97,7 +91,7 @@ onMounted(() => {
   flowersBlock.load();
 });
 
-/** Seleccionado (para el rosita) */
+// ─── Selection ─────────────────────────────────────────────────────────────
 const selected = ref<Record<BlockKey, string | null>>({
   pan: null,
   relleno: null,
@@ -112,7 +106,7 @@ function pick(block: BlockKey, value: string) {
   selected.value[block] = value;
 }
 
-/** ===== UX actions (editar / eliminar) ===== */
+// ─── Edit & delete ─────────────────────────────────────────────────────────
 type AnyItem = {
   id: string;
   name: string;
@@ -226,8 +220,7 @@ async function onConfirmDelete() {
   if (fn) await fn();
 }
 
-/** Guardar edit */
-/** Guardar edit / create */
+// ─── Save handlers ─────────────────────────────────────────────────────────
 async function onSaveEdit(payload: CatalogEditPayload) {
   editOpen.value = false;
 
@@ -366,7 +359,7 @@ async function onSaveColor(payload: ColorEditPayload) {
   await loadColors();
 }
 
-/** Config para no repetir */
+// ─── Card config ───────────────────────────────────────────────────────────
 const cards = [
   { key: "pan", title: "Tipos de pan", items: panes, lm: null },
   {

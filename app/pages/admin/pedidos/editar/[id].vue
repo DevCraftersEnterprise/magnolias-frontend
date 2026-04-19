@@ -17,7 +17,7 @@ const orderId = routeP.params.id as string;
 
 const { branches, selectedBranch: topbarBranch } = useBranch();
 
-// ── Composables ───────────────────────────────────────────────────────────────
+// ─── Composables ──────────────────────────────────────────────────────────────
 const {
   breadTypes,
   fillings,
@@ -52,7 +52,6 @@ const {
 const {
   orderProducts,
   productQuery,
-  productSearching,
   productResults,
   showProductPanel,
   openColorPicker,
@@ -106,15 +105,15 @@ const {
 
 const { flowerRows, addFlowerRow, removeFlowerRow } = useFlowerRows();
 
-// ── Loading state ─────────────────────────────────────────────────────────────
+// ─── Loading state ────────────────────────────────────────────────────────────
 const loadingOrder = ref(true);
 const loadError = ref("");
 
-// ── Stepper ───────────────────────────────────────────────────────────────────
+// ─── Stepper ──────────────────────────────────────────────────────────────────
 const STEPS = ["Cliente", "Tipo y logística", "Productos", "Pago"] as const;
 const step = ref(1);
 
-// ── Close product panel on outside click ──────────────────────────────────────
+// ─── Close product panel on outside click ─────────────────────────────────────
 const productSearchRef = ref<HTMLElement | null>(null);
 if (typeof window !== "undefined") {
   document.addEventListener("click", (e) => {
@@ -127,7 +126,7 @@ if (typeof window !== "undefined") {
   });
 }
 
-// ── Navigation ────────────────────────────────────────────────────────────────
+// ─── Navigation ───────────────────────────────────────────────────────────────
 const canNext = computed(() => {
   if (step.value === 1) return !!selectedCustomer.value;
   if (step.value === 2) {
@@ -166,7 +165,7 @@ const canNext = computed(() => {
   return true;
 });
 
-// ── Populate wizard from loaded order ─────────────────────────────────────────
+// ─── Populate wizard from loaded order ────────────────────────────────────────
 function populateFromOrder(order: OrderDetail) {
   // Customer
   if (order.customer) {
@@ -374,7 +373,7 @@ function populateFromOrder(order: OrderDetail) {
   }
 }
 
-// ── Load order on mount ───────────────────────────────────────────────────────
+// ─── Load order on mount ──────────────────────────────────────────────────────
 onMounted(async () => {
   try {
     const order = await ordersService.getOrder(orderId);
@@ -403,7 +402,7 @@ onMounted(async () => {
   }
 });
 
-// ── Submit (update) ───────────────────────────────────────────────────────────
+// ─── Submit (update) ──────────────────────────────────────────────────────────
 const submitting = ref(false);
 const submitError = ref("");
 

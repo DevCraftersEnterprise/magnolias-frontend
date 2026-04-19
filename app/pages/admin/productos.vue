@@ -1,3 +1,170 @@
+<script setup lang="ts">
+definePageMeta({ layout: "admin", pageTitle: "Productos" });
+useHead({ title: "Productos · Magnolias" });
+
+import { categoriesService } from "~/services/categories.service";
+import { productsService } from "~/services/products.service";
+import type { CategoryItem, ProductItem } from "~/types/product.types";
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const loading = ref(true);
+const errorMsg = ref("");
+
+const categories = ref<CategoryItem[]>([]);
+const openCategoryIds = ref<Set<string>>(new Set());
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function productImg(p: ProductItem) {
+  const activePicture = p?.pictures?.find((pic) => pic.isActive !== false);
+  const url = activePicture?.imageUrl;
+  return url ? String(url).trim() : null;
+}
+
+// ─── Fetch ──────────────────────────────────────────────────────────────────
+async function fetchAllProducts() {
+  const data = await categoriesService.getAll();
+  categories.value = data;
+}
+
+const categoriesOrdered = computed(() => {
+  return [...categories.value].sort((a, b) =>
+    a.name.localeCompare(b.name, "es"),
+  );
+});
+
+// ─── Category collapse ──────────────────────────────────────────────────────
+function isCategoryOpen(id: string) {
+  return openCategoryIds.value.has(id);
+}
+function toggleCategory(id: string) {
+  const s = new Set(openCategoryIds.value);
+  if (s.has(id)) s.delete(id);
+  else s.add(id);
+  openCategoryIds.value = s;
+}
+
+// ─── Favorite ───────────────────────────────────────────────────────────────
+function findCurrentFavorite(): ProductItem | undefined {
+  for (const cat of categories.value) {
+    const fav = cat.products.find((x) => x.isFavorite);
+    if (fav) return fav;
+  }
+  return undefined;
+}
+
+async function toggleFavorite(p: ProductItem) {
+  const prevFav = findCurrentFavorite();
+  const nextIsFav = !p.isFavorite;
+
+  // optimistic UI: actualiza inmediatamente los objetos reactivos dentro de las categorías
+  if (nextIsFav) {
+    // desmarca el favorito anterior (si existe y es distinto)
+    if (prevFav && prevFav.id !== p.id) prevFav.isFavorite = false;
+    p.isFavorite = true;
+  } else {
+    p.isFavorite = false;
+  }
+
+  try {
+    // El backend desmarca el favorito anterior automáticamente, solo se necesita una llamada
+    await productsService.setFavorite(p, nextIsFav);
+  } catch (e) {
+    // rollback
+    if (nextIsFav) {
+      p.isFavorite = false;
+      if (prevFav && prevFav.id !== p.id) prevFav.isFavorite = true;
+    } else {
+      p.isFavorite = true;
+    }
+  }
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+onMounted(async () => {
+  loading.value = true;
+  errorMsg.value = "";
+  try {
+    await fetchAllProducts();
+
+    const firstTwo = categoriesOrdered.value.slice(0, 2);
+    openCategoryIds.value = new Set(firstTwo.map((x) => x.id));
+  } catch (e: any) {
+    errorMsg.value = e?.message || "No se pudieron cargar los productos.";
+  } finally {
+    loading.value = false;
+  }
+});
+
+// ─── Modals ─────────────────────────────────────────────────────────────────
+const categoryModal = ref({
+  open: false,
+  mode: "create" as "create" | "edit",
+  category: null as any,
+});
+const productModal = ref({
+  open: false,
+  mode: "create" as const,
+  categoryId: "",
+});
+const picturesModal = ref({ open: false, product: null as ProductItem | null });
+
+function openCreateCategory() {
+  categoryModal.value = { open: true, mode: "create", category: null };
+}
+
+function openCreateProduct(cat: any) {
+  productModal.value = { open: true, mode: "create", categoryId: cat.id };
+}
+
+function onProductCreated(p: ProductItem) {
+  const cat = categories.value.find(
+    (c) => c.id === productModal.value.categoryId,
+  );
+  if (cat) {
+    cat.products.push(p);
+    const s = new Set(openCategoryIds.value);
+    s.add(cat.id);
+    openCategoryIds.value = s;
+  }
+  picturesModal.value = { open: true, product: p };
+}
+
+const editModalOpen = ref(false);
+const editProduct = ref<ProductItem | null>(null);
+
+const categoryOptions = computed(() =>
+  categoriesOrdered.value.map((c) => ({ id: c.id, name: c.name })),
+);
+
+// Key dinámica para forzar re-renderizado del modal cuando cambien las fotos
+const editModalKey = computed(() => {
+  if (!editProduct.value) return "";
+  return `${editProduct.value.id}-${editProduct.value.pictures?.length || 0}`;
+});
+
+function openDetails(p: ProductItem) {
+  editProduct.value = p;
+  editModalOpen.value = true;
+}
+
+async function reloadAll() {
+  const editProductId = editProduct.value?.id;
+  await fetchAllProducts();
+
+  if (editProductId && editModalOpen.value) {
+    let updated: ProductItem | undefined;
+    for (const cat of categories.value) {
+      updated = cat.products.find((p) => p.id === editProductId);
+      if (updated) break;
+    }
+    if (updated) {
+      await nextTick();
+      editProduct.value = updated;
+    }
+  }
+}
+</script>
+
 <template>
   <div class="px-6 py-6">
     <!-- Sticky header (limpio) -->
@@ -238,139 +405,9 @@
         <p class="text-sm text-black/60">No hay productos aún.</p>
       </div>
     </div>
-
-    <!-- ===== MODALES ===== -->
-
-    <!-- Modal placeholder: Crear categoría -->
-    <div v-if="modalCategory.open" class="fixed inset-0 z-50">
-      <div
-        class="absolute inset-0 bg-black/40"
-        @click="closeCategoryModal()"
-      ></div>
-      <div
-        class="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2"
-      >
-        <div class="rounded-2xl bg-white p-5 shadow-xl ring-1 ring-black/10">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <h3 class="text-lg font-semibold text-[#101541]">
-                Agregar categoría
-              </h3>
-              <p class="mt-1 text-xs text-black/50">
-                Luego conectamos el POST real.
-              </p>
-            </div>
-            <button
-              class="grid h-9 w-9 place-content-center rounded-xl hover:bg-black/5"
-              @click="closeCategoryModal()"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div class="mt-4 space-y-3">
-            <div>
-              <label class="text-xs font-semibold text-black/60">Nombre</label>
-              <input
-                v-model="modalCategory.name"
-                class="mt-1 h-11 w-full rounded-xl border border-black/10 px-3 text-sm outline-none focus:border-pink-300"
-                placeholder="Ej: Pasteles"
-              />
-            </div>
-          </div>
-
-          <div class="mt-5 flex justify-end gap-2">
-            <button
-              class="h-10 rounded-xl px-4 text-sm font-semibold text-[#101541] hover:bg-black/5"
-              @click="closeCategoryModal()"
-            >
-              Cancelar
-            </button>
-            <button
-              class="h-10 rounded-xl bg-[#F472B6] px-4 text-sm font-semibold text-white hover:brightness-95"
-              @click="saveCategoryStub()"
-            >
-              Guardar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal placeholder: Crear producto -->
-    <div v-if="modalProduct.open" class="fixed inset-0 z-50">
-      <div
-        class="absolute inset-0 bg-black/40"
-        @click="closeProductModal()"
-      ></div>
-      <div
-        class="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2"
-      >
-        <div class="rounded-2xl bg-white p-5 shadow-xl ring-1 ring-black/10">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <h3 class="text-lg font-semibold text-[#101541]">
-                Agregar producto
-              </h3>
-              <p class="mt-1 text-xs text-black/50">
-                Categoría:
-                <span class="font-semibold text-[#101541]">{{
-                  modalProduct.categoryName
-                }}</span>
-              </p>
-            </div>
-            <button
-              class="grid h-9 w-9 place-content-center rounded-xl hover:bg-black/5"
-              @click="closeProductModal()"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div class="mt-4 space-y-3">
-            <div>
-              <label class="text-xs font-semibold text-black/60">Nombre</label>
-              <input
-                v-model="modalProduct.name"
-                class="mt-1 h-11 w-full rounded-xl border border-black/10 px-3 text-sm outline-none focus:border-pink-300"
-                placeholder="Ej: Pastel 3 leches"
-              />
-            </div>
-
-            <div>
-              <label class="text-xs font-semibold text-black/60"
-                >Descripción</label
-              >
-              <textarea
-                v-model="modalProduct.description"
-                rows="3"
-                class="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm outline-none focus:border-pink-300"
-                placeholder="Descripción corta..."
-              />
-            </div>
-          </div>
-
-          <div class="mt-5 flex justify-end gap-2">
-            <button
-              class="h-10 rounded-xl px-4 text-sm font-semibold text-[#101541] hover:bg-black/5"
-              @click="closeProductModal()"
-            >
-              Cancelar
-            </button>
-            <button
-              class="h-10 rounded-xl bg-[#F472B6] px-4 text-sm font-semibold text-white hover:brightness-95"
-              @click="saveProductStub()"
-            >
-              Guardar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
-  <!-- ===== MODALES NUEVOS (componentes) ===== -->
 
-  <CategoryModal
+  <ModalsCategoryModal
     v-if="categoryModal.open"
     :open="categoryModal.open"
     :mode="categoryModal.mode"
@@ -379,7 +416,7 @@
     @saved="reloadAll()"
   />
 
-  <ProductModal
+  <ModalsProductModal
     v-if="productModal.open"
     :open="productModal.open"
     :mode="productModal.mode"
@@ -388,14 +425,15 @@
     @created="onProductCreated"
   />
 
-  <ProductPicturesModal
+  <ModalsProductPicturesModal
     v-if="picturesModal.open && picturesModal.product"
     :open="picturesModal.open"
     :product="picturesModal.product"
     @close="picturesModal.open = false"
     @uploaded="reloadAll()"
   />
-  <ProductEditModal
+
+  <ModalsProductEditModal
     v-if="editModalOpen && editProduct"
     :key="editModalKey"
     v-model="editModalOpen"
@@ -404,246 +442,3 @@
     @updated="reloadAll()"
   />
 </template>
-
-<script setup lang="ts">
-definePageMeta({ layout: "admin", pageTitle: "Productos" });
-useHead({ title: "Productos · Magnolias" });
-
-/** =========================
- * State
- * ========================= */
-const loading = ref(true);
-const errorMsg = ref("");
-
-const categories = ref<CategoryItem[]>([]);
-const openCategoryIds = ref<Set<string>>(new Set());
-
-/** =========================
- * Helpers
- * ========================= */
-function productImg(p: ProductItem) {
-  // Obtener solo la primera imagen activa
-  const activePicture = p?.pictures?.find((pic) => pic.isActive !== false);
-  const url = activePicture?.imageUrl;
-  return url ? String(url).trim() : null;
-}
-
-/** =========================
- * Fetch
- * ========================= */
-async function fetchAllProducts() {
-  const data = await categoriesService.getAll();
-  categories.value = data;
-}
-
-const categoriesOrdered = computed(() => {
-  return [...categories.value].sort((a, b) =>
-    a.name.localeCompare(b.name, "es"),
-  );
-});
-
-/** =========================
- * UI: collapse categories
- * ========================= */
-function isCategoryOpen(id: string) {
-  return openCategoryIds.value.has(id);
-}
-function toggleCategory(id: string) {
-  const s = new Set(openCategoryIds.value);
-  if (s.has(id)) s.delete(id);
-  else s.add(id);
-  openCategoryIds.value = s;
-}
-
-/** =========================
- * Favorite (solo 1)
- * ========================= */
-import { productsService } from "~/services/products.service";
-
-/** Devuelve el primer producto marcado como favorito buscando en todas las categorías */
-function findCurrentFavorite(): ProductItem | undefined {
-  for (const cat of categories.value) {
-    const fav = cat.products.find((x) => x.isFavorite);
-    if (fav) return fav;
-  }
-  return undefined;
-}
-
-async function toggleFavorite(p: ProductItem) {
-  const prevFav = findCurrentFavorite();
-
-  // estado objetivo
-  const nextIsFav = !p.isFavorite;
-
-  // optimistic UI: actualiza inmediatamente los objetos reactivos dentro de las categorías
-  if (nextIsFav) {
-    // desmarca el favorito anterior (si existe y es distinto)
-    if (prevFav && prevFav.id !== p.id) prevFav.isFavorite = false;
-    p.isFavorite = true;
-  } else {
-    p.isFavorite = false;
-  }
-
-  try {
-    // El backend desmarca el favorito anterior automáticamente, solo se necesita una llamada
-    await productsService.setFavorite(p, nextIsFav);
-  } catch (e) {
-    // rollback
-    if (nextIsFav) {
-      p.isFavorite = false;
-      if (prevFav && prevFav.id !== p.id) prevFav.isFavorite = true;
-    } else {
-      p.isFavorite = true;
-    }
-  }
-}
-
-/** =========================
- * Modals (stubs)
- * ========================= */
-const modalCategory = ref({
-  open: false,
-  name: "",
-});
-
-function closeCategoryModal() {
-  modalCategory.value.open = false;
-}
-async function saveCategoryStub() {
-  closeCategoryModal();
-}
-
-const modalProduct = ref({
-  open: false,
-  categoryId: "",
-  categoryName: "",
-  name: "",
-  description: "",
-});
-
-function closeProductModal() {
-  modalProduct.value.open = false;
-}
-async function saveProductStub() {
-  closeProductModal();
-}
-
-const modalDetails = ref<{ open: boolean; product: ProductItem | null }>({
-  open: false,
-  product: null,
-});
-
-function closeDetailsModal() {
-  modalDetails.value.open = false;
-  modalDetails.value.product = null;
-}
-
-/** =========================
- * Init
- * ========================= */
-onMounted(async () => {
-  loading.value = true;
-  errorMsg.value = "";
-  try {
-    await fetchAllProducts();
-
-    const firstTwo = categoriesOrdered.value.slice(0, 2);
-    openCategoryIds.value = new Set(firstTwo.map((x) => x.id));
-  } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudieron cargar los productos.";
-  } finally {
-    loading.value = false;
-  }
-});
-
-/// =========================
-/// modales
-import { categoriesService } from "~/services/categories.service";
-import type { CategoryItem, ProductItem } from "~/types/product.types";
-import CategoryModal from "~/components/modals/CategoryModal.vue";
-import ProductModal from "~/components/modals/ProductModal.vue";
-import ProductPicturesModal from "~/components/modals/ProductPicturesModal.vue";
-import ProductEditModal from "~/components/modals/ProductEditModal.vue";
-
-// estados
-const categoryModal = ref({
-  open: false,
-  mode: "create" as const,
-  category: null as any,
-});
-const productModal = ref({
-  open: false,
-  mode: "create" as const,
-  categoryId: "",
-});
-const picturesModal = ref({ open: false, product: null as ProductItem | null });
-
-function openCreateCategory() {
-  categoryModal.value = { open: true, mode: "create", category: null };
-}
-
-function openEditCategory(cat: any) {
-  categoryModal.value = { open: true, mode: "edit", category: cat };
-}
-
-function openCreateProduct(cat: any) {
-  productModal.value = { open: true, mode: "create", categoryId: cat.id };
-}
-
-// después de crear producto -> agregar a la categoría, abrir la categoría, y abrir modal de fotos
-function onProductCreated(p: ProductItem) {
-  const cat = categories.value.find(
-    (c) => c.id === productModal.value.categoryId,
-  );
-  if (cat) {
-    cat.products.push(p);
-    const s = new Set(openCategoryIds.value);
-    s.add(cat.id);
-    openCategoryIds.value = s;
-  }
-  picturesModal.value = { open: true, product: p };
-}
-
-// categories: si no tienes un GET de categorías aún, puedes construirlas desde productos agrupados
-const editModalOpen = ref(false);
-const editProduct = ref<ProductItem | null>(null);
-
-const categoryOptions = computed(() =>
-  categoriesOrdered.value.map((c) => ({ id: c.id, name: c.name })),
-);
-
-// Key dinámica para forzar re-renderizado del modal cuando cambien las fotos
-const editModalKey = computed(() => {
-  if (!editProduct.value) return "";
-  return `${editProduct.value.id}-${editProduct.value.pictures?.length || 0}`;
-});
-
-function openDetails(p: ProductItem) {
-  editProduct.value = p;
-  editModalOpen.value = true;
-}
-
-function closeEditModal() {
-  editModalOpen.value = false;
-  editProduct.value = null;
-}
-
-// refrescar
-async function reloadAll() {
-  const editProductId = editProduct.value?.id;
-  await fetchAllProducts();
-
-  // Si hay un producto en edición, actualizar su referencia con los datos frescos
-  if (editProductId && editModalOpen.value) {
-    let updated: ProductItem | undefined;
-    for (const cat of categories.value) {
-      updated = cat.products.find((p) => p.id === editProductId);
-      if (updated) break;
-    }
-    if (updated) {
-      await nextTick();
-      editProduct.value = updated;
-    }
-  }
-}
-</script>

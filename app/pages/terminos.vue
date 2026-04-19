@@ -1,102 +1,6 @@
-<template>
-  <!-- ===== HERO ===== -->
-  <section
-    class="relative overflow-hidden pt-28 pb-16 px-5 text-center"
-    style="
-      background: radial-gradient(
-        ellipse at 65% 0%,
-        #fce8f0 0%,
-        #f9d5e6 45%,
-        #f2b3d0 100%
-      );
-    "
-  >
-    <img
-      src="/svg/flower-tl.svg"
-      alt=""
-      class="pointer-events-none absolute top-0 left-0 w-48 opacity-20"
-    />
-    <img
-      src="/svg/flower-tl.svg"
-      alt=""
-      class="pointer-events-none absolute top-0 right-0 w-48 opacity-20 scale-x-[-1]"
-    />
-    <h1 class="relative font-serif text-4xl sm:text-5xl text-[#1E1E1E]">
-      Términos y Condiciones
-    </h1>
-  </section>
-
-  <!-- ===== CONTENIDO ===== -->
-  <div>
-    <section
-      v-for="(section, index) in sections"
-      :key="section.id"
-      :class="index % 2 === 0 ? 'bg-white' : 'bg-[#FDE8F2]'"
-    >
-      <div class="mx-auto max-w-3xl px-6 py-10">
-        <!-- Número + título -->
-        <div class="flex items-start gap-4">
-          <span
-            class="flex-shrink-0 mt-1 h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-            style="background: linear-gradient(135deg, #f48ac1, #f472b6)"
-          >
-            {{ index + 1 }}
-          </span>
-          <div class="flex-1 min-w-0">
-            <h2
-              class="font-serif text-xl sm:text-2xl text-[#1E1E1E] leading-snug mb-3"
-            >
-              {{ section.title }}
-            </h2>
-            <div class="space-y-2.5">
-              <p
-                v-for="(paragraph, pi) in section.paragraphs"
-                :key="pi"
-                class="text-[#1E1E1E]/65 text-sm leading-relaxed"
-              >
-                {{ paragraph }}
-              </p>
-              <!-- Lista opcional -->
-              <ul v-if="section.items" class="mt-2 space-y-1.5 pl-1">
-                <li
-                  v-for="(item, li) in section.items"
-                  :key="li"
-                  class="flex items-start gap-2 text-sm text-[#1E1E1E]/65"
-                >
-                  <span
-                    class="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#F48AC1] flex-shrink-0"
-                  ></span>
-                  {{ item }}
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- ===== AVISO FINAL ===== 
-  <section class="bg-[#1E1E1E] py-12 px-5 text-center">
-    <p class="text-white/60 text-sm max-w-xl mx-auto leading-relaxed">
-      Si tienes dudas sobre estos términos, no dudes en
-      <NuxtLink to="/contacto" class="text-[#F48AC1] hover:text-[#f472b6] underline underline-offset-2 transition">
-        contactarnos
-      </NuxtLink>.
-      Estamos aquí para ayudarte.
-    </p>
-  </section>-->
-</template>
-
 <script setup lang="ts">
 definePageMeta({ layout: "landing" });
 useHead({ title: "Términos y Condiciones · Magnolias" });
-
-const lastUpdated = new Date().toLocaleDateString("es-MX", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-});
 
 const sections = [
   {
@@ -163,3 +67,69 @@ const sections = [
   },
 ];
 </script>
+
+<template>
+  <!-- ===== HERO ===== -->
+  <section
+    class="relative overflow-hidden pt-28 pb-16 px-5 text-center"
+    style="
+      background: radial-gradient(
+        ellipse at 65% 0%,
+        #fce8f0 0%,
+        #f9d5e6 45%,
+        #f2b3d0 100%
+      );
+    "
+  >
+    <img
+      src="/svg/flower-tl.svg"
+      alt=""
+      class="pointer-events-none absolute top-0 left-0 w-48 opacity-20"
+    />
+    <img
+      src="/svg/flower-tl.svg"
+      alt=""
+      class="pointer-events-none absolute top-0 right-0 w-48 opacity-20 scale-x-[-1]"
+    />
+    <h1 class="relative font-serif text-4xl sm:text-5xl text-[#1E1E1E]">
+      Términos y Condiciones
+    </h1>
+  </section>
+
+  <!-- ===== CONTENIDO ===== -->
+  <div>
+    <section
+      v-for="(section, index) in sections"
+      :key="section.id"
+      :class="index % 2 === 0 ? 'bg-white' : 'bg-[#FDE8F2]'"
+    >
+      <div class="mx-auto max-w-3xl px-6 py-10">
+        <!-- Número + título -->
+        <div class="flex items-start gap-4">
+          <span
+            class="flex-shrink-0 mt-1 h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+            style="background: linear-gradient(135deg, #f48ac1, #f472b6)"
+          >
+            {{ index + 1 }}
+          </span>
+          <div class="flex-1 min-w-0">
+            <h2
+              class="font-serif text-xl sm:text-2xl text-[#1E1E1E] leading-snug mb-3"
+            >
+              {{ section.title }}
+            </h2>
+            <div class="space-y-2.5">
+              <p
+                v-for="(paragraph, pi) in section.paragraphs"
+                :key="pi"
+                class="text-[#1E1E1E]/65 text-sm leading-relaxed"
+              >
+                {{ paragraph }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</template>

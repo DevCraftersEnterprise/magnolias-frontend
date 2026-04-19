@@ -2,7 +2,6 @@
 definePageMeta({ layout: "admin", pageTitle: "Clientes" });
 useHead({ title: "Clientes · Magnolias" });
 
-// ✅ ESTE es el payload real del POST
 import { customersService } from "~/services/customers.service";
 import { type CustomerCreateForm } from "~/components/modals/CustomerCreateModal.vue";
 import type {
@@ -11,6 +10,7 @@ import type {
   UpdateCustomerRequest,
 } from "~/types/customer.types";
 
+// ─── Composables ─────────────────────────────────────────────────────────────
 const loading = ref(true);
 const errorMsg = ref("");
 
@@ -28,7 +28,7 @@ const {
   nextPage,
 } = usePagination(loadCustomers);
 
-/** ===== Buscador (teléfono) ===== */
+// ─── Search ──────────────────────────────────────────────────────────────────
 function normalizePhoneQuery(input: string) {
   const s = (input ?? "").trim();
   return s ? s.replace(/\D/g, "") : "";
@@ -40,7 +40,7 @@ const {
   clear: clearSearch,
 } = useDebounceSearch(() => loadCustomers(true), 350, normalizePhoneQuery);
 
-/** ===== Carga ===== */
+// ─── Load ────────────────────────────────────────────────────────────────────
 async function loadCustomers(shouldReset = false) {
   loading.value = true;
   errorMsg.value = "";
@@ -68,16 +68,17 @@ async function loadCustomers(shouldReset = false) {
   }
 }
 
+// ─── Lifecycle ───────────────────────────────────────────────────────────────
 onMounted(() => loadCustomers(true));
 
-/** ===== Helpers UI ===== */
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function shortText(v: string | null | undefined, max = 32) {
   if (!v) return "—";
   const s = String(v);
   return s.length > max ? `${s.slice(0, max)}…` : s;
 }
 
-/** ===== Modal "ver más" ===== */
+// ─── Detail modal ────────────────────────────────────────────────────────────
 const detailOpen = ref(false);
 const detailTitle = ref("");
 const detailText = ref("");
@@ -88,7 +89,7 @@ function openDetail(title: string, text: string) {
   detailOpen.value = true;
 }
 
-/** ===== Crear cliente (REAL) ===== */
+// ─── Create ──────────────────────────────────────────────────────────────────
 const createOpen = ref(false);
 const createSaving = ref(false);
 const createError = ref("");
@@ -128,11 +129,9 @@ async function onCreateSave(model: CustomerCreateForm) {
   createSaving.value = true;
   createError.value = "";
   try {
-    // ✅ Validaciones obligatorias
     if (!model.fullName.trim()) throw new Error("El nombre es obligatorio.");
     if (!model.phone.trim()) throw new Error("El teléfono es obligatorio.");
 
-    // ✅ Si activó dirección, obligatorios: calle, número, colonia
     if (model.withAddress) {
       if (!model.address.street.trim())
         throw new Error("La calle es obligatoria.");
@@ -142,7 +141,6 @@ async function onCreateSave(model: CustomerCreateForm) {
         throw new Error("La colonia es obligatoria.");
     }
 
-    // ✅ Convertimos FORM -> REQUEST (payload del POST)
     const payload: CreateCustomerRequest = {
       fullName: model.fullName.trim(),
       phone: model.phone.trim(),
@@ -168,7 +166,7 @@ async function onCreateSave(model: CustomerCreateForm) {
     await customersService.createCustomer(payload);
 
     createOpen.value = false;
-    await loadCustomers(true); // recarga lista desde página 1
+    await loadCustomers(true);
   } catch (e: any) {
     console.error(e);
     createError.value = e?.message || "No se pudo crear el cliente.";
@@ -177,6 +175,7 @@ async function onCreateSave(model: CustomerCreateForm) {
   }
 }
 
+// ─── Edit ────────────────────────────────────────────────────────────────────
 const editOpen = ref(false);
 const editSaving = ref(false);
 const editError = ref("");
@@ -223,7 +222,6 @@ async function onEditSave(model: CustomerCreateForm) {
   editError.value = "";
 
   try {
-    // Validaciones obligatorias (igual que create)
     if (!model.fullName.trim()) throw new Error("El nombre es obligatorio.");
     if (!model.phone.trim()) throw new Error("El teléfono es obligatorio.");
 
@@ -242,7 +240,7 @@ async function onEditSave(model: CustomerCreateForm) {
       alternativePhone: toNullIfEmpty(model.alternativePhone),
       email: toNullIfEmpty(model.email),
       notes: toNullIfEmpty(model.notes),
-      isActive: true, // si quieres mantenerlo siempre activo al editar (si no, quítalo)
+      isActive: true,
       address: model.withAddress
         ? {
             street: model.address.street.trim(),
@@ -255,14 +253,14 @@ async function onEditSave(model: CustomerCreateForm) {
             reference: toNullIfEmpty(model.address.reference),
             notes: toNullIfEmpty(model.address.notes),
           }
-        : null, // si apagó toggle, borra dirección
+        : null,
     };
 
     await customersService.updateCustomer(editingId.value, payload);
 
     editOpen.value = false;
     editingId.value = null;
-    await loadCustomers(false); // recarga página actual sin resetear offset
+    await loadCustomers(false);
   } catch (e: any) {
     console.error(e);
     editError.value = e?.message || "No se pudo actualizar el cliente.";
@@ -270,6 +268,8 @@ async function onEditSave(model: CustomerCreateForm) {
     editSaving.value = false;
   }
 }
+
+// ─── Delete ──────────────────────────────────────────────────────────────────
 const deleteConfirmOpen = ref(false);
 const deleteSaving = ref(false);
 const deleteError = ref("");
@@ -285,7 +285,6 @@ async function confirmDelete() {
   try {
     await customersService.deleteCustomer(editingId.value);
 
-    // cerrar todo y refrescar
     deleteConfirmOpen.value = false;
     editOpen.value = false;
     editingId.value = null;

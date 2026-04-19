@@ -7,9 +7,12 @@ definePageMeta({
 useHead({ title: "Panel · Magnolias" });
 
 import { dashboardService } from "~/services/dashboard.service";
+
+// ─── Composables ─────────────────────────────────────────────────────────────
 const { selectedBranch } = useBranch();
 const { user } = useAuthUser();
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 type OrderSummaryItem = {
   key: string;
   label: string;
@@ -19,11 +22,13 @@ type OrderSummaryItem = {
   textColor?: string;
 };
 
+// ─── State ────────────────────────────────────────────────────────────────────
 const loading = ref(true);
 const errorMsg = ref("");
 const orderSummary = ref<OrderSummaryItem[]>([]);
 const orderTypeSummary = ref<OrderSummaryItem[]>([]);
 
+// ─── Load ────────────────────────────────────────────────────────────────────
 async function loadOrderStatistics() {
   try {
     const { data } = await dashboardService.getOrderStatus({
@@ -115,6 +120,7 @@ async function loadOrderStatistics() {
   }
 }
 
+// ─── Lifecycle & watchers ───────────────────────────────────────────────────
 const isBaker = user.value?.role === "BAKER";
 
 onMounted(() => {
@@ -166,17 +172,7 @@ watch(selectedBranch, () => {
             />
           </div>
         </div>
-        <div>
-          <!-- <div class="mb-5">
-            <h2 class="text-[20px] font-bold text-[#1E1E1E]">
-              Alertas de inventario
-            </h2>
-          </div>
-
-          <div class="grid grid-cols-1 gap-4">
-            <AdminOrderSummaryCard v-for="item in orderTypeSummary" :key="item.key" :item="item" label="Tipos" />
-          </div> -->
-        </div>
+        <div></div>
       </div>
     </div>
   </section>

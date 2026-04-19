@@ -8,7 +8,7 @@ import type { CreateOrderPayload } from "~/types/order.types";
 const router = useRouter();
 const { branches, selectedBranch: topbarBranch } = useBranch();
 
-// ── Composables ───────────────────────────────────────────────────────────────
+// ─── Composables ──────────────────────────────────────────────────────────────
 const {
   breadTypes,
   fillings,
@@ -97,11 +97,11 @@ const {
 
 const { flowerRows, addFlowerRow, removeFlowerRow } = useFlowerRows();
 
-// ── Stepper ───────────────────────────────────────────────────────────────────
+// ─── Stepper ───────────────────────────────────────────────────────────────────
 const step = ref(1);
 const STEPS = ["Cliente", "Tipo y logística", "Productos", "Pago"] as const;
 
-// ── Close product panel on outside click ──────────────────────────────────────
+// ─── Close product panel on outside click ─────────────────────────────────────
 const productSearchRef = ref<HTMLElement | null>(null);
 if (typeof window !== "undefined") {
   document.addEventListener("click", (e) => {
@@ -114,7 +114,7 @@ if (typeof window !== "undefined") {
   });
 }
 
-// ── Step 4 summary helpers ────────────────────────────────────────────────────
+// ─── Step 4 summary helpers ────────────────────────────────────────────────────
 const TYPE_LABELS: Record<string, string> = {
   DOMICILIO: "Domicilio",
   VITRINA: "Vitrina",
@@ -142,7 +142,7 @@ const step4DeliveryAddr = computed(() => {
     .join(", ");
 });
 
-// ── Navigation ────────────────────────────────────────────────────────────────
+// ─── Navigation ────────────────────────────────────────────────────────────────
 const canNext = computed(() => {
   if (step.value === 1) return !!selectedCustomer.value;
   if (step.value === 2) {
@@ -189,7 +189,7 @@ const canNext = computed(() => {
   return true;
 });
 
-// ── Submit ────────────────────────────────────────────────────────────────────
+// ─── Submit ─────────────────────────────────────────────────────────────────────
 const submitting = ref(false);
 const submitError = ref("");
 

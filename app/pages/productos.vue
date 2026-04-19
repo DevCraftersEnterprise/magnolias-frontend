@@ -1,3 +1,77 @@
+<script setup lang="ts">
+import type { ProductItem } from "~/types/product.types";
+
+definePageMeta({ layout: "landing" });
+useHead({ title: "Productos · Magnolias" });
+
+const apiBase = (useRuntimeConfig().public.apiBase as string).replace(
+  /\/$/,
+  "",
+);
+const LIMIT = 10;
+
+// ─── State ───────────────────────────────────────────────────────────────────
+const products = ref<ProductItem[]>([]);
+const offset = ref(0);
+const hasMore = ref(true);
+const initialLoading = ref(true);
+const loadingMore = ref(false);
+const searchQuery = ref("");
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+// ─── Fetch ───────────────────────────────────────────────────────────────────
+async function fetchProducts(reset = false) {
+  if (reset) {
+    products.value = [];
+    offset.value = 0;
+    hasMore.value = true;
+  }
+
+  const params = new URLSearchParams({
+    limit: String(LIMIT),
+    offset: String(offset.value),
+  });
+  if (searchQuery.value.trim()) params.set("name", searchQuery.value.trim());
+
+  const result = await $fetch<{ items: ProductItem[] }>(
+    `${apiBase}/api/products?${params.toString()}`,
+  );
+  const items = result?.items ?? [];
+  products.value.push(...items);
+  offset.value += items.length;
+  hasMore.value = items.length === LIMIT;
+}
+
+async function loadMore() {
+  if (loadingMore.value || !hasMore.value) return;
+  loadingMore.value = true;
+  await fetchProducts();
+  loadingMore.value = false;
+}
+
+// ─── Lifecycle & watchers ────────────────────────────────────────────────────
+watch(searchQuery, () => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(async () => {
+    initialLoading.value = true;
+    await fetchProducts(true);
+    initialLoading.value = false;
+  }, 350);
+});
+
+onMounted(async () => {
+  await fetchProducts();
+  initialLoading.value = false;
+});
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function productImg(p: ProductItem) {
+  const active = p?.pictures?.find((pic) => pic.isActive !== false);
+  const url = active?.imageUrl;
+  return url ? String(url).trim() : null;
+}
+</script>
+
 <template>
   <!-- ===== HERO ===== -->
   <section
@@ -200,72 +274,3 @@
     </div>
   </template>
 </template>
-
-<script setup lang="ts">
-import type { ProductItem } from "~/types/product.types";
-
-definePageMeta({ layout: "landing" });
-useHead({ title: "Productos · Magnolias" });
-
-const apiBase = (useRuntimeConfig().public.apiBase as string).replace(
-  /\/$/,
-  "",
-);
-const LIMIT = 10;
-
-const products = ref<ProductItem[]>([]);
-const offset = ref(0);
-const hasMore = ref(true);
-const initialLoading = ref(true);
-const loadingMore = ref(false);
-const searchQuery = ref("");
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-async function fetchProducts(reset = false) {
-  if (reset) {
-    products.value = [];
-    offset.value = 0;
-    hasMore.value = true;
-  }
-  const params = new URLSearchParams({
-    limit: String(LIMIT),
-    offset: String(offset.value),
-  });
-  if (searchQuery.value.trim()) params.set("name", searchQuery.value.trim());
-
-  const result = await $fetch<{ items: ProductItem[] }>(
-    `${apiBase}/api/products?${params.toString()}`,
-  );
-  const items = result?.items ?? [];
-  products.value.push(...items);
-  offset.value += items.length;
-  hasMore.value = items.length === LIMIT;
-}
-
-async function loadMore() {
-  if (loadingMore.value || !hasMore.value) return;
-  loadingMore.value = true;
-  await fetchProducts();
-  loadingMore.value = false;
-}
-
-watch(searchQuery, () => {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(async () => {
-    initialLoading.value = true;
-    await fetchProducts(true);
-    initialLoading.value = false;
-  }, 350);
-});
-
-onMounted(async () => {
-  await fetchProducts();
-  initialLoading.value = false;
-});
-
-function productImg(p: ProductItem) {
-  const active = p?.pictures?.find((pic) => pic.isActive !== false);
-  const url = active?.imageUrl;
-  return url ? String(url).trim() : null;
-}
-</script>

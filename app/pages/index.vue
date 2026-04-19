@@ -1,3 +1,61 @@
+<script setup lang="ts">
+import type { BranchResponse } from "~/types/branch.types";
+import type { ProductItem } from "~/types/product.types";
+
+definePageMeta({ layout: "landing" });
+useHead({ title: "Inicio · Magnolias" });
+
+const apiBase = (useRuntimeConfig().public.apiBase as string).replace(
+  /\/$/,
+  "",
+);
+
+// ─── Hero (producto favorito) ────────────────────────────────────────────────
+type FavoriteProduct = {
+  id: string;
+  name: string;
+  description?: string | null;
+  category?: { id: string; name: string } | null;
+  pictures?: { id: string; imageUrl: string; isActive: boolean }[];
+};
+
+const { data: heroData, pending: heroLoading } = useFetch<FavoriteProduct>(
+  `${apiBase}/api/products/favorite`,
+  { server: false, lazy: true },
+);
+
+const heroProduct = computed(() => heroData.value ?? null);
+
+const heroImageUrl = computed(() => {
+  const pic = heroProduct.value?.pictures?.find((p) => p.isActive !== false);
+  return pic?.imageUrl ?? "/img/cupcakes.png";
+});
+
+function onOrder() {}
+
+// ─── Products ────────────────────────────────────────────────────────────────
+type ProductsResult = { items: ProductItem[] };
+
+const { data: productsData, pending: productsLoading } =
+  useFetch<ProductsResult>(`${apiBase}/api/products?limit=4&offset=0`, {
+    server: false,
+    lazy: true,
+  });
+const featuredProducts = computed(() => productsData.value?.items ?? []);
+
+function productImg(p: ProductItem) {
+  const active = p?.pictures?.find((pic) => pic.isActive !== false);
+  const url = active?.imageUrl;
+  return url ? String(url).trim() : null;
+}
+
+// ─── Branches ────────────────────────────────────────────────────────────────
+const { data: branchesData, pending: branchesLoading } = useFetch<
+  BranchResponse[]
+>(`${apiBase}/api/branches`, { server: false, lazy: true });
+const branches = computed(() => branchesData.value ?? []);
+</script>
+
 <template>
   <!-- ===== HERO (gradient starts at very top, pt-24 clears fixed navbar) ===== -->
   <section
@@ -358,63 +416,3 @@
     </div>
   </section>
 </template>
-
-<script setup lang="ts">
-import type { BranchResponse } from "~/types/branch.types";
-import type { ProductItem } from "~/types/product.types";
-
-definePageMeta({ layout: "landing" });
-useHead({ title: "Inicio · Magnolias" });
-
-const apiBase = (useRuntimeConfig().public.apiBase as string).replace(
-  /\/$/,
-  "",
-);
-
-// ─── Hero (producto favorito) ────────────────────────────────────────────────
-type FavoriteProduct = {
-  id: string;
-  name: string;
-  description?: string | null;
-  category?: { id: string; name: string } | null;
-  pictures?: { id: string; imageUrl: string; isActive: boolean }[];
-};
-
-const { data: heroData, pending: heroLoading } = useFetch<FavoriteProduct>(
-  `${apiBase}/api/products/favorite`,
-  { server: false, lazy: true },
-);
-
-const heroProduct = computed(() => heroData.value ?? null);
-
-const heroImageUrl = computed(() => {
-  const pic = heroProduct.value?.pictures?.find((p) => p.isActive !== false);
-  return pic?.imageUrl ?? "/img/cupcakes.png";
-});
-
-function onOrder() {
-  // TODO: conectar con flujo de pedidos
-}
-
-function productImg(p: ProductItem) {
-  const active = p?.pictures?.find((pic) => pic.isActive !== false);
-  const url = active?.imageUrl;
-  return url ? String(url).trim() : null;
-}
-
-// ─── Products (useFetch — setup context, no auth needed) ─────────────────────
-type ProductsResult = { items: ProductItem[] };
-
-const { data: productsData, pending: productsLoading } =
-  useFetch<ProductsResult>(`${apiBase}/api/products?limit=4&offset=0`, {
-    server: false,
-    lazy: true,
-  });
-const featuredProducts = computed(() => productsData.value?.items ?? []);
-
-// ─── Branches ────────────────────────────────────────────────────────────────
-const { data: branchesData, pending: branchesLoading } = useFetch<
-  BranchResponse[]
->(`${apiBase}/api/branches`, { server: false, lazy: true });
-const branches = computed(() => branchesData.value ?? []);
-</script>

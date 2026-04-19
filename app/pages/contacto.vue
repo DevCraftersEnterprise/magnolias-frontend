@@ -1,6 +1,28 @@
+<script setup lang="ts">
+definePageMeta({ layout: "landing" });
+useHead({ title: "Contacto · Magnolias" });
+
+const form = reactive({ name: "", email: "", message: "" });
+const sending = ref(false);
+const sent = ref(false);
+
+async function onSubmit() {
+  sending.value = true;
+  // TODO: conectar con endpoint de contacto
+  await new Promise((r) => setTimeout(r, 800));
+  sent.value = true;
+  sending.value = false;
+  form.name = "";
+  form.email = "";
+  form.message = "";
+}
+</script>
+
 <template>
   <!-- Hero -->
-  <section class="bg-gradient-to-br from-[#FFF0F7] via-[#FDE8F2] to-[#FAD6EA] py-16 px-5 text-center">
+  <section
+    class="bg-gradient-to-br from-[#FFF0F7] via-[#FDE8F2] to-[#FAD6EA] py-16 px-5 text-center"
+  >
     <h1 class="text-3xl sm:text-4xl font-bold text-[#101541]">Contáctanos</h1>
     <p class="mt-3 text-sm sm:text-base text-[#101541]/60 max-w-lg mx-auto">
       ¿Tienes dudas o quieres hacer un pedido personalizado? Escríbenos.
@@ -10,8 +32,10 @@
   <!-- Formulario -->
   <section class="py-14 px-5">
     <div class="mx-auto max-w-lg">
-      <form class="rounded-2xl bg-white ring-1 ring-black/5 shadow-sm p-6 sm:p-8 space-y-5" @submit.prevent="onSubmit">
-
+      <form
+        class="rounded-2xl bg-white ring-1 ring-black/5 shadow-sm p-6 sm:p-8 space-y-5"
+        @submit.prevent="onSubmit"
+      >
         <div>
           <label class="text-xs font-semibold text-black/60">Nombre</label>
           <input
@@ -24,7 +48,9 @@
         </div>
 
         <div>
-          <label class="text-xs font-semibold text-black/60">Correo electrónico</label>
+          <label class="text-xs font-semibold text-black/60"
+            >Correo electrónico</label
+          >
           <input
             v-model="form.email"
             type="email"
@@ -46,7 +72,10 @@
         </div>
 
         <!-- Feedback -->
-        <p v-if="sent" class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+        <p
+          v-if="sent"
+          class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700"
+        >
           ¡Mensaje enviado! Te responderemos a la brevedad.
         </p>
 
@@ -55,29 +84,9 @@
           :disabled="sending"
           class="w-full h-11 rounded-xl bg-[#F472B6] text-sm font-semibold text-white hover:brightness-95 transition active:scale-[0.99] disabled:opacity-60"
         >
-          {{ sending ? 'Enviando...' : 'Enviar mensaje' }}
+          {{ sending ? "Enviando..." : "Enviar mensaje" }}
         </button>
       </form>
     </div>
   </section>
 </template>
-
-<script setup lang="ts">
-definePageMeta({ layout: 'landing' })
-useHead({ title: 'Contacto · Magnolias' })
-
-const form = reactive({ name: '', email: '', message: '' })
-const sending = ref(false)
-const sent = ref(false)
-
-async function onSubmit() {
-  sending.value = true
-  // TODO: conectar con endpoint de contacto
-  await new Promise(r => setTimeout(r, 800))
-  sent.value = true
-  sending.value = false
-  form.name = ''
-  form.email = ''
-  form.message = ''
-}
-</script>

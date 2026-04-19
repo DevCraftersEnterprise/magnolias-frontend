@@ -1,14 +1,17 @@
 <script setup lang="ts">
-definePageMeta({ layout: "admin", pageTitle: "Usuarios" });
-useHead({ title: "Usuarios · Magnolias" });
-
 import { usersService } from "~/services/users.service";
 import type { UserItem, UserRole } from "~/types/user.types";
 
+definePageMeta({ layout: "admin", pageTitle: "Usuarios" });
+useHead({ title: "Usuarios · Magnolias" });
+
+// ─── State ───────────────────────────────────────────────────────────────────
 const loading = ref(true);
 const errorMsg = ref("");
 const users = ref<UserItem[]>([]);
+const roleFilter = ref<UserRole | "">("");
 
+// ─── Pagination & search ─────────────────────────────────────────────────────
 const {
   pagination,
   update,
@@ -27,8 +30,7 @@ const {
   clear: clearSearch,
 } = useDebounceSearch(() => loadUsers(true));
 
-const roleFilter = ref<UserRole | "">("");
-
+// ─── Load ────────────────────────────────────────────────────────────────────
 async function loadUsers(shouldReset = false) {
   loading.value = true;
   errorMsg.value = "";
@@ -37,10 +39,9 @@ async function loadUsers(shouldReset = false) {
       reset();
       users.value = [];
     }
-    const q = debouncedQuery.value;
 
     const data = await usersService.getUsers({
-      username: q || undefined,
+      username: debouncedQuery.value || undefined,
       role: roleFilter.value || undefined,
       limit: pagination.value.limit,
       offset: pagination.value.offset,
@@ -55,9 +56,11 @@ async function loadUsers(shouldReset = false) {
   }
 }
 
+// ─── Lifecycle & watchers ────────────────────────────────────────────────────
 watch(roleFilter, () => loadUsers(true));
 onMounted(() => loadUsers(true));
 
+// ─── Modals ──────────────────────────────────────────────────────────────────
 const createOpen = ref(false);
 const editingUser = ref<UserItem | null>(null);
 
@@ -65,6 +68,7 @@ function onUserCreated(_user: UserItem) {
   loadUsers(true);
 }
 
+// ─── Role helpers ────────────────────────────────────────────────────────────
 const roleLabels: Record<string, string> = {
   SUPER: "Super",
   ADMIN: "Admin",

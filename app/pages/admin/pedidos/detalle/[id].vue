@@ -8,13 +8,13 @@ import type { OrderDetail, OrderStatus, OrderType } from "~/types/order.types";
 const route = useRoute();
 const id = route.params.id as string;
 
-// ── Only bakers should access this page ─────────────────────────────────────
+// ─── Auth guard ─────────────────────────────────────────────────────────────
 const { user } = useAuthUser();
 if (user.value?.role !== "BAKER") {
   await navigateTo("/admin/pedidos", { replace: true });
 }
 
-// ── Load detail ──────────────────────────────────────────────────────────────
+// ─── Load detail ────────────────────────────────────────────────────────────
 const order = ref<OrderDetail | null>(null);
 const loading = ref(true);
 const error = ref("");
@@ -29,7 +29,7 @@ onMounted(async () => {
   }
 });
 
-// ── Status advance ────────────────────────────────────────────────────────────
+// ─── Status advance ──────────────────────────────────────────────────────────
 const advancing = ref(false);
 const advanceError = ref("");
 const confirmOpen = ref(false);
@@ -42,11 +42,6 @@ const advanceLabel = computed(() => {
   if (order.value?.status === "CREATED") return "Iniciar producción";
   if (order.value?.status === "IN PROCESS") return "Marcar como listo";
   return "";
-});
-const advanceColor = computed(() => {
-  if (order.value?.status === "CREATED") return "amber";
-  if (order.value?.status === "IN PROCESS") return "violet";
-  return "gray";
 });
 const advanceNextLabel = computed(() => {
   if (order.value?.status === "CREATED") return "En producción";
@@ -80,7 +75,7 @@ async function advance() {
   }
 }
 
-// ── Lightbox ─────────────────────────────────────────────────────────────
+// ─── Lightbox ────────────────────────────────────────────────────────────────
 const lightboxSrc = ref<string | null>(null);
 function openLightbox(src: string) {
   lightboxSrc.value = src;
@@ -89,7 +84,7 @@ function closeLightbox() {
   lightboxSrc.value = null;
 }
 
-// zoom
+// zoom state
 const zoom = ref(1);
 const pan = ref({ x: 0, y: 0 });
 const dragging = ref(false);
@@ -123,7 +118,7 @@ function resetZoom() {
 }
 watch(lightboxSrc, () => resetZoom());
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────────
 function typeColor(t?: OrderType) {
   return t
     ? (TYPE_COLORS[t] ?? { bg: "#eee", text: "#333" })

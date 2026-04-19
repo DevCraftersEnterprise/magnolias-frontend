@@ -10,7 +10,7 @@ export type ProductItem = {
     description: string;
     isFavorite: boolean;
     isActive: boolean;
-    category: { id: string; };
+    category: { id: string; name: string; };
     createdAt: string;
     updatedAt: string;
     pictures: ProductPicture[];

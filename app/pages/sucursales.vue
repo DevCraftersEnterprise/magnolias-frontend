@@ -1,3 +1,32 @@
+<script setup lang="ts">
+import type { BranchResponse } from "~/types/branch.types";
+
+definePageMeta({ layout: "landing" });
+useHead({ title: "Sucursales · Magnolias" });
+
+const apiBase = (useRuntimeConfig().public.apiBase as string).replace(
+  /\/$/,
+  "",
+);
+
+// ─── State ───────────────────────────────────────────────────────────────────
+const loading = ref(true);
+const errorMsg = ref("");
+const branches = ref<BranchResponse[]>([]);
+
+// ─── Lifecycle ───────────────────────────────────────────────────────────────
+onMounted(async () => {
+  try {
+    const data = await $fetch<BranchResponse[]>(`${apiBase}/api/branches`);
+    branches.value = Array.isArray(data) ? data : [];
+  } catch {
+    errorMsg.value = "No se pudieron cargar las sucursales.";
+  } finally {
+    loading.value = false;
+  }
+});
+</script>
+
 <template>
   <!-- ===== HERO ===== -->
   <section
@@ -195,30 +224,3 @@
     </div>
   </section>
 </template>
-
-<script setup lang="ts">
-import type { BranchResponse } from "~/types/branch.types";
-
-definePageMeta({ layout: "landing" });
-useHead({ title: "Sucursales · Magnolias" });
-
-const apiBase = (useRuntimeConfig().public.apiBase as string).replace(
-  /\/$/,
-  "",
-);
-
-const loading = ref(true);
-const errorMsg = ref("");
-const branches = ref<BranchResponse[]>([]);
-
-onMounted(async () => {
-  try {
-    const data = await $fetch<BranchResponse[]>(`${apiBase}/api/branches`);
-    branches.value = Array.isArray(data) ? data : [];
-  } catch {
-    errorMsg.value = "No se pudieron cargar las sucursales.";
-  } finally {
-    loading.value = false;
-  }
-});
-</script>
