@@ -70,7 +70,7 @@ async function executeDeliver() {
 }
 
 // ─── ASSIGNMENT STATE ─────────────────────────────────────────────────────────
-const assignTarget = ref<import("~/types/order.types").OrderItem | null>(null);
+const assignTarget = ref<OrderItem | null>(null);
 const assignOpen = ref(false);
 const bakers = ref<UserItem[]>([]);
 const bakersLoading = ref(false);
@@ -78,7 +78,7 @@ const bakersError = ref("");
 const selectedBakerId = ref("");
 const assigning = ref(false);
 
-async function openAssignModal(order: import("~/types/order.types").OrderItem) {
+async function openAssignModal(order: OrderItem) {
   assignTarget.value = order;
   selectedBakerId.value = order.assignments?.[0]?.baker.id ?? "";
   assignOpen.value = true;
