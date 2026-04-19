@@ -7,17 +7,23 @@ import { usersService } from "~/services/users.service";
 import UserModal from "~/components/modals/UserModal.vue";
 import type { UserItem, UserRole } from "~/types/user.types";
 import { useDebounceSearch } from "~/composables/useDebounceSearch";
+import { usePagination } from "~/composables/usePagination";
 
 const loading = ref(true);
 const errorMsg = ref("");
 const users = ref<UserItem[]>([]);
-const pagination = ref({
-  limit: 10,
-  offset: 0,
-  totalPages: 1,
-  currentPage: 1,
-  total: 0,
-});
+
+const {
+  pagination,
+  update,
+  reset,
+  canPrev,
+  canNext,
+  showingFrom,
+  showingTo,
+  prevPage,
+  nextPage,
+} = usePagination(loadUsers);
 
 const {
   query: searchQuery,
@@ -27,25 +33,25 @@ const {
 
 const roleFilter = ref<UserRole | "">("");
 
-async function loadUsers(reset = false) {
+async function loadUsers(shoudlReset = false) {
   loading.value = true;
   errorMsg.value = "";
   try {
-    if (reset) {
-      pagination.value.offset = 0;
+    if (shoudlReset) {
+      reset();
       users.value = [];
     }
     const q = debouncedQuery.value;
+
     const data = await usersService.getUsers({
       username: q || undefined,
       role: roleFilter.value || undefined,
       limit: pagination.value.limit,
       offset: pagination.value.offset,
     });
+
     users.value = data.items ?? [];
-    pagination.value.totalPages = data.pagination.totalPages;
-    pagination.value.currentPage = data.pagination.currentPage;
-    pagination.value.total = data.total;
+    update(data.pagination, data.total);
   } catch (e: any) {
     errorMsg.value = e?.message || "Ocurrió un error cargando usuarios.";
   } finally {
@@ -53,37 +59,8 @@ async function loadUsers(reset = false) {
   }
 }
 
-watch(debouncedQuery, () => loadUsers(true));
 watch(roleFilter, () => loadUsers(true));
 onMounted(() => loadUsers(true));
-
-const canPrev = computed(() => pagination.value.offset > 0);
-const canNext = computed(
-  () => pagination.value.currentPage < pagination.value.totalPages,
-);
-const showingFrom = computed(() =>
-  pagination.value.total === 0 ? 0 : pagination.value.offset + 1,
-);
-const showingTo = computed(() =>
-  Math.min(
-    pagination.value.offset + users.value.length,
-    pagination.value.total,
-  ),
-);
-
-async function prevPage() {
-  if (!canPrev.value) return;
-  pagination.value.offset = Math.max(
-    0,
-    pagination.value.offset - pagination.value.limit,
-  );
-  await loadUsers(false);
-}
-async function nextPage() {
-  if (!canNext.value) return;
-  pagination.value.offset += pagination.value.limit;
-  await loadUsers(false);
-}
 
 const createOpen = ref(false);
 const editingUser = ref<UserItem | null>(null);
@@ -373,8 +350,11 @@ function roleBadge(r: string) {
             <!-- Paginación -->
             <div class="mt-4 flex items-center justify-between">
               <p class="text-[12px] text-gray-500">
-                Mostrando {{ showingFrom }}–{{ showingTo }} de
-                {{ pagination.total }} · Página {{ pagination.currentPage }} de
+                Mostrando {{ showingFrom(users.length) }}–{{
+                  showingTo(users.length)
+                }}
+                de {{ pagination.total }} · Página
+                {{ pagination.currentPage }} de
                 {{ pagination.totalPages }}
               </p>
               <div class="flex items-center gap-2">

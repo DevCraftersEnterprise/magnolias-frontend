@@ -17,6 +17,7 @@ import type {
   FrostingItem,
   StyleItem,
 } from "~/types/catalog.types";
+import { useLoadMore } from "~/composables/useLoadMore";
 
 type BlockKey =
   | "pan"
@@ -71,194 +72,135 @@ async function loadBreadTypes() {
 }
 
 /** ====== Rellenos (API real) ====== */
-const fillingsLoading = ref(false);
 const fillings = ref<FillingItem[]>([]);
-const fillingsPagination = ref({
-  limit: 10,
-  offset: 0,
-  totalPages: 1,
-  currentPage: 1,
-});
+const fillingsLoading = ref(false);
+const fillingsLM = useLoadMore(loadFillings);
 
 async function loadFillings() {
   fillingsLoading.value = true;
   try {
     const data = await catalogsService.getFillings(
-      fillingsPagination.value.limit,
-      fillingsPagination.value.offset,
+      fillingsLM.limit.value,
+      fillingsLM.offset.value,
     );
 
-    // ✅ solo activos
-    const activeItems = (data.items ?? []).filter((x) => x.isActive);
-    fillings.value = [...fillings.value, ...activeItems];
-
-    fillingsPagination.value = {
-      ...fillingsPagination.value,
-      totalPages: data.pagination.totalPages,
-      currentPage: data.pagination.currentPage,
-    };
+    fillings.value = [
+      ...fillings.value,
+      ...(data.items ?? []).filter((x) => x.isActive),
+    ];
+    fillingsLM.update(data.pagination);
   } finally {
     fillingsLoading.value = false;
   }
 }
 
-function loadMoreFillings() {
-  if (
-    fillingsPagination.value.currentPage < fillingsPagination.value.totalPages
-  ) {
-    fillingsPagination.value.offset += fillingsPagination.value.limit;
-    loadFillings();
-  }
+async function resetFillings() {
+  fillings.value = [];
+  fillingsLM.reset();
+  await loadFillings();
 }
 
 /** ====== Sabores (API real) ====== */
 const flavorsLoading = ref(false);
 const flavors = ref<FlavorItem[]>([]);
-const flavorsPagination = ref({
-  limit: 10,
-  offset: 0,
-  totalPages: 1,
-  currentPage: 1,
-});
+const flavorsLM = useLoadMore(loadFlavors);
 
 async function loadFlavors() {
   flavorsLoading.value = true;
   try {
     const data = await catalogsService.getFlavors(
-      flavorsPagination.value.limit,
-      flavorsPagination.value.offset,
+      flavorsLM.limit.value,
+      flavorsLM.offset.value,
     );
-
-    // ✅ solo activos
-    const activeItems = (data.items ?? []).filter((x) => x.isActive);
-    flavors.value = [...flavors.value, ...activeItems];
-
-    flavorsPagination.value = {
-      ...flavorsPagination.value,
-      totalPages: data.pagination.totalPages,
-      currentPage: data.pagination.currentPage,
-    };
+    flavors.value = [
+      ...flavors.value,
+      ...(data.items ?? []).filter((x) => x.isActive),
+    ];
+    flavorsLM.update(data.pagination);
   } finally {
     flavorsLoading.value = false;
   }
 }
 
-function loadMoreFlavors() {
-  if (
-    flavorsPagination.value.currentPage < flavorsPagination.value.totalPages
-  ) {
-    flavorsPagination.value.offset += flavorsPagination.value.limit;
-    loadFlavors();
-  }
+async function resetFlavors() {
+  flavors.value = [];
+  flavorsLM.reset();
+  await loadFlavors();
 }
 
 /** ====== Frostings (API real) ====== */
 const frostingsLoading = ref(false);
 const frostings = ref<FrostingItem[]>([]);
-const frostingsPagination = ref({
-  limit: 10,
-  offset: 0,
-  totalPages: 1,
-  currentPage: 1,
-});
+const frostingsLM = useLoadMore(loadFrostings);
 
 async function loadFrostings() {
   frostingsLoading.value = true;
   try {
     const data = await catalogsService.getFrostings(
-      frostingsPagination.value.limit,
-      frostingsPagination.value.offset,
+      frostingsLM.limit.value,
+      frostingsLM.offset.value,
     );
     frostings.value = [...frostings.value, ...data.items];
-    frostingsPagination.value = {
-      ...frostingsPagination.value,
-      totalPages: data.pagination.totalPages,
-      currentPage: data.pagination.currentPage,
-    };
+    frostingsLM.update(data.pagination);
   } finally {
     frostingsLoading.value = false;
   }
 }
 
-function loadMoreFrostings() {
-  if (
-    frostingsPagination.value.currentPage < frostingsPagination.value.totalPages
-  ) {
-    frostingsPagination.value.offset += frostingsPagination.value.limit;
-    loadFrostings();
-  }
+async function resetFrostings() {
+  frostings.value = [];
+  frostingsLM.reset();
+  await loadFrostings();
 }
 
 /** ====== Styles (API real) ====== */
 const stylesLoading = ref(false);
 const styles = ref<StyleItem[]>([]);
-const stylesPagination = ref({
-  limit: 10,
-  offset: 0,
-  totalPages: 1,
-  currentPage: 1,
-});
+const stylesLM = useLoadMore(loadStyles);
 
 async function loadStyles() {
   stylesLoading.value = true;
   try {
     const data = await catalogsService.getStyles(
-      stylesPagination.value.limit,
-      stylesPagination.value.offset,
+      stylesLM.limit.value,
+      stylesLM.offset.value,
     );
     styles.value = [...styles.value, ...data.items];
-    stylesPagination.value = {
-      ...stylesPagination.value,
-      totalPages: data.pagination.totalPages,
-      currentPage: data.pagination.currentPage,
-    };
+    stylesLM.update(data.pagination);
   } finally {
     stylesLoading.value = false;
   }
 }
 
-function loadMoreStyles() {
-  if (stylesPagination.value.currentPage < stylesPagination.value.totalPages) {
-    stylesPagination.value.offset += stylesPagination.value.limit;
-    loadStyles();
-  }
+async function resetStyles() {
+  styles.value = [];
+  stylesLM.reset();
+  await loadStyles();
 }
 
 /** ====== Flowers (API real) ====== */
 const flowersLoading = ref(false);
 const flowers = ref<FlowerItem[]>([]);
-const flowersPagination = ref({
-  limit: 10,
-  offset: 0,
-  totalPages: 1,
-  currentPage: 1,
-});
+const flowersLM = useLoadMore(loadFlowers);
 
 async function loadFlowers() {
   flowersLoading.value = true;
   try {
     const data = await catalogsService.getFlowers(
-      flowersPagination.value.limit,
-      flowersPagination.value.offset,
+      flowersLM.limit.value,
+      flowersLM.offset.value,
     );
     flowers.value = [...flowers.value, ...data.items];
-    flowersPagination.value = {
-      ...flowersPagination.value,
-      totalPages: data.pagination.totalPages,
-      currentPage: data.pagination.currentPage,
-    };
+    flowersLM.update(data.pagination);
   } finally {
     flowersLoading.value = false;
   }
 }
 
-function loadMoreFlowers() {
-  if (
-    flowersPagination.value.currentPage < flowersPagination.value.totalPages
-  ) {
-    flowersPagination.value.offset += flowersPagination.value.limit;
-    loadFlowers();
-  }
+async function resetFlowers() {
+  flowers.value = [];
+  flowersLM.reset();
+  await loadFlowers();
 }
 
 onMounted(() => {
@@ -349,62 +291,32 @@ function openDelete(block: BlockKey, item: AnyItem) {
 
       relleno: async () => {
         await catalogsService.deleteFilling(item.id);
-        fillings.value = [];
-        fillingsPagination.value = {
-          ...fillingsPagination.value,
-          offset: 0,
-          currentPage: 1,
-        };
-        await loadFillings();
+        await resetFillings();
         if (selected.value.relleno === item.name) selected.value.relleno = null;
       },
 
       sabor: async () => {
         await catalogsService.deleteFlavor(item.id);
-        flavors.value = [];
-        flavorsPagination.value = {
-          ...flavorsPagination.value,
-          offset: 0,
-          currentPage: 1,
-        };
-        await loadFlavors();
+        await resetFlavors();
         if (selected.value.sabor === item.name) selected.value.sabor = null;
       },
 
       cubierta: async () => {
         await catalogsService.deleteFrosting(item.id);
-        frostings.value = [];
-        frostingsPagination.value = {
-          ...frostingsPagination.value,
-          offset: 0,
-          currentPage: 1,
-        };
-        await loadFrostings();
+        await resetFrostings();
         if (selected.value.cubierta === item.name)
           selected.value.cubierta = null;
       },
 
       estilo: async () => {
         await catalogsService.deleteStyle(item.id);
-        styles.value = [];
-        stylesPagination.value = {
-          ...stylesPagination.value,
-          offset: 0,
-          currentPage: 1,
-        };
-        await loadStyles();
+        await resetStyles();
         if (selected.value.estilo === item.name) selected.value.estilo = null;
       },
 
       flor: async () => {
         await catalogsService.deleteFlower(item.id);
-        flowers.value = [];
-        flowersPagination.value = {
-          ...flowersPagination.value,
-          offset: 0,
-          currentPage: 1,
-        };
-        await loadFlowers();
+        await resetFlowers();
         if (selected.value.flor === item.name) selected.value.flor = null;
       },
 
@@ -440,57 +352,6 @@ async function onSaveEdit(payload: CatalogEditPayload) {
 
   // color usa su propio modal
   if (block === "color") return;
-
-  // Helpers para refrescar listas paginadas
-  const resetFillings = async () => {
-    fillings.value = [];
-    fillingsPagination.value = {
-      ...fillingsPagination.value,
-      offset: 0,
-      currentPage: 1,
-    };
-    await loadFillings();
-  };
-
-  const resetFlavors = async () => {
-    flavors.value = [];
-    flavorsPagination.value = {
-      ...flavorsPagination.value,
-      offset: 0,
-      currentPage: 1,
-    };
-    await loadFlavors();
-  };
-
-  const resetFrostings = async () => {
-    frostings.value = [];
-    frostingsPagination.value = {
-      ...frostingsPagination.value,
-      offset: 0,
-      currentPage: 1,
-    };
-    await loadFrostings();
-  };
-
-  const resetStyles = async () => {
-    styles.value = [];
-    stylesPagination.value = {
-      ...stylesPagination.value,
-      offset: 0,
-      currentPage: 1,
-    };
-    await loadStyles();
-  };
-
-  const resetFlowers = async () => {
-    flowers.value = [];
-    flowersPagination.value = {
-      ...flowersPagination.value,
-      offset: 0,
-      currentPage: 1,
-    };
-    await loadFlowers();
-  };
 
   // ===== CREATE (POST) =====
   if (!isEdit) {
@@ -623,14 +484,19 @@ async function onSaveColor(payload: ColorEditPayload) {
 
 /** Config para no repetir */
 const cards = [
-  { key: "pan", title: "Tipos de pan", items: panes },
-  { key: "relleno", title: "Rellenos", items: fillings },
-  { key: "sabor", title: "Sabores", items: flavors },
-  { key: "flor", title: "Flores", items: flowers },
-  { key: "estilo", title: "Estilos", items: styles },
-  { key: "color", title: "Colores", items: null }, // especial
-  { key: "cubierta", title: "Tipos de cubierta", items: frostings },
-] as const;
+  { key: "pan", title: "Tipos de pan", items: panes, lm: null },
+  { key: "relleno", title: "Rellenos", items: fillings, lm: fillingsLM },
+  { key: "sabor", title: "Sabores", items: flavors, lm: flavorsLM },
+  { key: "flor", title: "Flores", items: flowers, lm: flowersLM },
+  { key: "estilo", title: "Estilos", items: styles, lm: stylesLM },
+  { key: "color", title: "Colores", items: null, lm: null },
+  {
+    key: "cubierta",
+    title: "Tipos de cubierta",
+    items: frostings,
+    lm: frostingsLM,
+  },
+];
 </script>
 
 <template>
@@ -746,82 +612,11 @@ const cards = [
                 </div>
               </button>
 
-              <div
-                v-if="
-                  card.key === 'relleno' &&
-                  fillingsPagination.currentPage < fillingsPagination.totalPages
-                "
-                class="text-center mt-2"
-              >
+              <div v-if="card.lm?.hasMore.value" class="text-center mt-2">
                 <button
                   type="button"
                   class="px-3 py-1 text-sm font-medium text-[#1F1F1F] bg-white border border-[#1F1F1F] rounded-md hover:bg-[#F6F6F7]"
-                  @click="loadMoreFillings"
-                >
-                  Cargar más
-                </button>
-              </div>
-
-              <div
-                v-if="
-                  card.key === 'sabor' &&
-                  flavorsPagination.currentPage < flavorsPagination.totalPages
-                "
-                class="text-center mt-2"
-              >
-                <button
-                  type="button"
-                  class="px-3 py-1 text-sm font-medium text-[#1F1F1F] bg-white border border-[#1F1F1F] rounded-md hover:bg-[#F6F6F7]"
-                  @click="loadMoreFlavors"
-                >
-                  Cargar más
-                </button>
-              </div>
-
-              <div
-                v-if="
-                  card.key === 'cubierta' &&
-                  frostingsPagination.currentPage <
-                    frostingsPagination.totalPages
-                "
-                class="text-center mt-2"
-              >
-                <button
-                  type="button"
-                  class="px-3 py-1 text-sm font-medium text-[#1F1F1F] bg-white border border-[#1F1F1F] rounded-md hover:bg-[#F6F6F7]"
-                  @click="loadMoreFrostings"
-                >
-                  Cargar más
-                </button>
-              </div>
-
-              <div
-                v-if="
-                  card.key === 'estilo' &&
-                  stylesPagination.currentPage < stylesPagination.totalPages
-                "
-                class="text-center mt-2"
-              >
-                <button
-                  type="button"
-                  class="px-3 py-1 text-sm font-medium text-[#1F1F1F] bg-white border border-[#1F1F1F] rounded-md hover:bg-[#F6F6F7]"
-                  @click="loadMoreStyles"
-                >
-                  Cargar más
-                </button>
-              </div>
-
-              <div
-                v-if="
-                  card.key === 'flor' &&
-                  flowersPagination.currentPage < flowersPagination.totalPages
-                "
-                class="text-center mt-2"
-              >
-                <button
-                  type="button"
-                  class="px-3 py-1 text-sm font-medium text-[#1F1F1F] bg-white border border-[#1F1F1F] rounded-md hover:bg-[#F6F6F7]"
-                  @click="loadMoreFlowers"
+                  @click="card.lm?.loadMore()"
                 >
                   Cargar más
                 </button>

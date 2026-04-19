@@ -14,18 +14,24 @@ import type {
   UpdateCustomerRequest,
 } from "~/types/customer.types";
 import { useDebounceSearch } from "~/composables/useDebounceSearch";
+import { usePagination } from "~/composables/usePagination";
 
 const loading = ref(true);
 const errorMsg = ref("");
 
 const customers = ref<CustomerItem[]>([]);
-const pagination = ref({
-  limit: 10,
-  offset: 0,
-  totalPages: 1,
-  currentPage: 1,
-  total: 0,
-});
+
+const {
+  pagination,
+  update,
+  reset,
+  canPrev,
+  canNext,
+  showingFrom,
+  showingTo,
+  prevPage,
+  nextPage,
+} = usePagination(loadCustomers);
 
 /** ===== Buscador (teléfono) ===== */
 function normalizePhoneQuery(input: string) {
@@ -40,13 +46,13 @@ const {
 } = useDebounceSearch(() => loadCustomers(true), 350, normalizePhoneQuery);
 
 /** ===== Carga ===== */
-async function loadCustomers(reset = false) {
+async function loadCustomers(shouldReset = false) {
   loading.value = true;
   errorMsg.value = "";
 
   try {
-    if (reset) {
-      pagination.value.offset = 0;
+    if (shouldReset) {
+      reset();
       customers.value = [];
     }
 
@@ -58,10 +64,7 @@ async function loadCustomers(reset = false) {
     });
 
     customers.value = (data.items ?? []).filter((x) => x.isActive);
-
-    pagination.value.totalPages = Math.max(1, data.pagination.totalPages);
-    pagination.value.currentPage = Math.max(1, data.pagination.currentPage);
-    pagination.value.total = data.total;
+    update(data.pagination, data.total);
   } catch (e: any) {
     console.error(e);
     errorMsg.value = e?.message || "Ocurrió un error cargando clientes.";
@@ -70,7 +73,6 @@ async function loadCustomers(reset = false) {
   }
 }
 
-watch(debouncedPhone, () => loadCustomers(true));
 onMounted(() => loadCustomers(true));
 
 /** ===== Helpers UI ===== */
@@ -300,37 +302,6 @@ async function confirmDelete() {
   } finally {
     deleteSaving.value = false;
   }
-}
-
-/** ===== Paginación ===== */
-const canPrev = computed(() => pagination.value.offset > 0);
-const canNext = computed(
-  () => pagination.value.currentPage < pagination.value.totalPages,
-);
-
-const showingFrom = computed(() =>
-  pagination.value.total === 0 ? 0 : pagination.value.offset + 1,
-);
-const showingTo = computed(() =>
-  Math.min(
-    pagination.value.offset + customers.value.length,
-    pagination.value.total,
-  ),
-);
-
-async function prevPage() {
-  if (!canPrev.value) return;
-  pagination.value.offset = Math.max(
-    0,
-    pagination.value.offset - pagination.value.limit,
-  );
-  await loadCustomers(false);
-}
-
-async function nextPage() {
-  if (!canNext.value) return;
-  pagination.value.offset += pagination.value.limit;
-  await loadCustomers(false);
 }
 </script>
 
@@ -596,8 +567,11 @@ async function nextPage() {
             <!-- Footer: paginación -->
             <div class="mt-4 flex items-center justify-between">
               <p class="text-[12px] text-gray-500">
-                Mostrando {{ showingFrom }}–{{ showingTo }} de
-                {{ pagination.total }} · Página {{ pagination.currentPage }} de
+                Mostrando {{ showingFrom(customers.length) }}–{{
+                  showingTo(customers.length)
+                }}
+                de {{ pagination.total }} · Página
+                {{ pagination.currentPage }} de
                 {{ pagination.totalPages }}
               </p>
 
