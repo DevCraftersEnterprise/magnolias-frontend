@@ -2,18 +2,14 @@
 definePageMeta({ layout: "admin", pageTitle: "Clientes" });
 useHead({ title: "Clientes · Magnolias" });
 
-import {
-  customersService, // ✅ ESTE es el payload real del POST
-} from "~/services/customers.service";
-
+// ✅ ESTE es el payload real del POST
+import { customersService } from "~/services/customers.service";
 import { type CustomerCreateForm } from "~/components/modals/CustomerCreateModal.vue";
 import type {
   CreateCustomerRequest,
   CustomerItem,
   UpdateCustomerRequest,
 } from "~/types/customer.types";
-import { useDebounceSearch } from "~/composables/useDebounceSearch";
-import { usePagination } from "~/composables/usePagination";
 
 const loading = ref(true);
 const errorMsg = ref("");

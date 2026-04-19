@@ -3,11 +3,9 @@ definePageMeta({ layout: "admin", pageTitle: "Pedidos" });
 useHead({ title: "Pedidos · Magnolias" });
 
 import { ordersService } from "~/services/orders.service";
-import OrderDetailModal from "~/components/modals/OrderDetailModal.vue";
 import { usersService } from "~/services/users.service";
 import type { OrderItem, OrderStatus, OrderType } from "~/types/order.types";
 import type { UserItem } from "~/types/user.types";
-import { useDebounceSearch } from "~/composables/useDebounceSearch";
 
 const { user } = useAuthUser();
 const { selectedBranch } = useBranch();
@@ -1611,7 +1609,7 @@ function onOrderPaymentUpdated(payload: {
     </div>
   </section>
 
-  <OrderDetailModal
+  <ModalsOrderDetailModal
     :open="detailOpen"
     :order="selectedOrder"
     @close="detailOpen = false"

@@ -3,10 +3,7 @@ definePageMeta({ layout: "admin", pageTitle: "Usuarios" });
 useHead({ title: "Usuarios · Magnolias" });
 
 import { usersService } from "~/services/users.service";
-import UserModal from "~/components/modals/UserModal.vue";
 import type { UserItem, UserRole } from "~/types/user.types";
-import { useDebounceSearch } from "~/composables/useDebounceSearch";
-import { usePagination } from "~/composables/usePagination";
 
 const loading = ref(true);
 const errorMsg = ref("");
@@ -309,13 +306,14 @@ function roleBadge(r: string) {
     </div>
   </section>
 
-  <UserModal
+  <ModalsUserModal
     v-if="createOpen"
     mode="create"
     @close="createOpen = false"
     @created="onUserCreated"
   />
-  <UserModal
+
+  <ModalsUserModal
     v-if="editingUser"
     mode="edit"
     :user="editingUser"

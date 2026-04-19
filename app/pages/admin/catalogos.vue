@@ -15,7 +15,6 @@ import type {
   FrostingItem,
   StyleItem,
 } from "~/types/catalog.types";
-import { useLoadMore } from "~/composables/useLoadMore";
 
 type BlockKey =
   | "pan"
