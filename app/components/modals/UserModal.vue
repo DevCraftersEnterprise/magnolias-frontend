@@ -1,5 +1,5 @@
 <template>
-  <BaseModalTeleport :model-value="true" @update:model-value="emit('close')">
+  <UiBaseModal :model-value="true" @update:model-value="emit('close')">
     <template #title>{{
       mode === "create" ? "Agregar usuario" : "Editar usuario"
     }}</template>
@@ -321,7 +321,7 @@
         </button>
       </div>
     </form>
-  </BaseModalTeleport>
+  </UiBaseModal>
 </template>
 
 <script setup lang="ts">

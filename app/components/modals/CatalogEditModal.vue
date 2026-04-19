@@ -1,5 +1,5 @@
 <template>
-  <BaseModalTeleport v-model="open">
+  <UiBaseModal v-model="open">
     <template #title>
       {{
         title || (mode === "create" ? "Agregar elemento" : "Editar elemento")
@@ -52,7 +52,7 @@
         </button>
       </div>
     </template>
-  </BaseModalTeleport>
+  </UiBaseModal>
 </template>
 
 <script setup lang="ts">

@@ -1,5 +1,5 @@
 <template>
-  <BaseModalTeleport :model-value="true" @update:model-value="emit('close')">
+  <UiBaseModal :model-value="true" @update:model-value="emit('close')">
     <template #title>Editar sucursal</template>
     <form @submit.prevent="onSubmit" class="space-y-4">
       <!-- Toggle isActive -->
@@ -102,7 +102,7 @@
         </button>
       </div>
     </form>
-  </BaseModalTeleport>
+  </UiBaseModal>
 </template>
 
 <script setup lang="ts">

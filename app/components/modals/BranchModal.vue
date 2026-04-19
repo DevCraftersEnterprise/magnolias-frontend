@@ -1,5 +1,5 @@
 ﻿<template>
-  <BaseModalTeleport :model-value="true" @update:model-value="onClose">
+  <UiBaseModal :model-value="true" @update:model-value="onClose">
     <template #title>{{
       step === 1 ? "Agregar sucursal" : "Agregar teléfonos"
     }}</template>
@@ -119,7 +119,7 @@
         </button>
       </div>
     </form>
-  </BaseModalTeleport>
+  </UiBaseModal>
 </template>
 
 <script setup lang="ts">

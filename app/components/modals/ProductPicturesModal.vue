@@ -1,5 +1,5 @@
 <template>
-  <BaseModalTeleport :model-value="open" @update:model-value="emit('close')">
+  <UiBaseModal :model-value="open" @update:model-value="emit('close')">
     <template #title>Agregar fotografía</template>
     <div class="space-y-4">
       <!-- Dropzone -->
@@ -121,7 +121,7 @@
         </button>
       </div>
     </div>
-  </BaseModalTeleport>
+  </UiBaseModal>
 </template>
 
 <script setup lang="ts">

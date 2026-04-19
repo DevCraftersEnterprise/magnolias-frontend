@@ -6,8 +6,6 @@ useHead({ title: "Catálogos · Magnolias" });
 import { type CatalogEditPayload } from "~/components/modals/CatalogEditModal.vue";
 import { type ColorEditPayload } from "~/components/modals/ColorEditModal.vue";
 import { catalogsService } from "~/services/catalogs.service";
-import CatalogEditModal from "~/components/modals/CatalogEditModal.vue";
-import ColorEditModal from "~/components/modals/ColorEditModal.vue";
 import type {
   BreadTypeItem,
   ColorItem,
@@ -709,7 +707,7 @@ const cards = [
     </div>
 
     <!-- Modales -->
-    <CatalogEditModal
+    <ModalsCatalogEditModal
       v-model="editOpen"
       :mode="editMode"
       :model="editModel"
@@ -717,13 +715,14 @@ const cards = [
       @save="onSaveEdit"
     />
 
-    <ConfirmModal
+    <UiConfirmModal
       v-model="confirmOpen"
       :title="confirmTitle"
       :message="confirmMessage"
       @confirm="onConfirmDelete"
     />
-    <ColorEditModal
+
+    <ModalsColorEditModal
       v-model="colorOpen"
       :mode="colorMode"
       :model="colorModel"

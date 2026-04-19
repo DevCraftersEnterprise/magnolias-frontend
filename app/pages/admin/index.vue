@@ -7,7 +7,6 @@ definePageMeta({
 useHead({ title: "Panel · Magnolias" });
 
 import { dashboardService } from "~/services/dashboard.service";
-import OrderSummaryCard from "~/components/OrderSummaryCard.vue";
 const { selectedBranch } = useBranch();
 const { user } = useAuthUser();
 
@@ -138,7 +137,7 @@ watch(selectedBranch, () => {
       </div>
 
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <OrderSummaryCard
+        <AdminOrderSummaryCard
           v-for="item in orderSummary"
           :key="item.key"
           :item="item"
@@ -159,7 +158,7 @@ watch(selectedBranch, () => {
           </div>
 
           <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
-            <OrderSummaryCard
+            <AdminOrderSummaryCard
               v-for="item in orderTypeSummary"
               :key="item.key"
               :item="item"
@@ -175,7 +174,7 @@ watch(selectedBranch, () => {
           </div>
 
           <div class="grid grid-cols-1 gap-4">
-            <OrderSummaryCard v-for="item in orderTypeSummary" :key="item.key" :item="item" label="Tipos" />
+            <AdminOrderSummaryCard v-for="item in orderTypeSummary" :key="item.key" :item="item" label="Tipos" />
           </div> -->
         </div>
       </div>

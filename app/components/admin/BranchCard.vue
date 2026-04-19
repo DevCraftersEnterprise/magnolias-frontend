@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import BranchMap from "~/components/BranchMap.vue";
-
 defineProps<{
   name: string;
   address: string;
@@ -117,7 +115,7 @@ const emit = defineEmits<{ (e: "edit"): void }>();
       </div>
     </div>
 
-    <BranchMap
+    <AdminBranchMap
       :latitude="latitude"
       :longitude="longitude"
       :name="name"

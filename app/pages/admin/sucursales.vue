@@ -2,8 +2,6 @@
 definePageMeta({ layout: "admin", pageTitle: "Sucursales" });
 useHead({ title: "Sucursales · Magnolias" });
 
-import SucursalEditModal from "~/components/modals/SucursalEditModal.vue";
-import SucursalModal from "~/components/modals/SucursalModal.vue";
 import { branchesService } from "~/services/branches.service";
 import type { BranchResponse } from "~/types/branch.types";
 
@@ -103,7 +101,7 @@ onMounted(() => loadBranches());
       v-if="branches.length > 0"
       class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     >
-      <SucursalCard
+      <AdminBranchCard
         v-for="sucursal in branches"
         :key="sucursal.id"
         :name="sucursal.name"
@@ -148,12 +146,13 @@ onMounted(() => loadBranches());
     </div>
   </div>
 
-  <SucursalModal
+  <ModalsBranchModal
     v-if="showModal"
     @close="showModal = false"
     @created="onBranchCreated"
   />
-  <SucursalEditModal
+
+  <ModalsBranchEditModal
     v-if="editingBranch"
     :branch="editingBranch"
     @close="editingBranch = null"

@@ -259,7 +259,7 @@
         </div>
       </div>
 
-      <ConfirmModal
+      <UiConfirmModal
         v-model="confirmOpen"
         title="¿Está seguro de querer eliminar la imagen seleccionada?"
         @confirm="deleteSelectedPicture"

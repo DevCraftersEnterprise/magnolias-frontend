@@ -7,7 +7,6 @@ import {
 } from "~/services/customers.service";
 
 import { type CustomerCreateForm } from "~/components/modals/CustomerCreateModal.vue";
-import CustomerCreateModal from "~/components/modals/CustomerCreateModal.vue";
 import type {
   CreateCustomerRequest,
   CustomerItem,
@@ -548,14 +547,14 @@ async function confirmDelete() {
       </div>
     </div>
 
-    <ConfirmModal
+    <UiConfirmModal
       v-model="detailOpen"
       :title="detailTitle"
       :message="detailText"
       @confirm="detailOpen = false"
     />
 
-    <CustomerCreateModal
+    <ModalsCustomerCreateModal
       v-model="createOpen"
       :model="createModel"
       title="Agregar cliente"
@@ -563,7 +562,8 @@ async function confirmDelete() {
       :error="createError"
       @save="onCreateSave"
     />
-    <CustomerCreateModal
+
+    <ModalsCustomerCreateModal
       v-model="editOpen"
       :model="editModel"
       title="Editar cliente"
@@ -573,7 +573,8 @@ async function confirmDelete() {
       @save="onEditSave"
       @delete="onEditDelete"
     />
-    <ConfirmModal
+
+    <UiConfirmModal
       v-model="deleteConfirmOpen"
       title="Eliminar cliente"
       message="Este cliente se eliminará (quedará inactivo). ¿Deseas continuar?"

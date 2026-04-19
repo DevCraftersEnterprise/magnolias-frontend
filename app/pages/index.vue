@@ -308,7 +308,7 @@
           </div>
 
           <!-- Mapa -->
-          <BranchMap
+          <AdminBranchMap
             v-if="branch.latitude && branch.longitude"
             :latitude="Number(branch.latitude)"
             :longitude="Number(branch.longitude)"
@@ -360,7 +360,6 @@
 </template>
 
 <script setup lang="ts">
-import BranchMap from "~/components/BranchMap.vue";
 import type { BranchResponse } from "~/types/branch.types";
 import type { ProductItem } from "~/types/product.types";
 
