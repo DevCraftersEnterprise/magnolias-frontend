@@ -8,7 +8,7 @@ export function useCatalogBlock<T>(
     }>,
     options: { filterActive?: boolean } = {},
 ) {
-    const items = ref<T[]>([]);
+    const items = shallowRef<T[]>([]);
     const loading = ref(false);
 
     const lm = useLoadMore(load);
