@@ -2,312 +2,109 @@
 definePageMeta({ layout: "admin", pageTitle: "Pedidos" });
 useHead({ title: "Crear Pedido · Magnolias" });
 
-import { customersService } from "~/services/customers.service";
-import { catalogsService } from "~/services/catalogs.service";
-import {
-  productsService,
-  getProductImageUrl,
-} from "~/services/products.service";
 import { ordersService } from "~/services/orders.service";
-import { addressesService } from "~/services/addresses.service";
-import type {
-  CreateCustomerRequest,
-  CustomerItem,
-} from "~/types/customer.types";
-import type {
-  BreadTypeItem,
-  ColorItem,
-  FillingItem,
-  FlavorItem,
-  FlowerItem,
-  FrostingItem,
-  StyleItem,
-} from "~/types/catalog.types";
-import type { CommonAddress } from "~/types/address.types";
-import type { ProductItem } from "~/types/product.types";
 import type { CreateOrderPayload } from "~/types/order.types";
 
 const router = useRouter();
-
-// ─── Stepper ─────────────────────────────────────────────────────────────────
-const STEPS = ["Cliente", "Tipo y logística", "Productos", "Pago"] as const;
-const step = ref(1);
-
-// ─── Draft data (grows as the user advances) ─────────────────────────────────
-const selectedCustomer = ref<CustomerItem | null>(null);
-
-// ─── Step 1 — Customer search ─────────────────────────────────────────────────
-const phoneQuery = ref("");
-const searching = ref(false);
-const searchError = ref("");
-const results = ref<CustomerItem[]>([]);
-const hasSearched = ref(false);
-
-async function searchByPhone() {
-  const digits = phoneQuery.value.replace(/\D/g, "").trim();
-  if (!digits) return;
-  searching.value = true;
-  searchError.value = "";
-  hasSearched.value = true;
-  try {
-    const data = await customersService.getCustomers({
-      phone: digits,
-      isActive: true,
-      limit: 10,
-    });
-    results.value = data.items ?? [];
-  } catch (e: any) {
-    searchError.value = e?.message || "Error al buscar.";
-    results.value = [];
-  } finally {
-    searching.value = false;
-  }
-}
-
-function selectCustomer(c: CustomerItem) {
-  selectedCustomer.value = c;
-}
-
-// ─── Step 1 — Inline registration ────────────────────────────────────────────
-const showRegister = ref(false);
-const registering = ref(false);
-const registerError = ref("");
-const regForm = reactive({
-  fullName: "",
-  phone: "",
-  email: "",
-  notes: "",
-  withAddress: false,
-  address: {
-    street: "",
-    number: "",
-    neighborhood: "",
-    city: "",
-    postalCode: "",
-    interphoneCode: "",
-    betweenStreets: "",
-    reference: "",
-    addressNotes: "",
-  },
-});
-
-watch(showRegister, (open) => {
-  if (open) {
-    regForm.phone = phoneQuery.value.trim();
-    regForm.fullName = "";
-    regForm.email = "";
-    regForm.notes = "";
-    regForm.withAddress = false;
-    regForm.address = {
-      street: "",
-      number: "",
-      neighborhood: "",
-      city: "",
-      postalCode: "",
-      interphoneCode: "",
-      betweenStreets: "",
-      reference: "",
-      addressNotes: "",
-    };
-    registerError.value = "";
-  }
-});
-
-const canRegister = computed(() => {
-  if (!regForm.fullName.trim() || !regForm.phone.trim()) return false;
-  if (regForm.withAddress) {
-    if (!regForm.address.street.trim()) return false;
-    if (!regForm.address.number.trim()) return false;
-    if (!regForm.address.neighborhood.trim()) return false;
-  }
-  return true;
-});
-
-async function registerAndSelect() {
-  if (!canRegister.value) return;
-  registering.value = true;
-  registerError.value = "";
-  try {
-    const payload: CreateCustomerRequest = {
-      fullName: regForm.fullName.trim(),
-      phone: regForm.phone.trim(),
-      email: regForm.email.trim() || null,
-      notes: regForm.notes.trim() || null,
-      address: regForm.withAddress
-        ? {
-            street: regForm.address.street.trim(),
-            number: regForm.address.number.trim(),
-            neighborhood: regForm.address.neighborhood.trim(),
-            city: regForm.address.city.trim() || null,
-            postalCode: regForm.address.postalCode.trim() || null,
-            interphoneCode: regForm.address.interphoneCode.trim() || null,
-            betweenStreets: regForm.address.betweenStreets.trim() || null,
-            reference: regForm.address.reference.trim() || null,
-            notes: regForm.address.addressNotes.trim() || null,
-          }
-        : null,
-    };
-    const created = await customersService.createCustomer(payload);
-    // Si la API no devuelve la dirección anidada pero sí la enviamos, la reconstruimos
-    if (regForm.withAddress && !created.address?.street) {
-      (created as any).address = {
-        id: (created as any).address?.id ?? "",
-        street: regForm.address.street.trim(),
-        number: regForm.address.number.trim(),
-        neighborhood: regForm.address.neighborhood.trim(),
-        city: regForm.address.city.trim() || null,
-        postalCode: regForm.address.postalCode.trim() || null,
-        interphoneCode: regForm.address.interphoneCode.trim() || null,
-        betweenStreets: regForm.address.betweenStreets.trim() || null,
-        reference: regForm.address.reference.trim() || null,
-        notes: regForm.address.addressNotes.trim() || null,
-        createdAt: "",
-        updatedAt: "",
-      };
-    }
-    selectedCustomer.value = created;
-    results.value = [created];
-    hasSearched.value = true;
-    phoneQuery.value = created.phone;
-    showRegister.value = false;
-  } catch (e: any) {
-    registerError.value = e?.message || "No se pudo registrar el cliente.";
-  } finally {
-    registering.value = false;
-  }
-}
-
-// ─── Step 2 — Tipo y logística ───────────────────────────────────────────────
-type OrderTypeKey = "DOMICILIO" | "VITRINA" | "FLOR" | "EVENTO";
-
-const ORDER_TYPES: {
-  key: OrderTypeKey;
-  label: string;
-  sub: string;
-  icon: string;
-}[] = [
-  {
-    key: "DOMICILIO",
-    label: "Domicilio",
-    sub: "Entrega a domicilio",
-    icon: "delivery",
-  },
-  { key: "VITRINA", label: "Vitrina", sub: "Venta en mostrador", icon: "shop" },
-  { key: "FLOR", label: "Flor", sub: "Pedido con flores", icon: "flower" },
-  { key: "EVENTO", label: "Evento", sub: "Evento especial", icon: "event" },
-];
-
-// Branches for Vitrina pickup selector — reuse the global state from Topbar
 const { branches, selectedBranch: topbarBranch } = useBranch();
 
-// Flowers + Colors for FLOR type
-const flowerCatalog = ref<FlowerItem[]>([]);
-const colorCatalog = ref<ColorItem[]>([]);
-catalogsService
-  .getFlowers(100, 0, true)
-  .then((r) => {
-    flowerCatalog.value = r.items;
-  })
-  .catch(() => {});
-catalogsService
-  .getColors()
-  .then((r) => {
-    colorCatalog.value = r;
-  })
-  .catch(() => {});
+// ── Composables ───────────────────────────────────────────────────────────────
+const {
+  breadTypes,
+  fillings,
+  flavors,
+  frostings,
+  styles,
+  flowerCatalog,
+  colorCatalog,
+  commonAddresses,
+  colorName,
+  colorHex,
+  catalogLabel,
+} = useOrderCatalogs();
 
-// Common addresses for EVENTO
-const commonAddresses = ref<CommonAddress[]>([]);
-addressesService
-  .getAddresses()
-  .then((r) => {
-    commonAddresses.value = r;
-  })
-  .catch(() => {});
+const {
+  selectedCustomer,
+  phoneQuery,
+  searching,
+  searchError,
+  results,
+  hasSearched,
+  searchByPhone,
+  selectCustomer,
+  showRegister,
+  registering,
+  registerError,
+  regForm,
+  canRegister,
+  registerAndSelect,
+  formatCustomerAddress,
+} = useCustomerLookup();
 
-// ─── Step 3 — Productos ───────────────────────────────────────────────────────
-// Catalog data for product attributes
-const breadTypes = ref<BreadTypeItem[]>([]);
-const fillings = ref<FillingItem[]>([]);
-const flavors = ref<FlavorItem[]>([]);
-const frostings = ref<FrostingItem[]>([]);
-const styles = ref<StyleItem[]>([]);
+const {
+  orderProducts,
+  productQuery,
+  productSearching,
+  productResults,
+  showProductPanel,
+  openColorPicker,
+  colorPickerKey,
+  pickColor,
+  addProduct,
+  removeProduct,
+  refModal,
+  openRefModal,
+  onRefFileChange,
+  confirmRefImage,
+  removeRefImage,
+  detailModal,
+  detailRow,
+  detailRowHasDetails,
+  openDetailModal,
+  closeDetailModal,
+  optionLabel,
+  getProductImageUrl,
+  UBICACION_OPTIONS,
+  MANGA_OPTIONS,
+} = useProductBuilder(colorCatalog);
 
-Promise.all([
-  catalogsService.getBreadTypes(100, 0).then((r) => {
-    breadTypes.value = r.items;
-  }),
-  catalogsService.getFillings(100, 0).then((r) => {
-    fillings.value = r.items;
-  }),
-  catalogsService.getFlavors(100, 0).then((r) => {
-    flavors.value = r.items;
-  }),
-  catalogsService.getFrostings(100, 0, true).then((r) => {
-    frostings.value = r.items;
-  }),
-  catalogsService.getStyles(100, 0, true).then((r) => {
-    styles.value = r.items;
-  }),
-]).catch(() => {});
+const { step4, serviceCost, subtotal, orderTotal, remaining, PAYMENT_TYPES } =
+  useOrderPayment(orderProducts);
 
-// Product search
-const productQuery = ref("");
-const productSearching = ref(false);
-const productResults = ref<ProductItem[]>([]);
-const showProductPanel = ref(false);
+const {
+  step2,
+  florMode,
+  ORDER_TYPES,
+  MINUTE_OPTIONS,
+  pickupTimeParts,
+  deliveryTimeParts,
+  exitTimeParts,
+  customerHasAddress,
+  customerAddressFormatted,
+  needsDelivery,
+  pickupTimeOutOfHours,
+  deliveryTimeOutOfHours,
+  deliveryTimeWarningMsg,
+  exitTimeOutOfHours,
+  step2AddressValid,
+  minDeliveryDate,
+  onPhoneInput,
+} = useOrderLogistics(
+  selectedCustomer,
+  computed(() => topbarBranch.value?.id),
+  serviceCost,
+);
 
-let productSearchTimer: ReturnType<typeof setTimeout> | null = null;
+const { flowerRows, addFlowerRow, removeFlowerRow } = useFlowerRows();
 
-watch(productQuery, (q) => {
-  if (productSearchTimer) clearTimeout(productSearchTimer);
-  const trimmed = q.trim();
-  if (!trimmed) {
-    productResults.value = [];
-    showProductPanel.value = false;
-    return;
-  }
-  productSearchTimer = setTimeout(() => {
-    productSearching.value = true;
-    productsService
-      .getProducts(12, 0, { name: trimmed })
-      .then((r) => {
-        productResults.value = r.items;
-        showProductPanel.value = true;
-      })
-      .catch(() => {
-        productResults.value = [];
-      })
-      .finally(() => {
-        productSearching.value = false;
-      });
-  }, 400);
-});
+// ── Stepper ───────────────────────────────────────────────────────────────────
+const step = ref(1);
+const STEPS = ["Cliente", "Tipo y logística", "Productos", "Pago"] as const;
 
-// Color picker open state per row (flower rows + product rows handled by index key)
-const openColorPicker = ref<string | null>(null);
-
-function colorPickerKey(prefix: string, index: number) {
-  return `${prefix}-${index}`;
-}
-
-function pickColor(rowRef: { colorId: string }, colorId: string, key: string) {
-  rowRef.colorId = colorId;
-  openColorPicker.value = null;
-}
-
-function colorName(colorId: string) {
-  return colorCatalog.value.find((c) => c.id === colorId)?.name ?? "";
-}
-function colorHex(colorId: string) {
-  return colorCatalog.value.find((c) => c.id === colorId)?.value ?? "";
-}
-
-// Close color picker and product panel on outside click
+// ── Close product panel on outside click ──────────────────────────────────────
 const productSearchRef = ref<HTMLElement | null>(null);
 if (typeof window !== "undefined") {
   document.addEventListener("click", (e) => {
-    openColorPicker.value = null;
     if (
       productSearchRef.value &&
       !productSearchRef.value.contains(e.target as Node)
@@ -317,383 +114,18 @@ if (typeof window !== "undefined") {
   });
 }
 
-const UBICACION_OPTIONS = [
-  { value: "TOP", label: "Arriba" },
-  { value: "BOTTOM", label: "Abajo" },
-  { value: "CENTER", label: "Centro" },
-  { value: "FRONT", label: "Frente" },
-  { value: "BACK", label: "Atrás" },
-  { value: "SIDE", label: "Lado" },
-];
-
-const MANGA_OPTIONS = [
-  { value: "NONE", label: "Ninguna" },
-  { value: "TOP", label: "Arriba" },
-  { value: "BOTTOM", label: "Abajo" },
-  { value: "BOTH_BORDERS", label: "Ambos bordes" },
-  { value: "FULL", label: "Completa" },
-];
-
-type OrderProductRow = {
-  product: ProductItem;
-  qty: number;
-  price: number;
-  // attributes (all optional)
-  sizeId: string;
-  colorId: string;
-  breadId: string;
-  flavorId: string;
-  fillingId: string;
-  frostingId: string;
-  styleId: string;
-  // text
-  withText: boolean;
-  text: string;
-  textLocation: string;
-  // manga decoration
-  mangaStyle: string;
-  mangaNotes: string;
-  // size custom text
-  customSize: string;
-  // notes
-  notes: string;
-  // reference image
-  withReference: boolean;
-  referenceFile: File | null;
-  referencePreview: string; // object URL
+// ── Step 4 summary helpers ────────────────────────────────────────────────────
+const TYPE_LABELS: Record<string, string> = {
+  DOMICILIO: "Domicilio",
+  VITRINA: "Vitrina",
+  FLOR: "Flor",
+  EVENTO: "Evento",
 };
-
-const orderProducts = ref<OrderProductRow[]>([]);
-
-function makeProductRow(p: ProductItem): OrderProductRow {
-  return {
-    product: p,
-    qty: 1,
-    price: 0,
-    sizeId: "",
-    colorId: "",
-    breadId: "",
-    flavorId: "",
-    fillingId: "",
-    frostingId: "",
-    styleId: "",
-    withText: false,
-    text: "",
-    textLocation: "TOP",
-    mangaStyle: "",
-    mangaNotes: "",
-    customSize: "",
-    notes: "",
-
-    withReference: false,
-    referenceFile: null,
-    referencePreview: "",
-  };
-}
-
-function addProduct(p: ProductItem) {
-  // if already in list, just bump qty
-  const existing = orderProducts.value.find((r) => r.product.id === p.id);
-  if (existing) {
-    existing.qty++;
-  } else {
-    orderProducts.value.push(makeProductRow(p));
-  }
-  productQuery.value = "";
-  productResults.value = [];
-  showProductPanel.value = false;
-}
-
-function removeProduct(i: number) {
-  const row = orderProducts.value[i];
-  if (row?.referencePreview) URL.revokeObjectURL(row.referencePreview);
-  orderProducts.value.splice(i, 1);
-}
-
-// Reference image modal
-const refModal = reactive({ open: false, rowIndex: -1, preview: "" });
-
-function openRefModal(i: number) {
-  refModal.rowIndex = i;
-  refModal.preview = orderProducts.value[i]?.referencePreview ?? "";
-  refModal.open = true;
-}
-
-function onRefFileChange(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0];
-  if (!file) return;
-  const row = orderProducts.value[refModal.rowIndex];
-  if (!row) return;
-  if (row.referencePreview) URL.revokeObjectURL(row.referencePreview);
-  row.referenceFile = file;
-  row.referencePreview = URL.createObjectURL(file);
-  refModal.preview = row.referencePreview;
-}
-
-function confirmRefImage() {
-  refModal.open = false;
-}
-
-function removeRefImage(i: number) {
-  const row = orderProducts.value[i];
-  if (!row) return;
-  if (row.referencePreview) URL.revokeObjectURL(row.referencePreview);
-  row.referenceFile = null;
-  row.referencePreview = "";
-  row.withReference = false;
-}
-
-onUnmounted(() => {
-  orderProducts.value.forEach((r) => {
-    if (r.referencePreview) URL.revokeObjectURL(r.referencePreview);
-  });
-});
-
-type FlowerRow = {
-  flowerId: string;
-  colorId: string;
-  quantity: number | "";
-  note: string;
-};
-const flowerRows = ref<FlowerRow[]>([
-  { flowerId: "", colorId: "", quantity: "", note: "" },
-]);
-
-function addFlowerRow() {
-  flowerRows.value.push({ flowerId: "", colorId: "", quantity: "", note: "" });
-}
-function removeFlowerRow(i: number) {
-  if (flowerRows.value.length > 1) flowerRows.value.splice(i, 1);
-}
-
-const step2 = reactive({
-  orderType: null as OrderTypeKey | null,
-  // delivery (DOMICILIO / FLOR / EVENTO)
-  deliveryDate: "",
-  deliveryTime: "",
-  deliveryRound: "",
-  // address mode
-  useCustomerAddr: false,
-  // new address fields
-  newAddr: {
-    street: "",
-    number: "",
-    neighborhood: "",
-    city: "",
-    postalCode: "",
-    interphoneCode: "",
-    betweenStreets: "",
-    reference: "",
-    deliveryNotes: "",
-  },
-  // override fields
-  receiverName: "",
-  receiverPhone: "",
-  interphoneCode: "",
-  reference: "",
-  betweenStreets: "",
-  deliveryNotes: "",
-  // pickup / VITRINA
-  pickupBranchId: "",
-  pickupDate: "",
-  pickupTime: "",
-  // EVENTO-specific
-  eventMontageDate: "",
-  eventExitTime: "",
-  eventGuestCount: "" as number | "",
-  eventResponsibleName: "",
-  eventServices: {
-    dessertTable: false,
-    cake: false,
-    cheeseTable: false,
-    plated: false,
-  },
-  // EVENTO common address
-  useCommonAddr: false,
-  commonAddrId: "",
-  saveAsCommonAddr: false,
-  commonAddrName: "",
-});
-
-// When user picks VITRINA, pre-fill the branch from the Topbar selection
-const florMode = ref<"domicilio" | "vitrina">("domicilio");
-watch(
-  () => step2.orderType,
-  (type) => {
-    if (type === "VITRINA") {
-      step2.pickupBranchId = topbarBranch.value?.id ?? "";
-      serviceCost.value = 0;
-    }
-    if (type !== "FLOR") {
-      florMode.value = "domicilio";
-    }
-  },
-);
-
-// When customer changes, auto-check "use customer address" if they have one
-watch(selectedCustomer, (c) => {
-  step2.useCustomerAddr = !!c?.address?.street;
-});
-
-const customerHasAddress = computed(
-  () => !!selectedCustomer.value?.address?.street,
-);
-
-const customerAddressFormatted = computed(() => {
-  const a = selectedCustomer.value?.address;
-  if (!a) return "";
-  return [a.street, a.number ? `#${a.number}` : null, a.neighborhood, a.city]
-    .filter(Boolean)
-    .join(", ");
-});
-
-const needsDelivery = computed(
-  () =>
-    step2.orderType !== null &&
-    step2.orderType !== "VITRINA" &&
-    !(step2.orderType === "FLOR" && florMode.value === "vitrina"),
-);
-
-// ─── 12h time select helpers ─────────────────────────────────────────────────
-const MINUTE_OPTIONS = ["00", "15", "30", "45"];
-function buildTime24(h12: number, minute: string, period: "AM" | "PM"): string {
-  let h = h12 % 12;
-  if (period === "PM") h += 12;
-  return `${String(h).padStart(2, "0")}:${minute}`;
-}
-const pickupTimeParts = reactive({ h: 8, m: "00", p: "AM" as "AM" | "PM" });
-const deliveryTimeParts = reactive({ h: 8, m: "00", p: "AM" as "AM" | "PM" });
-const exitTimeParts = reactive({ h: 8, m: "00", p: "AM" as "AM" | "PM" });
-watch(
-  pickupTimeParts,
-  (pts) => {
-    step2.pickupTime = buildTime24(pts.h, pts.m, pts.p);
-  },
-  { immediate: true },
-);
-watch(deliveryTimeParts, (pts) => {
-  step2.deliveryTime = buildTime24(pts.h, pts.m, pts.p);
-});
-watch(exitTimeParts, (pts) => {
-  step2.eventExitTime = buildTime24(pts.h, pts.m, pts.p);
-});
-
-function timeToMinutes(t: string) {
-  if (!t) return -1;
-  const parts = t.split(":").map(Number);
-  const h = parts[0] ?? 0;
-  const m = parts[1] ?? 0;
-  return h * 60 + m;
-}
-const pickupTimeOutOfHours = computed(() => {
-  const mins = timeToMinutes(step2.pickupTime);
-  return mins >= 0 && (mins < 480 || mins >= 1200); // before 8 AM or 8 PM+
-});
-const deliveryTimeOutOfHours = computed(() => {
-  const mins = timeToMinutes(step2.deliveryTime);
-  if (mins < 0) return false;
-  if (step2.orderType === "EVENTO") return mins < 420; // events: warn only before 7 AM
-  return mins < 480 || mins >= 1200; // others: 8 AM – 7:59 PM
-});
-const deliveryTimeWarningMsg = computed(() =>
-  step2.orderType === "EVENTO"
-    ? "La hora del evento parece muy temprana (antes de las 7:00 AM). ¿Estás seguro?"
-    : "La hora seleccionada está fuera del horario de atención (8:00 AM\u2013\u200B7:59 PM). Por favor elige una hora dentro del rango para continuar.",
-);
-const exitTimeOutOfHours = computed(() => {
-  const mins = timeToMinutes(step2.eventExitTime);
-  return mins >= 0 && mins < 420; // before 7 AM
-});
-
-// Address section valid?
-function onPhoneInput(e: Event, setter: (v: string) => void) {
-  const input = e.target as HTMLInputElement;
-  const clean = input.value.replace(/\D/g, "").slice(0, 10);
-  input.value = clean;
-  setter(clean);
-}
-const minDeliveryDate = computed(() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
-});
-const step2AddressValid = computed(() => {
-  if (!needsDelivery.value) return true;
-  if (step2.useCustomerAddr) return true;
-  if (step2.orderType === "EVENTO" && step2.useCommonAddr && step2.commonAddrId)
-    return true;
-  return !!(
-    step2.newAddr.street.trim() &&
-    step2.newAddr.number.trim() &&
-    step2.newAddr.neighborhood.trim()
-  );
-});
-
-// ─── Step 4 — Pago ─────────────────────────────────────────────────────────
-const PAYMENT_TYPES = [
-  { value: "EFECTIVO", label: "Efectivo" },
-  { value: "TARJETA", label: "Tarjeta" },
-  { value: "TRANSFERENCIA", label: "Transferencia" },
-];
-
-const step4 = reactive({
-  paymentType: "EFECTIVO",
-  paymentMode: "FULL" as "FULL" | "DEPOSIT",
-  depositAmount: 0,
-  requiresInvoice: false,
-});
-
-const serviceCost = ref<number>(0);
-
-const detailModal = reactive({ open: false, rowIndex: -1 });
-const detailRow = computed(() =>
-  detailModal.rowIndex >= 0
-    ? (orderProducts.value[detailModal.rowIndex] ?? null)
-    : null,
-);
-function openDetailModal(i: number) {
-  detailModal.rowIndex = i;
-  detailModal.open = true;
-}
-function closeDetailModal() {
-  detailModal.open = false;
-}
-
-function catalogLabel(arr: { id: string; name: string }[], id: string) {
-  return arr.find((x) => x.id === id)?.name ?? "—";
-}
-
-function optionLabel(opts: { value: string; label: string }[], val: string) {
-  return opts.find((o) => o.value === val)?.label ?? "—";
-}
-
-const subtotal = computed(() =>
-  orderProducts.value.reduce((s, r) => s + r.price * r.qty, 0),
-);
-const orderTotal = computed(() => subtotal.value + (serviceCost.value || 0));
-const remaining = computed(() => orderTotal.value - (step4.depositAmount || 0));
-
-const detailRowHasDetails = computed(() => {
-  const r = detailRow.value;
-  if (!r) return false;
-  return !!(
-    r.sizeId ||
-    r.colorId ||
-    r.breadId ||
-    r.flavorId ||
-    r.fillingId ||
-    r.frostingId ||
-    r.styleId ||
-    (r.withText && r.text) ||
-    (r.mangaStyle && r.mangaStyle !== "NONE") ||
-    r.notes ||
-    r.referencePreview
-  );
-});
 
 const step4PickupBranchName = computed(
   () => branches.value.find((b) => b.id === step2.pickupBranchId)?.name ?? "",
 );
+
 const step4DeliveryAddr = computed(() => {
   if (step2.orderType === "VITRINA") return "";
   const a = step2.useCustomerAddr
@@ -710,7 +142,7 @@ const step4DeliveryAddr = computed(() => {
     .join(", ");
 });
 
-// ─── Navigation ──────────────────────────────────────────────────────────────
+// ── Navigation ────────────────────────────────────────────────────────────────
 const canNext = computed(() => {
   if (step.value === 1) return !!selectedCustomer.value;
   if (step.value === 2) {
@@ -719,7 +151,6 @@ const canNext = computed(() => {
       if (pickupTimeOutOfHours.value) return false;
       return !!(step2.pickupBranchId && step2.pickupDate);
     }
-    // FLOR vitrina: same requirements as VITRINA + at least one flower
     if (step2.orderType === "FLOR" && florMode.value === "vitrina") {
       if (pickupTimeOutOfHours.value) return false;
       if (!step2.pickupBranchId || !step2.pickupDate) return false;
@@ -733,7 +164,6 @@ const canNext = computed(() => {
     }
     if (!step2.deliveryDate) return false;
     if (!step2AddressValid.value) return false;
-    // FLOR domicilio: require at least one flower with color and quantity
     if (step2.orderType === "FLOR" && florMode.value === "domicilio") {
       if (
         !flowerRows.value.some(
@@ -742,7 +172,6 @@ const canNext = computed(() => {
       )
         return false;
     }
-    // Block advancement when time is out of working hours (EVENTO is exempt)
     if (step2.orderType !== "EVENTO") {
       if (deliveryTimeOutOfHours.value) return false;
     }
@@ -750,7 +179,6 @@ const canNext = computed(() => {
   }
   if (step.value === 3) {
     if (orderProducts.value.length === 0) return false;
-    // rows with withText need text filled; withReference need a file
     return orderProducts.value.every(
       (r) =>
         r.price > 0 &&
@@ -761,7 +189,7 @@ const canNext = computed(() => {
   return true;
 });
 
-// ─── Submit ──────────────────────────────────────────────────────────────────
+// ── Submit ────────────────────────────────────────────────────────────────────
 const submitting = ref(false);
 const submitError = ref("");
 
@@ -771,7 +199,7 @@ async function submitOrder() {
   submitError.value = "";
 
   try {
-    const customer = selectedCustomer.value!;
+    const cust = selectedCustomer.value!;
     const isVitrina =
       step2.orderType === "VITRINA" ||
       (step2.orderType === "FLOR" && florMode.value === "vitrina");
@@ -780,7 +208,6 @@ async function submitOrder() {
       : (topbarBranch.value?.id ?? "");
     const isEvento = step2.orderType === "EVENTO";
 
-    // ── delivery date ──────────────────────────────────────────────────────
     const deliveryDateISO = isVitrina
       ? step2.pickupDate
         ? `${step2.pickupDate}T00:00:00Z`
@@ -789,7 +216,6 @@ async function submitOrder() {
         ? `${step2.deliveryDate}T00:00:00Z`
         : undefined;
 
-    // ── delivery round ─────────────────────────────────────────────────────
     const roundMap: Record<string, string> = {
       "1": "ROUND_1",
       "2": "ROUND_2",
@@ -799,7 +225,6 @@ async function submitOrder() {
       ? (roundMap[step2.deliveryRound] ?? step2.deliveryRound)
       : undefined;
 
-    // ── payment ────────────────────────────────────────────────────────────
     const pmMap: Record<string, string> = {
       EFECTIVO: "CASH",
       TARJETA: "CARD",
@@ -811,7 +236,6 @@ async function submitOrder() {
         ? orderTotal.value
         : step4.depositAmount || 0;
 
-    // ── event services ─────────────────────────────────────────────────────
     const eventServicesList: string[] = [];
     if (isEvento) {
       if (step2.eventServices.dessertTable)
@@ -822,7 +246,6 @@ async function submitOrder() {
       if (step2.eventServices.plated) eventServicesList.push("PLATED");
     }
 
-    // ── delivery address ────────────────────────────────────────────────────
     let deliveryAddress: CreateOrderPayload["deliveryAddress"] | undefined;
     if (!isVitrina) {
       if (isEvento && step2.useCommonAddr && step2.commonAddrId) {
@@ -868,7 +291,6 @@ async function submitOrder() {
       }
     }
 
-    // ── details ─────────────────────────────────────────────────────────────
     const details = orderProducts.value.map((r) => ({
       productId: r.product.id,
       price: r.price,
@@ -892,8 +314,7 @@ async function submitOrder() {
       referenceFile: r.referenceFile ?? undefined,
     }));
 
-    // ── flowers ─────────────────────────────────────────────────────────────
-    const flowers =
+    const flowersPayload =
       step2.orderType === "FLOR" || isEvento
         ? flowerRows.value
             .filter((f) => f.flowerId)
@@ -905,7 +326,6 @@ async function submitOrder() {
             }))
         : undefined;
 
-    // ── collection datetime for pickup ────────────────────────────────────
     const collectionDateTime =
       isVitrina && step2.pickupDate
         ? `${step2.pickupDate}T${step2.pickupTime || "08:00"}:00Z`
@@ -913,7 +333,7 @@ async function submitOrder() {
 
     const payload: CreateOrderPayload = {
       orderType: step2.orderType!,
-      customerId: customer.id,
+      customerId: cust.id,
       branchId,
       advancePayment,
       paymentMethod,
@@ -946,7 +366,7 @@ async function submitOrder() {
       requiresInvoice: step4.requiresInvoice || undefined,
       deliveryAddress,
       details,
-      flowers,
+      flowers: flowersPayload,
     };
 
     await ordersService.createOrder(payload);
