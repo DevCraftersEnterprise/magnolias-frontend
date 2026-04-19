@@ -1,5 +1,9 @@
 // app/composables/useDebounceSearch.ts
-export function useDebounceSearch(fn: () => void, delay = 350) {
+export function useDebounceSearch(
+    fn: () => void,
+    delay: number = 350,
+    transform: (v: string) => string = (v) => v.trim()
+) {
     const query = ref('');
     const debouncedQuery = ref('');
 
@@ -7,12 +11,13 @@ export function useDebounceSearch(fn: () => void, delay = 350) {
 
     watch(query, v => {
         clearTimeout(timer)
-        timer = setTimeout(() => { debouncedQuery.value = v.trim(); fn() }, delay)
+        timer = setTimeout(() => { debouncedQuery.value = transform(v); fn() }, delay)
     });
+
     function clear() {
         query.value = '';
         debouncedQuery.value = '';
-        fn()
+        fn();
     }
 
     return { query, debouncedQuery, clear };

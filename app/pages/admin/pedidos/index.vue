@@ -7,6 +7,7 @@ import OrderDetailModal from "~/components/modals/OrderDetailModal.vue";
 import { usersService } from "~/services/users.service";
 import type { OrderItem, OrderStatus, OrderType } from "~/types/order.types";
 import type { UserItem } from "~/types/user.types";
+import { useDebounceSearch } from "~/composables/useDebounceSearch";
 
 const { user } = useAuthUser();
 const { selectedBranch } = useBranch();
@@ -33,18 +34,13 @@ const hasMore = ref(false);
 const total = ref(0);
 
 const filterStatus = ref<OrderStatus | "">("");
-const nameQuery = ref("");
-const debouncedName = ref("");
-let searchTimer: any = null;
-watch(nameQuery, (v) => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => (debouncedName.value = (v ?? "").trim()), 350);
-});
-function clearSearch() {
-  nameQuery.value = "";
-  debouncedName.value = "";
-  loadOrders(true);
-}
+
+const {
+  query: nameQuery,
+  debouncedQuery: debouncedName,
+  clear: clearSearch,
+} = useDebounceSearch(() => loadOrders(true));
+
 const cancelTarget = ref<OrderItem | null>(null);
 const cancelConfirm = ref(false);
 const canceling = ref(false);

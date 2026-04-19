@@ -6,6 +6,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { usersService } from "~/services/users.service";
 import UserModal from "~/components/modals/UserModal.vue";
 import type { UserItem, UserRole } from "~/types/user.types";
+import { useDebounceSearch } from "~/composables/useDebounceSearch";
 
 const loading = ref(true);
 const errorMsg = ref("");
@@ -18,19 +19,11 @@ const pagination = ref({
   total: 0,
 });
 
-const searchQuery = ref("");
-const debouncedQuery = ref("");
-let debounceTimer: any = null;
-watch(searchQuery, (v) => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => (debouncedQuery.value = v.trim()), 350);
-});
-
-function clearSearch() {
-  searchQuery.value = "";
-  debouncedQuery.value = "";
-  loadUsers(true);
-}
+const {
+  query: searchQuery,
+  debouncedQuery,
+  clear: clearSearch,
+} = useDebounceSearch(() => loadUsers(true));
 
 const roleFilter = ref<UserRole | "">("");
 

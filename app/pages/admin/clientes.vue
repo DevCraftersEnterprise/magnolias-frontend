@@ -13,6 +13,7 @@ import type {
   CustomerItem,
   UpdateCustomerRequest,
 } from "~/types/customer.types";
+import { useDebounceSearch } from "~/composables/useDebounceSearch";
 
 const loading = ref(true);
 const errorMsg = ref("");
@@ -27,27 +28,16 @@ const pagination = ref({
 });
 
 /** ===== Buscador (teléfono) ===== */
-const phoneQuery = ref("");
-const debouncedPhone = ref("");
-let t: any = null;
 function normalizePhoneQuery(input: string) {
   const s = (input ?? "").trim();
-  if (!s) return "";
-
-  // deja solo dígitos (esto hace que "+52 644-123-4567" => "526441234567")
-  const digits = s.replace(/\D/g, "");
-  return digits;
+  return s ? s.replace(/\D/g, "") : "";
 }
-watch(phoneQuery, (v) => {
-  clearTimeout(t);
-  t = setTimeout(() => (debouncedPhone.value = normalizePhoneQuery(v)), 350);
-});
 
-function clearSearch() {
-  phoneQuery.value = "";
-  debouncedPhone.value = "";
-  loadCustomers(true); // ✅ recarga inmediato
-}
+const {
+  query: phoneQuery,
+  debouncedQuery: debouncedPhone,
+  clear: clearSearch,
+} = useDebounceSearch(() => loadCustomers(true), 350, normalizePhoneQuery);
 
 /** ===== Carga ===== */
 async function loadCustomers(reset = false) {
