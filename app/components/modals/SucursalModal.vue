@@ -1,13 +1,12 @@
 ﻿<template>
-  <BaseModal
-    :title="step === 1 ? 'Agregar sucursal' : 'Agregar teléfonos'"
-    :subtitle="
-      step === 1
-        ? 'Paso 1 de 2 · Información general'
-        : 'Paso 2 de 2 · Contacto'
-    "
-    @close="onClose"
-  >
+  <BaseModalTeleport :model-value="true" @update:model-value="onClose">
+    <template #title>{{
+      step === 1 ? "Agregar sucursal" : "Agregar teléfonos"
+    }}</template>
+    <template v-if="step === 1" #subtitle
+      >Paso 1 de 2 · Información general</template
+    >
+    <template v-else #subtitle>Paso 2 de 2 · Contacto</template>
     <!-- Paso 1: nombre y dirección -->
     <form v-if="step === 1" @submit.prevent="onStep1" class="space-y-4">
       <div>
@@ -120,11 +119,10 @@
         </button>
       </div>
     </form>
-  </BaseModal>
+  </BaseModalTeleport>
 </template>
 
 <script setup lang="ts">
-import BaseModal from "~/components/modals/BaseModal.vue";
 import { branchesService } from "~/services/branches.service";
 import type { BranchResponse } from "~/types/branch.types";
 

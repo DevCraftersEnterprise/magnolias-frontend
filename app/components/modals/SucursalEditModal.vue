@@ -1,5 +1,6 @@
 <template>
-  <BaseModal title="Editar sucursal" @close="emit('close')">
+  <BaseModalTeleport :model-value="true" @update:model-value="emit('close')">
+    <template #title>Editar sucursal</template>
     <form @submit.prevent="onSubmit" class="space-y-4">
       <!-- Toggle isActive -->
       <div
@@ -101,11 +102,10 @@
         </button>
       </div>
     </form>
-  </BaseModal>
+  </BaseModalTeleport>
 </template>
 
 <script setup lang="ts">
-import BaseModal from "~/components/modals/BaseModal.vue";
 import { branchesService } from "~/services/branches.service";
 import type { BranchResponse } from "~/types/branch.types";
 

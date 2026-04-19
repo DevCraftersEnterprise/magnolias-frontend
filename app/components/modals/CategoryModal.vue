@@ -1,9 +1,8 @@
 <template>
-  <BaseModal
-    :title="mode === 'create' ? 'Agregar categoría' : 'Editar categoría'"
-    :subtitle="mode === 'create' ? '' : ''"
-    @close="emit('close')"
-  >
+  <BaseModalTeleport :model-value="open" @update:model-value="emit('close')">
+    <template #title>{{
+      mode === "create" ? "Agregar categoría" : "Editar categoría"
+    }}</template>
     <form @submit.prevent="onSubmit" class="space-y-4">
       <div>
         <label class="text-xs font-semibold text-black/60">Nombre</label>
@@ -51,13 +50,12 @@
         </button>
       </div>
     </form>
-  </BaseModal>
+  </BaseModalTeleport>
 </template>
 
 <script setup lang="ts">
 import { categoriesService } from "~/services/categories.service";
 import type { CategoryItem } from "~/types/product.types";
-import BaseModal from "~/components/modals/BaseModal.vue";
 
 const props = defineProps<{
   open: boolean;

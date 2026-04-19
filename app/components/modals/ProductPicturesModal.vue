@@ -1,5 +1,6 @@
 <template>
-  <BaseModal title="Agregar fotografía" @close="emit('close')">
+  <BaseModalTeleport :model-value="open" @update:model-value="emit('close')">
+    <template #title>Agregar fotografía</template>
     <div class="space-y-4">
       <!-- Dropzone -->
       <div
@@ -120,11 +121,10 @@
         </button>
       </div>
     </div>
-  </BaseModal>
+  </BaseModalTeleport>
 </template>
 
 <script setup lang="ts">
-import BaseModal from "~/components/modals/BaseModal.vue";
 import { productsService } from "~/services/products.service";
 import type { ProductItem } from "~/types/product.types";
 

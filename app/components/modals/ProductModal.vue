@@ -1,10 +1,8 @@
 <template>
-  <BaseModal
-    :title="
-      mode === 'create' ? 'Agregar producto' : productTitle || 'Editar producto'
-    "
-    @close="emit('close')"
-  >
+  <BaseModalTeleport :model-value="open" @update:model-value="emit('close')">
+    <template #title>{{
+      mode === "create" ? "Agregar producto" : productTitle || "Editar producto"
+    }}</template>
     <form @submit.prevent="onSubmit" class="space-y-4">
       <div>
         <label class="text-xs font-semibold text-black/60"
@@ -60,11 +58,10 @@
         </button>
       </div>
     </form>
-  </BaseModal>
+  </BaseModalTeleport>
 </template>
 
 <script setup lang="ts">
-import BaseModal from "~/components/modals/BaseModal.vue";
 import { productsService } from "~/services/products.service";
 import type { ProductItem } from "~/types/product.types";
 

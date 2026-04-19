@@ -1,9 +1,9 @@
 <template>
-  <BaseModal
-    :title="mode === 'create' ? 'Agregar usuario' : 'Editar usuario'"
-    :subtitle="roleSubtitle"
-    @close="emit('close')"
-  >
+  <BaseModalTeleport :model-value="true" @update:model-value="emit('close')">
+    <template #title>{{
+      mode === "create" ? "Agregar usuario" : "Editar usuario"
+    }}</template>
+    <template #subtitle>{{ roleSubtitle }}</template>
     <form @submit.prevent="onSubmit" class="space-y-4">
       <!-- Nombre y apellido -->
       <div class="grid grid-cols-2 gap-3">
@@ -321,11 +321,10 @@
         </button>
       </div>
     </form>
-  </BaseModal>
+  </BaseModalTeleport>
 </template>
 
 <script setup lang="ts">
-import BaseModal from "~/components/modals/BaseModal.vue";
 import { usersService } from "~/services/users.service";
 import { branchesService } from "~/services/branches.service";
 import type {
