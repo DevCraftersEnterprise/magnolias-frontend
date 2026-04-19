@@ -332,46 +332,13 @@ async function confirmDelete() {
             </div>
 
             <!-- Search (derecha, como en la imagen) -->
-            <div class="relative w-[360px] max-w-[46vw]">
-              <input
-                v-model="phoneQuery"
-                type="text"
-                inputmode="numeric"
-                class="w-full h-10 rounded-xl bg-white pl-10 pr-10 text-[14px] text-[#111827] placeholder:text-gray-400 outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/10"
-                placeholder="Buscar por teléfono"
-              />
-
-              <svg
-                viewBox="0 0 24 24"
-                class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="M21 21l-4.3-4.3"></path>
-              </svg>
-
-              <button
-                v-if="phoneQuery"
-                type="button"
-                class="absolute right-2 top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-lg hover:bg-black/5 text-gray-500"
-                @click="clearSearch"
-                aria-label="Limpiar"
-                title="Limpiar"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  class="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M18 6L6 18"></path>
-                  <path d="M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
+            <AdminSearchInput
+              v-model="phoneQuery"
+              placeholder="Buscar por teléfono"
+              inputmode="numeric"
+              class="w-[360px] max-w-[46vw]"
+              @clear="clearSearch"
+            />
           </div>
         </div>
 
@@ -565,36 +532,17 @@ async function confirmDelete() {
             </div>
 
             <!-- Footer: paginación -->
-            <div class="mt-4 flex items-center justify-between">
-              <p class="text-[12px] text-gray-500">
-                Mostrando {{ showingFrom(customers.length) }}–{{
-                  showingTo(customers.length)
-                }}
-                de {{ pagination.total }} · Página
-                {{ pagination.currentPage }} de
-                {{ pagination.totalPages }}
-              </p>
-
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="h-9 rounded-xl px-4 text-[13px] font-semibold bg-[#E9EAED] text-[#111827] hover:bg-[#DDE0E6] transition disabled:opacity-60"
-                  :disabled="!canPrev"
-                  @click="prevPage"
-                >
-                  Anterior
-                </button>
-
-                <button
-                  type="button"
-                  class="h-9 rounded-xl px-4 text-[13px] font-semibold bg-[#111827] text-white hover:bg-black transition disabled:opacity-60"
-                  :disabled="!canNext"
-                  @click="nextPage"
-                >
-                  Siguiente
-                </button>
-              </div>
-            </div>
+            <AdminPaginationBar
+              :from="showingFrom(customers.length)"
+              :to="showingTo(customers.length)"
+              :total="pagination.total"
+              :current-page="pagination.currentPage"
+              :total-pages="pagination.totalPages"
+              :can-prev="canPrev"
+              :can-next="canNext"
+              @prev="prevPage"
+              @next="nextPage"
+            />
           </div>
         </div>
       </div>
