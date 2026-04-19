@@ -1,25 +1,31 @@
 <template>
-  <div class="m-side">
-    <div class="m-side__brand">
+  <div class="sticky top-0 h-screen py-[18px] px-3 overflow-y-auto">
+    <div class="grid place-items-center pt-[14px] pb-[26px]">
       <NuxtLink :to="user?.role === 'BAKER' ? '/admin/pedidos' : '/admin'">
         <img
           src="/img/magnolias-logo.png"
           alt="Magnolias"
-          class="m-side__logo"
+          class="h-11 w-[140px] object-contain opacity-[0.95]"
         />
       </NuxtLink>
     </div>
 
-    <nav class="m-side__nav" :class="{ 'is-collapsed': collapsed }">
+    <nav class="flex flex-col gap-[14px] pt-[6px]">
       <NuxtLink
         v-for="item in items"
         :key="item.to"
         :to="item.to"
-        class="m-side__item"
-        active-class="is-active"
+        class="flex items-center py-[14px] rounded-xl no-underline text-[#222] text-base transition-colors duration-150 hover:bg-[#fbeaf2]"
+        :class="collapsed ? 'justify-center px-[10px]' : 'px-3'"
+        active-class="bg-[#f6dbe8]"
         @click="$emit('navigate')"
       >
-        <span class="m-side__label">{{ item.label }}</span>
+        <span
+          class="overflow-hidden whitespace-nowrap transition-all duration-150"
+          :class="collapsed ? 'w-0 opacity-0' : ''"
+        >
+          {{ item.label }}
+        </span>
       </NuxtLink>
     </nav>
   </div>
@@ -61,64 +67,3 @@ const items = computed(() => {
   }
 });
 </script>
-
-<style scoped>
-.m-side {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  padding: 18px 12px;
-  overflow-y: auto;
-}
-
-.m-side__brand {
-  display: grid;
-  place-items: center;
-  padding: 14px 0 26px;
-}
-
-.m-side__logo {
-  height: 44px;
-  width: 140px;
-  object-fit: contain;
-  opacity: 0.95;
-}
-
-.m-side__nav {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding-top: 6px;
-}
-
-.m-side__item {
-  display: flex;
-  align-items: center;
-  padding: 14px 12px;
-  border-radius: 12px;
-  text-decoration: none;
-  color: #222;
-  font-size: 16px;
-  transition: background 0.15s ease;
-}
-
-.m-side__item:hover {
-  background: #fbeaf2;
-}
-
-.m-side__item.is-active {
-  background: #f6dbe8;
-}
-
-.m-side__nav.is-collapsed .m-side__item {
-  justify-content: center;
-  padding: 14px 10px;
-}
-
-.m-side__nav.is-collapsed .m-side__label {
-  width: 0;
-  opacity: 0;
-  overflow: hidden;
-  white-space: nowrap;
-}
-</style>

@@ -419,10 +419,3 @@ const { data: branchesData, pending: branchesLoading } = useFetch<
 >(`${apiBase}/api/branches`, { server: false, lazy: true });
 const branches = computed(() => branchesData.value ?? []);
 </script>
-
-<style scoped>
-h1,
-h2 {
-  font-family: Georgia, "Times New Roman", serif;
-}
-</style>

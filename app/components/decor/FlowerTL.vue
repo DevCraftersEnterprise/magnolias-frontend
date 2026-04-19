@@ -1,48 +1,34 @@
 <template>
-    <svg
-      class="flower flower--tl"
-      viewBox="0 0 500 500"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <!-- ⬇️ Pega aquí el contenido de tu SVG de Figma (paths, lines, etc.) -->
-      <!-- EJEMPLO (borra esto cuando pegues el tuyo) -->
-      <path d="M50 80 C120 20 200 20 260 80" stroke="#8A8A8A" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-  </template>
-  
-  <style scoped>
-  .flower {
-    position: absolute;
-    pointer-events: none;
-    opacity: 0.75;
-    filter: drop-shadow(0 10px 24px rgba(0,0,0,0.08));
-    width: 420px;              /* 🔥 tamaño */
-    max-width: 55vw;
-    z-index: 0;
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    aria-hidden="true"
+    class="absolute pointer-events-none opacity-75 w-[420px] max-w-[55vw] z-0 drop-shadow-[0_10px_24px_rgba(0,0,0,0.08)] top-[-40px] left-[-40px] -rotate-[8deg]"
+    viewBox="0 0 500 500"
+  >
+    <path
+      stroke="#8a8a8a"
+      stroke-linecap="round"
+      stroke-width="2"
+      d="M50 80c70-60 150-60 210 0"
+    />
+  </svg>
+</template>
+
+<style scoped>
+:deep(path),
+:deep(line),
+:deep(polyline),
+:deep(circle),
+:deep(rect) {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: draw 2.2s ease forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
   }
-  
-  /* esquina sup izq */
-  .flower--tl {
-    top: -40px;
-    left: -40px;
-    transform: rotate(-8deg);
-  }
-  
-  /* ✅ trazado */
-  .flower :deep(path),
-  .flower :deep(line),
-  .flower :deep(polyline),
-  .flower :deep(circle),
-  .flower :deep(rect) {
-    stroke-dasharray: 1200;
-    stroke-dashoffset: 1200;
-    animation: draw 2.2s ease forwards;
-  }
-  
-  @keyframes draw {
-    to { stroke-dashoffset: 0; }
-  }
-  </style>
-  
+}
+</style>

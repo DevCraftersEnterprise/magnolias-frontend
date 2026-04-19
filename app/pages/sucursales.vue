@@ -223,9 +223,3 @@ onMounted(async () => {
   }
 });
 </script>
-
-<style scoped>
-h1 {
-  font-family: Georgia, "Times New Roman", serif;
-}
-</style>

@@ -269,10 +269,3 @@ function productImg(p: ProductItem) {
   return url ? String(url).trim() : null;
 }
 </script>
-
-<style scoped>
-h1,
-h2 {
-  font-family: Georgia, "Times New Roman", serif;
-}
-</style>

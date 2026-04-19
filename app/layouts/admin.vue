@@ -1,20 +1,38 @@
 <template>
-  <div class="m-admin" :class="{ 'is-collapsed': collapsed }">
+  <div
+    class="min-h-screen bg-[#f4f4f4] grid transition-[grid-template-columns] duration-[180ms] ease-in-out max-[900px]:grid-cols-1"
+    :class="collapsed ? 'grid-cols-[0px_1fr]' : 'grid-cols-[220px_1fr]'"
+  >
     <div
       v-if="drawerOpen"
-      class="m-admin__overlay"
+      class="fixed inset-0 bg-black/20 z-40"
       @click="drawerOpen = false"
-    ></div>
+    />
 
-    <aside class="m-admin__sidebar" :class="{ 'is-drawer-open': drawerOpen }">
-      <Sidebar @navigate="drawerOpen = false" />
+    <aside
+      class="bg-white border-r border-black/[0.06] overflow-x-hidden h-screen sticky top-0 z-10 transition-[width,box-shadow] duration-[180ms] ease-in-out max-[900px]:fixed max-[900px]:left-0 max-[900px]:top-0 max-[900px]:bottom-0 max-[900px]:w-[280px] max-[900px]:z-50 max-[900px]:overflow-y-auto max-[900px]:shadow-[0_10px_30px_rgba(0,0,0,0.1)] max-[900px]:transition-transform max-[900px]:duration-[220ms] max-[900px]:ease-in-out"
+      :class="
+        isMobile
+          ? drawerOpen
+            ? 'translate-x-0'
+            : '-translate-x-[110%]'
+          : collapsed
+            ? 'w-0 min-w-0 border-r-0 shadow-none overflow-hidden'
+            : 'w-[220px] overflow-y-auto shadow-[0_10px_30px_rgba(0,0,0,0.06)]'
+      "
+    >
+      <LayoutSidebar @navigate="drawerOpen = false" />
     </aside>
 
-    <div class="m-admin__main">
-      <Topbar :title="pageTitle" @toggle="handleToggle" @logout="logout" />
+    <div class="min-w-0 flex flex-col">
+      <LayoutTopbar
+        :title="pageTitle"
+        @toggle="handleToggle"
+        @logout="logout"
+      />
 
-      <main class="m-admin__content">
-        <div class="m-admin__container">
+      <main class="py-[22px] px-6 max-[900px]:py-[18px] max-[900px]:px-4">
+        <div class="w-full max-w-[1400px] mx-auto">
           <slot />
         </div>
       </main>
@@ -23,9 +41,6 @@
 </template>
 
 <script setup lang="ts">
-import Sidebar from "~/components/layout/Sidebar.vue";
-import Topbar from "~/components/layout/Topbar.vue";
-
 const { loadUserFromToken, clearUser } = useAuthUser();
 const { loadBranches } = useBranch();
 
@@ -70,99 +85,3 @@ async function logout() {
   await navigateTo("/login");
 }
 </script>
-
-<style scoped>
-.m-admin {
-  min-height: 100vh;
-  background: #f4f4f4;
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  transition: grid-template-columns 0.18s ease;
-}
-
-.m-admin.is-collapsed {
-  grid-template-columns: 0px 1fr;
-}
-
-/* sidebar desktop fijo */
-.m-admin__sidebar {
-  background: #ffffff;
-  border-right: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  z-index: 10;
-  width: 220px;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* colapsado */
-.m-admin.is-collapsed .m-admin__sidebar {
-  width: 0;
-  min-width: 0;
-  border-right: 0;
-  box-shadow: none;
-  overflow: hidden;
-}
-
-.m-admin__main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.m-admin__content {
-  padding: 22px 24px;
-}
-
-.m-admin__container {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.m-admin__overlay {
-  display: none;
-}
-
-/* ===== Mobile drawer ===== */
-@media (max-width: 900px) {
-  .m-admin {
-    grid-template-columns: 1fr;
-  }
-
-  .m-admin__sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    height: 100vh;
-    transform: translateX(-110%);
-    transition: transform 0.22s ease;
-    z-index: 50;
-    width: 280px;
-    border-right: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-
-  .m-admin__sidebar.is-drawer-open {
-    transform: translateX(0);
-  }
-
-  .m-admin__overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.2);
-    z-index: 40;
-  }
-
-  .m-admin__content {
-    padding: 18px 16px;
-  }
-}
-</style>
