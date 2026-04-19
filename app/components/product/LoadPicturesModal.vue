@@ -1,3 +1,92 @@
+<script setup lang="ts">
+import { productsService } from "~/services/products.service";
+import type { ProductItem } from "~/types/product.types";
+
+const props = defineProps<{
+  open: boolean;
+  product: ProductItem;
+}>();
+
+const emit = defineEmits<{
+  (e: "close"): void;
+  (e: "uploaded"): void;
+}>();
+
+const fileInput = ref<HTMLInputElement | null>(null);
+const files = ref<File[]>([]);
+const previews = ref<string[]>([]);
+const saving = ref(false);
+const errorMsg = ref("");
+
+watch(
+  () => props.open,
+  (v) => {
+    if (!v) return;
+    errorMsg.value = "";
+    files.value = [];
+    previews.value = [];
+  },
+);
+
+function addFiles(list: FileList | File[]) {
+  const arr = Array.from(list);
+  arr.forEach((f) => {
+    if (!f.type.startsWith("image/")) return;
+    files.value.push(f);
+    previews.value.push(URL.createObjectURL(f));
+  });
+}
+
+function onPick(e: Event) {
+  const input = e.target as HTMLInputElement;
+  if (!input.files) return;
+  addFiles(input.files);
+  input.value = "";
+}
+
+function onDrop(e: DragEvent) {
+  if (!e.dataTransfer?.files) return;
+  addFiles(e.dataTransfer.files);
+}
+
+function removeAt(i: number) {
+  const url = previews.value[i];
+  if (url) URL.revokeObjectURL(url);
+  files.value.splice(i, 1);
+  previews.value.splice(i, 1);
+}
+
+function clearFiles() {
+  previews.value.forEach((u) => URL.revokeObjectURL(u));
+  files.value = [];
+  previews.value = [];
+}
+
+async function upload() {
+  errorMsg.value = "";
+  saving.value = true;
+  try {
+    await productsService.uploadPictures({
+      id: props.product.id,
+      name: props.product.name,
+      description: props.product.description,
+      isFavorite: props.product.isFavorite,
+      categoryId: props.product.category.id,
+      isActive: props.product.isActive,
+      files: files.value,
+    });
+
+    clearFiles();
+    emit("uploaded");
+    emit("close");
+  } catch (e: any) {
+    errorMsg.value = e?.message || "No se pudieron subir las fotos.";
+  } finally {
+    saving.value = false;
+  }
+}
+</script>
+
 <template>
   <UiBaseModal :model-value="open" @update:model-value="emit('close')">
     <template #title>Agregar fotografía</template>
@@ -123,92 +212,3 @@
     </div>
   </UiBaseModal>
 </template>
-
-<script setup lang="ts">
-import { productsService } from "~/services/products.service";
-import type { ProductItem } from "~/types/product.types";
-
-const props = defineProps<{
-  open: boolean;
-  product: ProductItem;
-}>();
-
-const emit = defineEmits<{
-  (e: "close"): void;
-  (e: "uploaded"): void;
-}>();
-
-const fileInput = ref<HTMLInputElement | null>(null);
-const files = ref<File[]>([]);
-const previews = ref<string[]>([]);
-const saving = ref(false);
-const errorMsg = ref("");
-
-watch(
-  () => props.open,
-  (v) => {
-    if (!v) return;
-    errorMsg.value = "";
-    files.value = [];
-    previews.value = [];
-  },
-);
-
-function addFiles(list: FileList | File[]) {
-  const arr = Array.from(list);
-  arr.forEach((f) => {
-    if (!f.type.startsWith("image/")) return;
-    files.value.push(f);
-    previews.value.push(URL.createObjectURL(f));
-  });
-}
-
-function onPick(e: Event) {
-  const input = e.target as HTMLInputElement;
-  if (!input.files) return;
-  addFiles(input.files);
-  input.value = "";
-}
-
-function onDrop(e: DragEvent) {
-  if (!e.dataTransfer?.files) return;
-  addFiles(e.dataTransfer.files);
-}
-
-function removeAt(i: number) {
-  const url = previews.value[i];
-  if (url) URL.revokeObjectURL(url);
-  files.value.splice(i, 1);
-  previews.value.splice(i, 1);
-}
-
-function clearFiles() {
-  previews.value.forEach((u) => URL.revokeObjectURL(u));
-  files.value = [];
-  previews.value = [];
-}
-
-async function upload() {
-  errorMsg.value = "";
-  saving.value = true;
-  try {
-    await productsService.uploadPictures({
-      id: props.product.id,
-      name: props.product.name,
-      description: props.product.description,
-      isFavorite: props.product.isFavorite,
-      categoryId: props.product.category.id,
-      isActive: props.product.isActive,
-      files: files.value,
-    });
-
-    clearFiles();
-    emit("uploaded");
-    emit("close");
-  } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudieron subir las fotos.";
-  } finally {
-    saving.value = false;
-  }
-}
-</script>

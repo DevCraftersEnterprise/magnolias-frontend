@@ -297,7 +297,7 @@ function populateFromOrder(order: OrderDetail) {
       description: d.product?.description ?? "",
       isFavorite: d.product?.isFavorite ?? false,
       isActive: d.product?.isActive ?? true,
-      category: { id: "" },
+      category: { id: "", name: "" },
       createdAt: "",
       updatedAt: "",
       pictures: (d.product?.pictures ??

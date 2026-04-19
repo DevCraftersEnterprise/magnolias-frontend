@@ -3,7 +3,7 @@ definePageMeta({ layout: "admin", pageTitle: "Clientes" });
 useHead({ title: "Clientes · Magnolias" });
 
 import { customersService } from "~/services/customers.service";
-import { type CustomerCreateForm } from "~/components/modals/CustomerCreateModal.vue";
+import { type CustomerCreateForm } from "~/components/customer/CreateModal.vue";
 import type {
   CreateCustomerRequest,
   CustomerItem,
@@ -549,7 +549,7 @@ async function confirmDelete() {
       @confirm="detailOpen = false"
     />
 
-    <ModalsCustomerCreateModal
+    <CustomerCreateModal
       v-model="createOpen"
       :model="createModel"
       title="Agregar cliente"
@@ -558,7 +558,7 @@ async function confirmDelete() {
       @save="onCreateSave"
     />
 
-    <ModalsCustomerCreateModal
+    <CustomerCreateModal
       v-model="editOpen"
       :model="editModel"
       title="Editar cliente"

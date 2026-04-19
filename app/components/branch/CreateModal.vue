@@ -1,4 +1,89 @@
-﻿<template>
+﻿<script setup lang="ts">
+import { branchesService } from "~/services/branches.service";
+import type { BranchResponse } from "~/types/branch.types";
+
+const emit = defineEmits<{
+  (e: "close"): void;
+  (e: "created", branch: BranchResponse): void;
+}>();
+
+const step = ref<1 | 2>(1);
+const saving = ref(false);
+const errorMsg = ref("");
+const createdBranchId = ref("");
+const createdBranch = ref<BranchResponse | null>(null);
+
+const form = reactive({
+  name: "",
+  address: "",
+  phone1: "",
+  phone2: "",
+  whatsapp: "",
+});
+
+function onClose() {
+  step.value = 1;
+  errorMsg.value = "";
+  form.name = "";
+  form.address = "";
+  form.phone1 = "";
+  form.phone2 = "";
+  form.whatsapp = "";
+  createdBranchId.value = "";
+  createdBranch.value = null;
+  emit("close");
+}
+
+async function onStep1() {
+  errorMsg.value = "";
+  saving.value = true;
+  try {
+    const branch = await branchesService.createBranch({
+      name: form.name.trim(),
+      address: form.address.trim(),
+    });
+    createdBranchId.value = branch.id;
+    createdBranch.value = branch;
+    step.value = 2;
+  } catch (e: any) {
+    errorMsg.value = e?.message || "No se pudo crear la sucursal.";
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function onStep2() {
+  errorMsg.value = "";
+  saving.value = true;
+  try {
+    const phones = await branchesService.addBranchPhones(
+      createdBranchId.value,
+      {
+        phone1: form.phone1.replace(/\s/g, ""),
+        phone2: form.phone2.replace(/\s/g, "") || null,
+        whatsapp: form.whatsapp.replace(/\s/g, "") || null,
+      },
+    );
+    const fullBranch: BranchResponse = {
+      ...createdBranch.value!,
+      phones: {
+        id: phones.id,
+        phone1: phones.phone1,
+        phone2: phones.phone2,
+        whatsapp: phones.whatsapp,
+      },
+    };
+    saving.value = false;
+    emit("close");
+    emit("created", fullBranch);
+  } catch (e: any) {
+    errorMsg.value = e?.message || "No se pudieron guardar los teléfonos.";
+    saving.value = false;
+  }
+}
+</script>
+
+<template>
   <UiBaseModal :model-value="true" @update:model-value="onClose">
     <template #title>{{
       step === 1 ? "Agregar sucursal" : "Agregar teléfonos"
@@ -121,88 +206,3 @@
     </form>
   </UiBaseModal>
 </template>
-
-<script setup lang="ts">
-import { branchesService } from "~/services/branches.service";
-import type { BranchResponse } from "~/types/branch.types";
-
-const emit = defineEmits<{
-  (e: "close"): void;
-  (e: "created", branch: BranchResponse): void;
-}>();
-
-const step = ref<1 | 2>(1);
-const saving = ref(false);
-const errorMsg = ref("");
-const createdBranchId = ref("");
-const createdBranch = ref<BranchResponse | null>(null);
-
-const form = reactive({
-  name: "",
-  address: "",
-  phone1: "",
-  phone2: "",
-  whatsapp: "",
-});
-
-function onClose() {
-  step.value = 1;
-  errorMsg.value = "";
-  form.name = "";
-  form.address = "";
-  form.phone1 = "";
-  form.phone2 = "";
-  form.whatsapp = "";
-  createdBranchId.value = "";
-  createdBranch.value = null;
-  emit("close");
-}
-
-async function onStep1() {
-  errorMsg.value = "";
-  saving.value = true;
-  try {
-    const branch = await branchesService.createBranch({
-      name: form.name.trim(),
-      address: form.address.trim(),
-    });
-    createdBranchId.value = branch.id;
-    createdBranch.value = branch;
-    step.value = 2;
-  } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo crear la sucursal.";
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function onStep2() {
-  errorMsg.value = "";
-  saving.value = true;
-  try {
-    const phones = await branchesService.addBranchPhones(
-      createdBranchId.value,
-      {
-        phone1: form.phone1.replace(/\s/g, ""),
-        phone2: form.phone2.replace(/\s/g, "") || null,
-        whatsapp: form.whatsapp.replace(/\s/g, "") || null,
-      },
-    );
-    const fullBranch: BranchResponse = {
-      ...createdBranch.value!,
-      phones: {
-        id: phones.id,
-        phone1: phones.phone1,
-        phone2: phones.phone2,
-        whatsapp: phones.whatsapp,
-      },
-    };
-    saving.value = false;
-    emit("close");
-    emit("created", fullBranch);
-  } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudieron guardar los teléfonos.";
-    saving.value = false;
-  }
-}
-</script>

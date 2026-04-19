@@ -103,7 +103,7 @@ onMounted(() => loadBranches());
       v-if="branches.length > 0"
       class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     >
-      <AdminBranchCard
+      <BranchCard
         v-for="sucursal in branches"
         :key="sucursal.id"
         :name="sucursal.name"
@@ -148,13 +148,13 @@ onMounted(() => loadBranches());
     </div>
   </div>
 
-  <ModalsBranchModal
+  <BranchCreateModal
     v-if="showModal"
     @close="showModal = false"
     @created="onBranchCreated"
   />
 
-  <ModalsBranchEditModal
+  <BranchEditModal
     v-if="editingBranch"
     :branch="editingBranch"
     @close="editingBranch = null"

@@ -1,3 +1,27 @@
+<script setup lang="ts">
+const mobileOpen = ref(false);
+const scrolled = ref(false);
+
+let onScrollHandler: (() => void) | null = null;
+
+onMounted(() => {
+  onScrollHandler = () => {
+    scrolled.value = window.scrollY > 20;
+  };
+  window.addEventListener("scroll", onScrollHandler, { passive: true });
+});
+
+onUnmounted(() => {
+  if (onScrollHandler) window.removeEventListener("scroll", onScrollHandler);
+});
+
+const navLinks = [
+  { to: "/productos", label: "Productos" },
+  { to: "/sucursales", label: "Sucursales" },
+  // { to: '/nosotros',   label: 'Acerca de' },
+];
+</script>
+
 <template>
   <div class="min-h-screen flex flex-col bg-white">
     <!-- ===== NAVBAR (fixed, overlays content transparently at top) ===== -->
@@ -222,30 +246,6 @@
     </footer>
   </div>
 </template>
-
-<script setup lang="ts">
-const mobileOpen = ref(false);
-const scrolled = ref(false);
-
-let onScrollHandler: (() => void) | null = null;
-
-onMounted(() => {
-  onScrollHandler = () => {
-    scrolled.value = window.scrollY > 20;
-  };
-  window.addEventListener("scroll", onScrollHandler, { passive: true });
-});
-
-onUnmounted(() => {
-  if (onScrollHandler) window.removeEventListener("scroll", onScrollHandler);
-});
-
-const navLinks = [
-  { to: "/productos", label: "Productos" },
-  { to: "/sucursales", label: "Sucursales" },
-  // { to: '/nosotros',   label: 'Acerca de' },
-];
-</script>
 
 <style scoped>
 .slide-enter-active,

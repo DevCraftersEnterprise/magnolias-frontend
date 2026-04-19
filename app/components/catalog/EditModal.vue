@@ -1,3 +1,47 @@
+<script setup lang="ts">
+export type CatalogEditPayload = {
+  id?: string;
+  name: string;
+  description?: string;
+};
+
+const open = defineModel<boolean>({ required: true });
+
+const props = defineProps<{
+  mode: "create" | "edit";
+  model: CatalogEditPayload | null;
+  title?: string; // ✅ NUEVO
+}>();
+
+const emit = defineEmits<{
+  (e: "save", payload: CatalogEditPayload): void;
+}>();
+
+const local = reactive<CatalogEditPayload>({
+  id: undefined,
+  name: "",
+  description: "",
+});
+
+watch(
+  () => props.model,
+  (m) => {
+    local.id = m?.id;
+    local.name = m?.name ?? "";
+    local.description = m?.description ?? "";
+  },
+  { immediate: true },
+);
+
+function submit() {
+  emit("save", {
+    id: local.id,
+    name: local.name,
+    description: local.description,
+  });
+}
+</script>
+
 <template>
   <UiBaseModal v-model="open">
     <template #title>
@@ -54,47 +98,3 @@
     </template>
   </UiBaseModal>
 </template>
-
-<script setup lang="ts">
-export type CatalogEditPayload = {
-  id?: string;
-  name: string;
-  description?: string;
-};
-
-const open = defineModel<boolean>({ required: true });
-
-const props = defineProps<{
-  mode: "create" | "edit";
-  model: CatalogEditPayload | null;
-  title?: string; // ✅ NUEVO
-}>();
-
-const emit = defineEmits<{
-  (e: "save", payload: CatalogEditPayload): void;
-}>();
-
-const local = reactive<CatalogEditPayload>({
-  id: undefined,
-  name: "",
-  description: "",
-});
-
-watch(
-  () => props.model,
-  (m) => {
-    local.id = m?.id;
-    local.name = m?.name ?? "";
-    local.description = m?.description ?? "";
-  },
-  { immediate: true },
-);
-
-function submit() {
-  emit("save", {
-    id: local.id,
-    name: local.name,
-    description: local.description,
-  });
-}
-</script>

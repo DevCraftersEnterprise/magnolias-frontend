@@ -407,7 +407,7 @@ async function reloadAll() {
     </div>
   </div>
 
-  <ModalsCategoryModal
+  <CategoryCreateModal
     v-if="categoryModal.open"
     :open="categoryModal.open"
     :mode="categoryModal.mode"
@@ -416,7 +416,7 @@ async function reloadAll() {
     @saved="reloadAll()"
   />
 
-  <ModalsProductModal
+  <ProductCreateModal
     v-if="productModal.open"
     :open="productModal.open"
     :mode="productModal.mode"
@@ -425,7 +425,7 @@ async function reloadAll() {
     @created="onProductCreated"
   />
 
-  <ModalsProductPicturesModal
+  <ProductLoadPicturesModal
     v-if="picturesModal.open && picturesModal.product"
     :open="picturesModal.open"
     :product="picturesModal.product"
@@ -433,7 +433,7 @@ async function reloadAll() {
     @uploaded="reloadAll()"
   />
 
-  <ModalsProductEditModal
+  <ProductEditModal
     v-if="editModalOpen && editProduct"
     :key="editModalKey"
     v-model="editModalOpen"

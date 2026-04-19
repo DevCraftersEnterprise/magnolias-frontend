@@ -1,3 +1,224 @@
+<script setup lang="ts">
+import { ordersService } from "~/services/orders.service";
+import type { OrderDetail, OrderItem, OrderType } from "~/types/order.types";
+
+const props = defineProps<{
+  open: boolean;
+  order: OrderItem | null;
+}>();
+
+const emit = defineEmits<{
+  (e: "close"): void;
+  (e: "order-updated", payload: { id: string; remainingBalance: string }): void;
+}>();
+
+// ── Location label translation ───────────────────────────────────────────────
+const LOCATION_LABELS: Record<string, string> = {
+  TOP: "Arriba",
+  BOTTOM: "Abajo",
+  CENTER: "Centro",
+  LEFT: "Izquierda",
+  RIGHT: "Derecha",
+  TOP_LEFT: "Arriba izquierda",
+  TOP_RIGHT: "Arriba derecha",
+  BOTTOM_LEFT: "Abajo izquierda",
+  BOTTOM_RIGHT: "Abajo derecha",
+  FRONT: "Frente",
+  BACK: "Atrás",
+  SIDE: "Lado",
+};
+function locationLabel(val?: string | null) {
+  if (!val) return "";
+  return LOCATION_LABELS[val.toUpperCase()] ?? val;
+}
+
+// ── Fetch full detail on open ────────────────────────────────────────────────
+const activeData = ref<OrderDetail | null>(null);
+const loadingDetail = ref(false);
+
+watch(
+  () => props.open,
+  async (v) => {
+    if (!v || !props.order) {
+      activeData.value = null;
+      return;
+    }
+    loadingDetail.value = true;
+    try {
+      activeData.value = await ordersService.getOrder(props.order.id);
+    } catch {
+      activeData.value = null; // fall back to list data
+    } finally {
+      loadingDetail.value = false;
+    }
+  },
+);
+
+// ── Escape key ───────────────────────────────────────────────────────────────
+function onKey(e: KeyboardEvent) {
+  if (e.key === "Escape" && props.open) emit("close");
+}
+onMounted(() => window.addEventListener("keydown", onKey));
+onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
+
+// ── Abono rápido ─────────────────────────────────────────────────────────────
+const abonoAmount = ref<number | "">("");
+const abonoSaving = ref(false);
+const abonoError = ref("");
+const abonoSuccess = ref(false);
+
+const remainingParsed = computed(() => {
+  const raw =
+    activeData.value?.remainingBalance ?? props.order?.remainingBalance ?? "";
+  return parseFloat(String(raw).replace(/[^0-9.]/g, "")) || 0;
+});
+const isPaid = computed(
+  () => !!activeData.value && remainingParsed.value === 0,
+);
+
+watch(
+  () => props.open,
+  (v) => {
+    if (!v) {
+      abonoAmount.value = "";
+      abonoError.value = "";
+      abonoSuccess.value = false;
+    }
+  },
+);
+
+async function saveAbono() {
+  const amount = Number(abonoAmount.value);
+  if (!amount || amount <= 0 || !props.order) return;
+  abonoSaving.value = true;
+  abonoError.value = "";
+  abonoSuccess.value = false;
+  try {
+    await ordersService.updateOrder({ id: props.order.id, payment: amount });
+    activeData.value = await ordersService.getOrder(props.order.id);
+    abonoAmount.value = "";
+    abonoSuccess.value = true;
+    emit("order-updated", {
+      id: props.order.id,
+      remainingBalance: activeData.value?.remainingBalance ?? "0",
+    });
+    setTimeout(() => {
+      abonoSuccess.value = false;
+    }, 3000);
+  } catch (e: any) {
+    abonoError.value = e?.message || "No se pudo registrar el abono.";
+  } finally {
+    abonoSaving.value = false;
+  }
+}
+
+// ── Computed from detail (fallback to list data) ────────────────────────────
+const activeDeliveryAddress = computed(
+  () => activeData.value?.deliveryAddress ?? props.order?.deliveryAddress,
+);
+const activeCustomer = computed(
+  () => activeData.value?.customer ?? props.order?.customer,
+);
+const activeCreatedBy = computed(
+  () => activeData.value?.createdBy ?? props.order?.createdBy,
+);
+const activeUpdatedBy = computed(
+  () => activeData.value?.updatedBy ?? props.order?.updatedBy,
+);
+
+const buildDeliveryAddress = computed(() => {
+  const a = activeDeliveryAddress.value;
+  if (!a) return "";
+  return [
+    a.street?.trim(),
+    a.number ? `#${a.number}` : null,
+    a.neighborhood?.trim(),
+    a.city?.trim(),
+  ]
+    .filter(Boolean)
+    .join(", ");
+});
+
+const buildCustomerAddress = computed(() => {
+  const a = activeCustomer.value?.address;
+  if (!a) return "";
+  return [
+    a.street?.trim(),
+    a.number ? `#${a.number}` : null,
+    a.neighborhood?.trim(),
+    a.city?.trim(),
+  ]
+    .filter(Boolean)
+    .join(", ");
+});
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function nameInitials(name: string) {
+  const parts = name.trim().split(" ").filter(Boolean);
+  if (parts.length >= 2)
+    return ((parts[0]![0] ?? "") + (parts[1]![0] ?? "")).toUpperCase();
+  return parts[0]?.slice(0, 2).toUpperCase() ?? "??";
+}
+
+function typeColor(t?: OrderType) {
+  return t
+    ? (TYPE_COLORS[t] ?? { bg: "#eee", text: "#333" })
+    : { bg: "#eee", text: "#333" };
+}
+
+function typeLabel(t?: OrderType) {
+  return t ? (TYPE_LABELS[t] ?? t) : "—";
+}
+
+function paymentLabel(pm?: string | null) {
+  return pm ? (PAYMENT_METHOD_LABELS[pm] ?? pm) : "—";
+}
+
+function roundLabel(r?: string | null) {
+  return r ? (DELIVERY_ROUND_LABELS[r] ?? r) : "—";
+}
+
+// ── Descargar formato ───────────────────────────────────────────────────────
+const downloading = ref(false);
+
+function formatEndpoint(orderType?: OrderType): string {
+  if (orderType === "DOMICILIO") return "domicilio";
+  if (orderType === "EVENTO") return "evento";
+  if (orderType === "VITRINA") return "vitrina";
+  return "personalizado"; // FLOR, PERSONALIZADO
+}
+
+async function downloadFormat() {
+  if (downloading.value || !props.order) return;
+  downloading.value = true;
+  try {
+    const config = useRuntimeConfig();
+    const base = String(config.public.apiBase || "").replace(/\/$/, "");
+    const token = useCookie<string | null>("access_token").value;
+    const orderType = activeData.value?.orderType ?? props.order.orderType;
+    const endpoint = formatEndpoint(orderType);
+    const res = await fetch(
+      `${base}/api/formats/${endpoint}/${props.order.id}`,
+      {
+        method: "GET",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      },
+    );
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(
+      new Blob([blob], { type: "application/pdf" }),
+    );
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (e: any) {
+    alert(e?.message || "No se pudo generar el formato.");
+  } finally {
+    downloading.value = false;
+  }
+}
+</script>
+
 <template>
   <Teleport to="body">
     <Transition
@@ -805,224 +1026,3 @@
     </Transition>
   </Teleport>
 </template>
-
-<script setup lang="ts">
-import { ordersService } from "~/services/orders.service";
-import type { OrderDetail, OrderItem, OrderType } from "~/types/order.types";
-
-const props = defineProps<{
-  open: boolean;
-  order: OrderItem | null;
-}>();
-
-const emit = defineEmits<{
-  (e: "close"): void;
-  (e: "order-updated", payload: { id: string; remainingBalance: string }): void;
-}>();
-
-// ── Location label translation ───────────────────────────────────────────────
-const LOCATION_LABELS: Record<string, string> = {
-  TOP: "Arriba",
-  BOTTOM: "Abajo",
-  CENTER: "Centro",
-  LEFT: "Izquierda",
-  RIGHT: "Derecha",
-  TOP_LEFT: "Arriba izquierda",
-  TOP_RIGHT: "Arriba derecha",
-  BOTTOM_LEFT: "Abajo izquierda",
-  BOTTOM_RIGHT: "Abajo derecha",
-  FRONT: "Frente",
-  BACK: "Atrás",
-  SIDE: "Lado",
-};
-function locationLabel(val?: string | null) {
-  if (!val) return "";
-  return LOCATION_LABELS[val.toUpperCase()] ?? val;
-}
-
-// ── Fetch full detail on open ────────────────────────────────────────────────
-const activeData = ref<OrderDetail | null>(null);
-const loadingDetail = ref(false);
-
-watch(
-  () => props.open,
-  async (v) => {
-    if (!v || !props.order) {
-      activeData.value = null;
-      return;
-    }
-    loadingDetail.value = true;
-    try {
-      activeData.value = await ordersService.getOrder(props.order.id);
-    } catch {
-      activeData.value = null; // fall back to list data
-    } finally {
-      loadingDetail.value = false;
-    }
-  },
-);
-
-// ── Escape key ───────────────────────────────────────────────────────────────
-function onKey(e: KeyboardEvent) {
-  if (e.key === "Escape" && props.open) emit("close");
-}
-onMounted(() => window.addEventListener("keydown", onKey));
-onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
-
-// ── Abono rápido ─────────────────────────────────────────────────────────────
-const abonoAmount = ref<number | "">("");
-const abonoSaving = ref(false);
-const abonoError = ref("");
-const abonoSuccess = ref(false);
-
-const remainingParsed = computed(() => {
-  const raw =
-    activeData.value?.remainingBalance ?? props.order?.remainingBalance ?? "";
-  return parseFloat(String(raw).replace(/[^0-9.]/g, "")) || 0;
-});
-const isPaid = computed(
-  () => !!activeData.value && remainingParsed.value === 0,
-);
-
-watch(
-  () => props.open,
-  (v) => {
-    if (!v) {
-      abonoAmount.value = "";
-      abonoError.value = "";
-      abonoSuccess.value = false;
-    }
-  },
-);
-
-async function saveAbono() {
-  const amount = Number(abonoAmount.value);
-  if (!amount || amount <= 0 || !props.order) return;
-  abonoSaving.value = true;
-  abonoError.value = "";
-  abonoSuccess.value = false;
-  try {
-    await ordersService.updateOrder({ id: props.order.id, payment: amount });
-    activeData.value = await ordersService.getOrder(props.order.id);
-    abonoAmount.value = "";
-    abonoSuccess.value = true;
-    emit("order-updated", {
-      id: props.order.id,
-      remainingBalance: activeData.value?.remainingBalance ?? "0",
-    });
-    setTimeout(() => {
-      abonoSuccess.value = false;
-    }, 3000);
-  } catch (e: any) {
-    abonoError.value = e?.message || "No se pudo registrar el abono.";
-  } finally {
-    abonoSaving.value = false;
-  }
-}
-
-// ── Computed from detail (fallback to list data) ────────────────────────────
-const activeDeliveryAddress = computed(
-  () => activeData.value?.deliveryAddress ?? props.order?.deliveryAddress,
-);
-const activeCustomer = computed(
-  () => activeData.value?.customer ?? props.order?.customer,
-);
-const activeCreatedBy = computed(
-  () => activeData.value?.createdBy ?? props.order?.createdBy,
-);
-const activeUpdatedBy = computed(
-  () => activeData.value?.updatedBy ?? props.order?.updatedBy,
-);
-
-const buildDeliveryAddress = computed(() => {
-  const a = activeDeliveryAddress.value;
-  if (!a) return "";
-  return [
-    a.street?.trim(),
-    a.number ? `#${a.number}` : null,
-    a.neighborhood?.trim(),
-    a.city?.trim(),
-  ]
-    .filter(Boolean)
-    .join(", ");
-});
-
-const buildCustomerAddress = computed(() => {
-  const a = activeCustomer.value?.address;
-  if (!a) return "";
-  return [
-    a.street?.trim(),
-    a.number ? `#${a.number}` : null,
-    a.neighborhood?.trim(),
-    a.city?.trim(),
-  ]
-    .filter(Boolean)
-    .join(", ");
-});
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function nameInitials(name: string) {
-  const parts = name.trim().split(" ").filter(Boolean);
-  if (parts.length >= 2)
-    return ((parts[0]![0] ?? "") + (parts[1]![0] ?? "")).toUpperCase();
-  return parts[0]?.slice(0, 2).toUpperCase() ?? "??";
-}
-
-function typeColor(t?: OrderType) {
-  return t
-    ? (TYPE_COLORS[t] ?? { bg: "#eee", text: "#333" })
-    : { bg: "#eee", text: "#333" };
-}
-
-function typeLabel(t?: OrderType) {
-  return t ? (TYPE_LABELS[t] ?? t) : "—";
-}
-
-function paymentLabel(pm?: string | null) {
-  return pm ? (PAYMENT_METHOD_LABELS[pm] ?? pm) : "—";
-}
-
-function roundLabel(r?: string | null) {
-  return r ? (DELIVERY_ROUND_LABELS[r] ?? r) : "—";
-}
-
-// ── Descargar formato ───────────────────────────────────────────────────────
-const downloading = ref(false);
-
-function formatEndpoint(orderType?: OrderType): string {
-  if (orderType === "DOMICILIO") return "domicilio";
-  if (orderType === "EVENTO") return "evento";
-  if (orderType === "VITRINA") return "vitrina";
-  return "personalizado"; // FLOR, PERSONALIZADO
-}
-
-async function downloadFormat() {
-  if (downloading.value || !props.order) return;
-  downloading.value = true;
-  try {
-    const config = useRuntimeConfig();
-    const base = String(config.public.apiBase || "").replace(/\/$/, "");
-    const token = useCookie<string | null>("access_token").value;
-    const orderType = activeData.value?.orderType ?? props.order.orderType;
-    const endpoint = formatEndpoint(orderType);
-    const res = await fetch(
-      `${base}/api/formats/${endpoint}/${props.order.id}`,
-      {
-        method: "GET",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      },
-    );
-    if (!res.ok) throw new Error(`Error ${res.status}`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(
-      new Blob([blob], { type: "application/pdf" }),
-    );
-    window.open(url, "_blank");
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  } catch (e: any) {
-    alert(e?.message || "No se pudo generar el formato.");
-  } finally {
-    downloading.value = false;
-  }
-}
-</script>

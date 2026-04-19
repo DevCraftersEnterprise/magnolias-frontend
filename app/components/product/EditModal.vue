@@ -1,3 +1,212 @@
+<script setup lang="ts">
+import { productsService } from "~/services/products.service";
+import type { ProductItem, ProductPicture } from "~/types/product.types";
+
+type CategoryOption = {
+  id: string;
+  name: string;
+};
+
+const props = defineProps<{
+  modelValue: boolean;
+  product: ProductItem;
+  categories: CategoryOption[];
+}>();
+
+const emit = defineEmits<{
+  (e: "update:modelValue", v: boolean): void;
+  (e: "updated"): void;
+}>();
+
+const saving = ref(false);
+const errorMsg = ref("");
+const activeThumb = ref(0);
+const confirmOpen = ref(false);
+const selectedToDelete = ref<ProductPicture | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
+
+const categories = computed(() => props.categories || []);
+
+const form = reactive({
+  id: "",
+  name: "",
+  description: "",
+  isFavorite: false,
+  isActive: true,
+  categoryId: "",
+});
+
+watch(
+  () => [props.modelValue, props.product] as const,
+  ([isOpen]) => {
+    if (!isOpen || !props.product) return;
+
+    errorMsg.value = "";
+    form.id = props.product.id;
+    form.name = props.product.name || "";
+    form.description = props.product.description || "";
+    form.isFavorite = !!props.product.isFavorite;
+    form.isActive = !!props.product.isActive;
+    form.categoryId = props.product.category.id || "";
+    activeThumb.value = 0;
+    selectedToDelete.value = null;
+    confirmOpen.value = false;
+  },
+  { immediate: true },
+);
+
+const pictures = ref<ProductPicture[]>([]);
+
+// Watch para actualizar las imágenes cuando cambia el producto (solo activas)
+watch(
+  () => props.product?.pictures,
+  (newPictures) => {
+    // Filtrar solo las imágenes activas
+    pictures.value = newPictures
+      ? newPictures.filter((p) => p.isActive !== false)
+      : [];
+  },
+  { immediate: true, deep: true },
+);
+
+function close() {
+  emit("update:modelValue", false);
+}
+
+function askDelete(pic: ProductPicture) {
+  selectedToDelete.value = pic;
+  confirmOpen.value = true;
+}
+
+function onPickFiles(e: Event) {
+  const input = e.target as HTMLInputElement;
+  if (!input.files || input.files.length === 0) return;
+
+  const files = Array.from(input.files);
+  input.value = "";
+  upload(files);
+}
+
+async function upload(files: File[]) {
+  errorMsg.value = "";
+  saving.value = true;
+
+  try {
+    const updatedProduct = await productsService.uploadPictures({
+      id: props.product.id,
+      name: form.name.trim(),
+      description: form.description.trim(),
+      isFavorite: !!form.isFavorite,
+      categoryId: form.categoryId,
+      isActive: !!form.isActive,
+      files,
+    });
+
+    // Actualizar inmediatamente el array local de fotos (solo activas)
+    pictures.value = updatedProduct.pictures
+      ? updatedProduct.pictures.filter((p) => p.isActive !== false)
+      : [];
+
+    // Resetear el thumbnail activo si es necesario
+    if (activeThumb.value >= pictures.value.length) {
+      activeThumb.value = 0;
+    }
+
+    emit("updated");
+  } catch (e: any) {
+    errorMsg.value = normalizeError(e, "No se pudieron subir las fotos.");
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function toggleProductStatus() {
+  const newStatus = !form.isActive;
+
+  if (!newStatus) {
+    errorMsg.value = "";
+    saving.value = true;
+
+    try {
+      await productsService.deactivateProduct(form.id);
+      form.isActive = newStatus;
+      emit("updated");
+    } catch (e: any) {
+      errorMsg.value = normalizeError(e, "No se pudo deactivar el producto.");
+    } finally {
+      saving.value = false;
+    }
+  } else {
+    form.isActive = newStatus;
+  }
+}
+
+async function save() {
+  errorMsg.value = "";
+  saving.value = true;
+
+  try {
+    await productsService.patchProduct({
+      id: form.id,
+      name: form.name.trim(),
+      description: form.description.trim(),
+      isFavorite: !!form.isFavorite,
+      categoryId: form.categoryId,
+      isActive: !!form.isActive,
+    });
+
+    emit("updated");
+    close();
+  } catch (e: any) {
+    errorMsg.value = normalizeError(e, "No se pudo actualizar el producto.");
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function deleteSelectedPicture() {
+  if (!selectedToDelete.value) return;
+
+  const pictureToDelete = selectedToDelete.value;
+  saving.value = true;
+  errorMsg.value = "";
+
+  try {
+    await productsService.deletePicture(pictureToDelete.id);
+
+    // Actualizar inmediatamente el array local eliminando la imagen
+    pictures.value = pictures.value.filter((p) => p.id !== pictureToDelete.id);
+
+    // Ajustar el thumbnail activo si es necesario
+    if (
+      activeThumb.value >= pictures.value.length &&
+      pictures.value.length > 0
+    ) {
+      activeThumb.value = pictures.value.length - 1;
+    } else if (pictures.value.length === 0) {
+      activeThumb.value = 0;
+    }
+
+    selectedToDelete.value = null;
+    confirmOpen.value = false;
+    emit("updated");
+  } catch (e: any) {
+    errorMsg.value = normalizeError(e, "No se pudo eliminar la imagen.");
+  } finally {
+    saving.value = false;
+  }
+}
+
+function onKey(e: KeyboardEvent) {
+  if (e.key === "Escape" && props.modelValue && !confirmOpen.value) {
+    close();
+  }
+}
+
+onMounted(() => window.addEventListener("keydown", onKey));
+onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
+</script>
+
 <template>
   <Teleport to="body">
     <div
@@ -267,212 +476,3 @@
     </div>
   </Teleport>
 </template>
-
-<script setup lang="ts">
-import { productsService } from "~/services/products.service";
-import type { ProductItem, ProductPicture } from "~/types/product.types";
-
-type CategoryOption = {
-  id: string;
-  name: string;
-};
-
-const props = defineProps<{
-  modelValue: boolean;
-  product: ProductItem;
-  categories: CategoryOption[];
-}>();
-
-const emit = defineEmits<{
-  (e: "update:modelValue", v: boolean): void;
-  (e: "updated"): void;
-}>();
-
-const saving = ref(false);
-const errorMsg = ref("");
-const activeThumb = ref(0);
-const confirmOpen = ref(false);
-const selectedToDelete = ref<ProductPicture | null>(null);
-const fileInput = ref<HTMLInputElement | null>(null);
-
-const categories = computed(() => props.categories || []);
-
-const form = reactive({
-  id: "",
-  name: "",
-  description: "",
-  isFavorite: false,
-  isActive: true,
-  categoryId: "",
-});
-
-watch(
-  () => [props.modelValue, props.product] as const,
-  ([isOpen]) => {
-    if (!isOpen || !props.product) return;
-
-    errorMsg.value = "";
-    form.id = props.product.id;
-    form.name = props.product.name || "";
-    form.description = props.product.description || "";
-    form.isFavorite = !!props.product.isFavorite;
-    form.isActive = !!props.product.isActive;
-    form.categoryId = props.product.category.id || "";
-    activeThumb.value = 0;
-    selectedToDelete.value = null;
-    confirmOpen.value = false;
-  },
-  { immediate: true },
-);
-
-const pictures = ref<ProductPicture[]>([]);
-
-// Watch para actualizar las imágenes cuando cambia el producto (solo activas)
-watch(
-  () => props.product?.pictures,
-  (newPictures) => {
-    // Filtrar solo las imágenes activas
-    pictures.value = newPictures
-      ? newPictures.filter((p) => p.isActive !== false)
-      : [];
-  },
-  { immediate: true, deep: true },
-);
-
-function close() {
-  emit("update:modelValue", false);
-}
-
-function askDelete(pic: ProductPicture) {
-  selectedToDelete.value = pic;
-  confirmOpen.value = true;
-}
-
-function onPickFiles(e: Event) {
-  const input = e.target as HTMLInputElement;
-  if (!input.files || input.files.length === 0) return;
-
-  const files = Array.from(input.files);
-  input.value = "";
-  upload(files);
-}
-
-async function upload(files: File[]) {
-  errorMsg.value = "";
-  saving.value = true;
-
-  try {
-    const updatedProduct = await productsService.uploadPictures({
-      id: props.product.id,
-      name: form.name.trim(),
-      description: form.description.trim(),
-      isFavorite: !!form.isFavorite,
-      categoryId: form.categoryId,
-      isActive: !!form.isActive,
-      files,
-    });
-
-    // Actualizar inmediatamente el array local de fotos (solo activas)
-    pictures.value = updatedProduct.pictures
-      ? updatedProduct.pictures.filter((p) => p.isActive !== false)
-      : [];
-
-    // Resetear el thumbnail activo si es necesario
-    if (activeThumb.value >= pictures.value.length) {
-      activeThumb.value = 0;
-    }
-
-    emit("updated");
-  } catch (e: any) {
-    errorMsg.value = normalizeError(e, "No se pudieron subir las fotos.");
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function toggleProductStatus() {
-  const newStatus = !form.isActive;
-
-  if (!newStatus) {
-    errorMsg.value = "";
-    saving.value = true;
-
-    try {
-      await productsService.deactivateProduct(form.id);
-      form.isActive = newStatus;
-      emit("updated");
-    } catch (e: any) {
-      errorMsg.value = normalizeError(e, "No se pudo deactivar el producto.");
-    } finally {
-      saving.value = false;
-    }
-  } else {
-    form.isActive = newStatus;
-  }
-}
-
-async function save() {
-  errorMsg.value = "";
-  saving.value = true;
-
-  try {
-    await productsService.patchProduct({
-      id: form.id,
-      name: form.name.trim(),
-      description: form.description.trim(),
-      isFavorite: !!form.isFavorite,
-      categoryId: form.categoryId,
-      isActive: !!form.isActive,
-    });
-
-    emit("updated");
-    close();
-  } catch (e: any) {
-    errorMsg.value = normalizeError(e, "No se pudo actualizar el producto.");
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function deleteSelectedPicture() {
-  if (!selectedToDelete.value) return;
-
-  const pictureToDelete = selectedToDelete.value;
-  saving.value = true;
-  errorMsg.value = "";
-
-  try {
-    await productsService.deletePicture(pictureToDelete.id);
-
-    // Actualizar inmediatamente el array local eliminando la imagen
-    pictures.value = pictures.value.filter((p) => p.id !== pictureToDelete.id);
-
-    // Ajustar el thumbnail activo si es necesario
-    if (
-      activeThumb.value >= pictures.value.length &&
-      pictures.value.length > 0
-    ) {
-      activeThumb.value = pictures.value.length - 1;
-    } else if (pictures.value.length === 0) {
-      activeThumb.value = 0;
-    }
-
-    selectedToDelete.value = null;
-    confirmOpen.value = false;
-    emit("updated");
-  } catch (e: any) {
-    errorMsg.value = normalizeError(e, "No se pudo eliminar la imagen.");
-  } finally {
-    saving.value = false;
-  }
-}
-
-function onKey(e: KeyboardEvent) {
-  if (e.key === "Escape" && props.modelValue && !confirmOpen.value) {
-    close();
-  }
-}
-
-onMounted(() => window.addEventListener("keydown", onKey));
-onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
-</script>

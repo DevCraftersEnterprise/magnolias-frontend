@@ -1,3 +1,133 @@
+<script setup lang="ts">
+import { usersService } from "~/services/users.service";
+import { branchesService } from "~/services/branches.service";
+import type {
+  CreateUserPayload,
+  UpdateUserPayload,
+  UserItem,
+} from "~/types/user.types";
+import type { BranchResponse } from "~/types/branch.types";
+
+const props = defineProps<{
+  mode: "create" | "edit";
+  user?: UserItem | null;
+}>();
+
+const emit = defineEmits<{
+  (e: "close"): void;
+  (e: "created", user: UserItem): void;
+  (e: "saved"): void;
+}>();
+
+const saving = ref(false);
+const errorMsg = ref("");
+const showPassword = ref(false);
+
+const branches = ref<BranchResponse[]>([]);
+
+const form = reactive({
+  name: props.user?.name ?? "",
+  lastname: props.user?.lastname ?? "",
+  username: props.user?.username ?? "",
+  userkey: "",
+  role: props.user?.role ?? "",
+  branchId: props.user?.branch?.id ?? "",
+  branchIds: props.user?.branches?.map((b) => b.id) ?? ([] as string[]),
+  area: props.user?.area ?? "",
+  specialty: props.user?.specialty ?? "",
+  isActive: props.user?.isActive ?? true,
+});
+
+const roleSubtitles: Record<string, string> = {
+  SUPER: "Acceso total al sistema",
+  ADMIN: "Administración general",
+  EMPLOYEE: "Asignado a una sucursal y área",
+  BAKER: "Puede pertenecer a varias sucursales",
+  ASSISTANT: "Asignado a una sucursal",
+};
+
+const roleSubtitle = computed(() => roleSubtitles[form.role] ?? "");
+
+// Reset campos extras al cambiar de rol
+watch(
+  () => form.role,
+  () => {
+    form.branchId = "";
+    form.branchIds = [];
+    form.area = "";
+    form.specialty = "";
+  },
+);
+
+onMounted(async () => {
+  try {
+    branches.value = await branchesService.getBranches();
+  } catch {
+    /* si falla, los selects quedarán vacíos */
+  }
+});
+
+async function onSubmit() {
+  errorMsg.value = "";
+  saving.value = true;
+  try {
+    const payload: CreateUserPayload = {
+      name: form.name.trim(),
+      lastname: form.lastname.trim(),
+      username: form.username.trim(),
+      userkey: form.userkey,
+      role: form.role,
+    };
+
+    if (form.role === "EMPLOYEE" || form.role === "ASSISTANT") {
+      payload.branchId = form.branchId || null;
+    }
+    if (form.role === "BAKER") {
+      payload.branchIds = form.branchIds;
+      payload.area = form.area || null;
+      if (form.specialty.trim()) payload.specialty = form.specialty.trim();
+    }
+
+    if (props.mode === "create") {
+      const created = await usersService.createUser(payload);
+      emit("created", created);
+    } else {
+      const editPayload: UpdateUserPayload = {
+        id: props.user!.id,
+        name: form.name.trim(),
+        lastname: form.lastname.trim(),
+        username: form.username.trim(),
+        role: form.role,
+        isActive: form.isActive,
+      };
+      if (form.role === "EMPLOYEE" || form.role === "ASSISTANT") {
+        if (form.branchId) editPayload.branchId = form.branchId;
+      }
+      if (form.role === "BAKER") {
+        if (form.branchIds.length > 0) editPayload.branchIds = form.branchIds;
+        if (form.area) editPayload.area = form.area;
+        if (form.specialty.trim())
+          editPayload.specialty = form.specialty.trim();
+      }
+      await usersService.updateUser(editPayload);
+      if (form.userkey) {
+        await usersService.resetPassword({
+          username: form.username.trim(),
+          newPassword: form.userkey,
+        });
+      }
+      emit("saved");
+    }
+
+    emit("close");
+  } catch (e: any) {
+    errorMsg.value = e?.message || "No se pudo guardar el usuario.";
+  } finally {
+    saving.value = false;
+  }
+}
+</script>
+
 <template>
   <UiBaseModal :model-value="true" @update:model-value="emit('close')">
     <template #title>{{
@@ -323,133 +453,3 @@
     </form>
   </UiBaseModal>
 </template>
-
-<script setup lang="ts">
-import { usersService } from "~/services/users.service";
-import { branchesService } from "~/services/branches.service";
-import type {
-  CreateUserPayload,
-  UpdateUserPayload,
-  UserItem,
-} from "~/types/user.types";
-import type { BranchResponse } from "~/types/branch.types";
-
-const props = defineProps<{
-  mode: "create" | "edit";
-  user?: UserItem | null;
-}>();
-
-const emit = defineEmits<{
-  (e: "close"): void;
-  (e: "created", user: UserItem): void;
-  (e: "saved"): void;
-}>();
-
-const saving = ref(false);
-const errorMsg = ref("");
-const showPassword = ref(false);
-
-const branches = ref<BranchResponse[]>([]);
-
-const form = reactive({
-  name: props.user?.name ?? "",
-  lastname: props.user?.lastname ?? "",
-  username: props.user?.username ?? "",
-  userkey: "",
-  role: props.user?.role ?? "",
-  branchId: props.user?.branch?.id ?? "",
-  branchIds: props.user?.branches?.map((b) => b.id) ?? ([] as string[]),
-  area: props.user?.area ?? "",
-  specialty: props.user?.specialty ?? "",
-  isActive: props.user?.isActive ?? true,
-});
-
-const roleSubtitles: Record<string, string> = {
-  SUPER: "Acceso total al sistema",
-  ADMIN: "Administración general",
-  EMPLOYEE: "Asignado a una sucursal y área",
-  BAKER: "Puede pertenecer a varias sucursales",
-  ASSISTANT: "Asignado a una sucursal",
-};
-
-const roleSubtitle = computed(() => roleSubtitles[form.role] ?? "");
-
-// Reset campos extras al cambiar de rol
-watch(
-  () => form.role,
-  () => {
-    form.branchId = "";
-    form.branchIds = [];
-    form.area = "";
-    form.specialty = "";
-  },
-);
-
-onMounted(async () => {
-  try {
-    branches.value = await branchesService.getBranches();
-  } catch {
-    /* si falla, los selects quedarán vacíos */
-  }
-});
-
-async function onSubmit() {
-  errorMsg.value = "";
-  saving.value = true;
-  try {
-    const payload: CreateUserPayload = {
-      name: form.name.trim(),
-      lastname: form.lastname.trim(),
-      username: form.username.trim(),
-      userkey: form.userkey,
-      role: form.role,
-    };
-
-    if (form.role === "EMPLOYEE" || form.role === "ASSISTANT") {
-      payload.branchId = form.branchId || null;
-    }
-    if (form.role === "BAKER") {
-      payload.branchIds = form.branchIds;
-      payload.area = form.area || null;
-      if (form.specialty.trim()) payload.specialty = form.specialty.trim();
-    }
-
-    if (props.mode === "create") {
-      const created = await usersService.createUser(payload);
-      emit("created", created);
-    } else {
-      const editPayload: UpdateUserPayload = {
-        id: props.user!.id,
-        name: form.name.trim(),
-        lastname: form.lastname.trim(),
-        username: form.username.trim(),
-        role: form.role,
-        isActive: form.isActive,
-      };
-      if (form.role === "EMPLOYEE" || form.role === "ASSISTANT") {
-        if (form.branchId) editPayload.branchId = form.branchId;
-      }
-      if (form.role === "BAKER") {
-        if (form.branchIds.length > 0) editPayload.branchIds = form.branchIds;
-        if (form.area) editPayload.area = form.area;
-        if (form.specialty.trim())
-          editPayload.specialty = form.specialty.trim();
-      }
-      await usersService.updateUser(editPayload);
-      if (form.userkey) {
-        await usersService.resetPassword({
-          username: form.username.trim(),
-          newPassword: form.userkey,
-        });
-      }
-      emit("saved");
-    }
-
-    emit("close");
-  } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo guardar el usuario.";
-  } finally {
-    saving.value = false;
-  }
-}
-</script>

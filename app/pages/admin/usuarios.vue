@@ -310,14 +310,14 @@ function roleBadge(r: string) {
     </div>
   </section>
 
-  <ModalsUserModal
+  <UserCreateModal
     v-if="createOpen"
     mode="create"
     @close="createOpen = false"
     @created="onUserCreated"
   />
 
-  <ModalsUserModal
+  <UserCreateModal
     v-if="editingUser"
     mode="edit"
     :user="editingUser"

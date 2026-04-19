@@ -366,7 +366,7 @@ const branches = computed(() => branchesData.value ?? []);
           </div>
 
           <!-- Mapa -->
-          <AdminBranchMap
+          <BranchMap
             v-if="branch.latitude && branch.longitude"
             :latitude="Number(branch.latitude)"
             :longitude="Number(branch.longitude)"

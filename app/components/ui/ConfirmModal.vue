@@ -1,3 +1,16 @@
+<script setup lang="ts">
+const open = defineModel<boolean>({ required: true });
+
+defineProps<{
+  title: string;
+  message?: string;
+}>();
+
+defineEmits<{
+  (e: "confirm"): void;
+}>();
+</script>
+
 <template>
   <UiBaseModal v-model="open">
     <template #title>
@@ -31,16 +44,3 @@
     </template>
   </UiBaseModal>
 </template>
-
-<script setup lang="ts">
-const open = defineModel<boolean>({ required: true });
-
-defineProps<{
-  title: string;
-  message?: string;
-}>();
-
-defineEmits<{
-  (e: "confirm"): void;
-}>();
-</script>

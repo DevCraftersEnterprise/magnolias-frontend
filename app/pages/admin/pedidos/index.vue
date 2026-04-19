@@ -1605,7 +1605,7 @@ function onOrderPaymentUpdated(payload: {
     </div>
   </section>
 
-  <ModalsOrderDetailModal
+  <OrderDetailModal
     :open="detailOpen"
     :order="selectedOrder"
     @close="detailOpen = false"

@@ -1,3 +1,74 @@
+<script setup lang="ts">
+export type ColorEditPayload = {
+  id?: string;
+  name: string;
+  value: string; // "#RRGGBB"
+};
+
+const open = defineModel<boolean>({ required: true });
+
+const props = defineProps<{
+  mode: "create" | "edit";
+  model: ColorEditPayload | null;
+}>();
+
+const emit = defineEmits<{
+  (e: "save", payload: ColorEditPayload): void;
+}>();
+
+const local = reactive<ColorEditPayload>({
+  id: undefined,
+  name: "",
+  value: "#FFB6C1",
+});
+
+watch(
+  () => props.model,
+  (m) => {
+    local.id = m?.id;
+    local.name = m?.name ?? "";
+    local.value = m?.value ?? "#FFB6C1";
+  },
+  { immediate: true },
+);
+
+function isValidHex(v: string) {
+  return /^#([0-9A-Fa-f]{6})$/.test(v);
+}
+
+const safeHex = computed(() =>
+  isValidHex(local.value) ? local.value : "#000000",
+);
+
+const hexError = computed(() => {
+  if (!local.value) return "Escribe un color en formato #RRGGBB";
+  if (!local.value.startsWith("#")) return "Debe iniciar con #";
+  if (!isValidHex(local.value)) return "Formato inválido. Ej: #FFB6C1";
+  return "";
+});
+
+const canSave = computed(() => {
+  return !!local.name && !hexError.value;
+});
+
+function normalizeHex() {
+  if (!local.value) return;
+  if (!local.value.startsWith("#")) local.value = `#${local.value}`;
+  local.value = local.value.toUpperCase();
+}
+
+function onPickColor(e: Event) {
+  const v = (e.target as HTMLInputElement).value;
+  local.value = v.toUpperCase();
+}
+
+function submit() {
+  normalizeHex();
+  if (!canSave.value) return;
+  emit("save", { id: local.id, name: local.name, value: local.value });
+}
+</script>
+
 <template>
   <UiBaseModal v-model="open">
     <template #title>
@@ -79,74 +150,3 @@
     </template>
   </UiBaseModal>
 </template>
-
-<script setup lang="ts">
-export type ColorEditPayload = {
-  id?: string;
-  name: string;
-  value: string; // "#RRGGBB"
-};
-
-const open = defineModel<boolean>({ required: true });
-
-const props = defineProps<{
-  mode: "create" | "edit";
-  model: ColorEditPayload | null;
-}>();
-
-const emit = defineEmits<{
-  (e: "save", payload: ColorEditPayload): void;
-}>();
-
-const local = reactive<ColorEditPayload>({
-  id: undefined,
-  name: "",
-  value: "#FFB6C1",
-});
-
-watch(
-  () => props.model,
-  (m) => {
-    local.id = m?.id;
-    local.name = m?.name ?? "";
-    local.value = m?.value ?? "#FFB6C1";
-  },
-  { immediate: true },
-);
-
-function isValidHex(v: string) {
-  return /^#([0-9A-Fa-f]{6})$/.test(v);
-}
-
-const safeHex = computed(() =>
-  isValidHex(local.value) ? local.value : "#000000",
-);
-
-const hexError = computed(() => {
-  if (!local.value) return "Escribe un color en formato #RRGGBB";
-  if (!local.value.startsWith("#")) return "Debe iniciar con #";
-  if (!isValidHex(local.value)) return "Formato inválido. Ej: #FFB6C1";
-  return "";
-});
-
-const canSave = computed(() => {
-  return !!local.name && !hexError.value;
-});
-
-function normalizeHex() {
-  if (!local.value) return;
-  if (!local.value.startsWith("#")) local.value = `#${local.value}`;
-  local.value = local.value.toUpperCase();
-}
-
-function onPickColor(e: Event) {
-  const v = (e.target as HTMLInputElement).value;
-  local.value = v.toUpperCase();
-}
-
-function submit() {
-  normalizeHex();
-  if (!canSave.value) return;
-  emit("save", { id: local.id, name: local.name, value: local.value });
-}
-</script>

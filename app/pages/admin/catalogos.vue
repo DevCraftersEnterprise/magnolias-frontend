@@ -1,10 +1,9 @@
-<!-- pages/admin/catalogos.vue -->
 <script setup lang="ts">
 definePageMeta({ layout: "admin", pageTitle: "Catálogos" });
 useHead({ title: "Catálogos · Magnolias" });
 
-import { type CatalogEditPayload } from "~/components/modals/CatalogEditModal.vue";
-import { type ColorEditPayload } from "~/components/modals/ColorEditModal.vue";
+import { type CatalogEditPayload } from "~/components/catalog/EditModal.vue";
+import { type ColorEditPayload } from "~/components/color/EditModal.vue";
 import { catalogsService } from "~/services/catalogs.service";
 import type { BreadTypeItem, ColorItem } from "~/types/catalog.types";
 
@@ -606,7 +605,7 @@ const cards = [
     </div>
 
     <!-- Modales -->
-    <ModalsCatalogEditModal
+    <CatalogEditModal
       v-model="editOpen"
       :mode="editMode"
       :model="editModel"
@@ -621,7 +620,7 @@ const cards = [
       @confirm="onConfirmDelete"
     />
 
-    <ModalsColorEditModal
+    <ColorEditModal
       v-model="colorOpen"
       :mode="colorMode"
       :model="colorModel"

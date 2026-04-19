@@ -1,3 +1,107 @@
+<script setup lang="ts">
+import { branchesService } from "~/services/branches.service";
+import type { BranchResponse } from "~/types/branch.types";
+
+const props = defineProps<{
+  branch: BranchResponse;
+}>();
+
+const emit = defineEmits<{
+  (e: "close"): void;
+  (e: "saved", branch: BranchResponse): void;
+}>();
+
+const saving = ref(false);
+const errorMsg = ref("");
+
+// Keep only last 10 digits — handles values stored with +52 prefix
+const toDigits = (v: string | null | undefined) =>
+  (v ?? "").replace(/\D/g, "").slice(-10);
+
+const originalPhones = {
+  phone1: toDigits(props.branch.phones?.phone1),
+  phone2: toDigits(props.branch.phones?.phone2),
+  whatsapp: toDigits(props.branch.phones?.whatsapp),
+};
+
+const form = reactive({
+  name: props.branch.name,
+  address: props.branch.address,
+  isActive: props.branch.isActive,
+  phone1: originalPhones.phone1,
+  phone2: originalPhones.phone2,
+  whatsapp: originalPhones.whatsapp,
+});
+
+async function onSubmit() {
+  errorMsg.value = "";
+  saving.value = true;
+  try {
+    const newPhone1 = toDigits(form.phone1);
+    const newPhone2 = toDigits(form.phone2) || null;
+    const newWhatsapp = toDigits(form.whatsapp) || null;
+
+    const phonesChanged =
+      newPhone1 !== originalPhones.phone1 ||
+      (newPhone2 ?? "") !== (originalPhones.phone2 ?? "") ||
+      (newWhatsapp ?? "") !== (originalPhones.whatsapp ?? "");
+
+    const branchPayload = {
+      id: props.branch.id,
+      name: form.name.trim(),
+      address: form.address.trim(),
+      isActive: form.isActive,
+    };
+
+    // Always use PATCH regardless of isActive — the PATCH endpoint handles deactivation via isActive: false
+    const branchPromise = branchesService.updateBranch(branchPayload);
+
+    let fullBranch: BranchResponse;
+
+    if (phonesChanged) {
+      const phonesId = props.branch.phones?.id;
+
+      const phonesPromise = phonesId
+        ? branchesService.updateBranchPhones({
+            id: phonesId,
+            phone1: newPhone1,
+            phone2: newPhone2,
+            whatsapp: newWhatsapp,
+          })
+        : branchesService.addBranchPhones(props.branch.id, {
+            phone1: newPhone1,
+            phone2: newPhone2,
+            whatsapp: newWhatsapp,
+          });
+
+      const [updatedBranch, updatedPhones] = await Promise.all([
+        branchPromise,
+        phonesPromise,
+      ]);
+      fullBranch = {
+        ...updatedBranch,
+        phones: {
+          id: updatedPhones.id,
+          phone1: updatedPhones.phone1,
+          phone2: updatedPhones.phone2,
+          whatsapp: updatedPhones.whatsapp,
+        },
+      };
+    } else {
+      const updatedBranch = await branchPromise;
+      fullBranch = { ...updatedBranch, phones: props.branch.phones };
+    }
+
+    saving.value = false;
+    emit("close");
+    emit("saved", fullBranch);
+  } catch (e: any) {
+    errorMsg.value = e?.message || "No se pudo actualizar la sucursal.";
+    saving.value = false;
+  }
+}
+</script>
+
 <template>
   <UiBaseModal :model-value="true" @update:model-value="emit('close')">
     <template #title>Editar sucursal</template>
@@ -104,107 +208,3 @@
     </form>
   </UiBaseModal>
 </template>
-
-<script setup lang="ts">
-import { branchesService } from "~/services/branches.service";
-import type { BranchResponse } from "~/types/branch.types";
-
-const props = defineProps<{
-  branch: BranchResponse;
-}>();
-
-const emit = defineEmits<{
-  (e: "close"): void;
-  (e: "saved", branch: BranchResponse): void;
-}>();
-
-const saving = ref(false);
-const errorMsg = ref("");
-
-// Keep only last 10 digits — handles values stored with +52 prefix
-const toDigits = (v: string | null | undefined) =>
-  (v ?? "").replace(/\D/g, "").slice(-10);
-
-const originalPhones = {
-  phone1: toDigits(props.branch.phones?.phone1),
-  phone2: toDigits(props.branch.phones?.phone2),
-  whatsapp: toDigits(props.branch.phones?.whatsapp),
-};
-
-const form = reactive({
-  name: props.branch.name,
-  address: props.branch.address,
-  isActive: props.branch.isActive,
-  phone1: originalPhones.phone1,
-  phone2: originalPhones.phone2,
-  whatsapp: originalPhones.whatsapp,
-});
-
-async function onSubmit() {
-  errorMsg.value = "";
-  saving.value = true;
-  try {
-    const newPhone1 = toDigits(form.phone1);
-    const newPhone2 = toDigits(form.phone2) || null;
-    const newWhatsapp = toDigits(form.whatsapp) || null;
-
-    const phonesChanged =
-      newPhone1 !== originalPhones.phone1 ||
-      (newPhone2 ?? "") !== (originalPhones.phone2 ?? "") ||
-      (newWhatsapp ?? "") !== (originalPhones.whatsapp ?? "");
-
-    const branchPayload = {
-      id: props.branch.id,
-      name: form.name.trim(),
-      address: form.address.trim(),
-      isActive: form.isActive,
-    };
-
-    // Always use PATCH regardless of isActive — the PATCH endpoint handles deactivation via isActive: false
-    const branchPromise = branchesService.updateBranch(branchPayload);
-
-    let fullBranch: BranchResponse;
-
-    if (phonesChanged) {
-      const phonesId = props.branch.phones?.id;
-
-      const phonesPromise = phonesId
-        ? branchesService.updateBranchPhones({
-            id: phonesId,
-            phone1: newPhone1,
-            phone2: newPhone2,
-            whatsapp: newWhatsapp,
-          })
-        : branchesService.addBranchPhones(props.branch.id, {
-            phone1: newPhone1,
-            phone2: newPhone2,
-            whatsapp: newWhatsapp,
-          });
-
-      const [updatedBranch, updatedPhones] = await Promise.all([
-        branchPromise,
-        phonesPromise,
-      ]);
-      fullBranch = {
-        ...updatedBranch,
-        phones: {
-          id: updatedPhones.id,
-          phone1: updatedPhones.phone1,
-          phone2: updatedPhones.phone2,
-          whatsapp: updatedPhones.whatsapp,
-        },
-      };
-    } else {
-      const updatedBranch = await branchPromise;
-      fullBranch = { ...updatedBranch, phones: props.branch.phones };
-    }
-
-    saving.value = false;
-    emit("close");
-    emit("saved", fullBranch);
-  } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo actualizar la sucursal.";
-    saving.value = false;
-  }
-}
-</script>

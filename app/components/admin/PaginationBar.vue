@@ -1,3 +1,20 @@
+<script setup lang="ts">
+defineProps<{
+  from: number;
+  to: number;
+  total: number;
+  currentPage: number;
+  totalPages: number;
+  canPrev: boolean;
+  canNext: boolean;
+}>();
+
+defineEmits<{
+  (e: "prev"): void;
+  (e: "next"): void;
+}>();
+</script>
+
 <template>
   <div class="mt-4 flex items-center justify-between">
     <p class="text-[12px] text-gray-500">
@@ -24,20 +41,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-defineProps<{
-  from: number;
-  to: number;
-  total: number;
-  currentPage: number;
-  totalPages: number;
-  canPrev: boolean;
-  canNext: boolean;
-}>();
-
-defineEmits<{
-  (e: "prev"): void;
-  (e: "next"): void;
-}>();
-</script>

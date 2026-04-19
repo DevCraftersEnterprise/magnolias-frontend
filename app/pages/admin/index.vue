@@ -143,7 +143,7 @@ watch(selectedBranch, () => {
       </div>
 
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <AdminOrderSummaryCard
+        <OrderSummaryCard
           v-for="item in orderSummary"
           :key="item.key"
           :item="item"
@@ -164,7 +164,7 @@ watch(selectedBranch, () => {
           </div>
 
           <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
-            <AdminOrderSummaryCard
+            <OrderSummaryCard
               v-for="item in orderTypeSummary"
               :key="item.key"
               :item="item"

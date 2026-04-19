@@ -115,7 +115,7 @@ const emit = defineEmits<{ (e: "edit"): void }>();
       </div>
     </div>
 
-    <AdminBranchMap
+    <BranchMap
       :latitude="latitude"
       :longitude="longitude"
       :name="name"

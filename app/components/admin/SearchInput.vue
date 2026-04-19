@@ -1,3 +1,26 @@
+<script setup lang="ts">
+defineProps<{
+  modelValue: string;
+  placeholder?: string;
+  type?: string;
+  inputmode?:
+    | "text"
+    | "email"
+    | "search"
+    | "tel"
+    | "url"
+    | "none"
+    | "numeric"
+    | "decimal"
+    | undefined;
+}>();
+
+defineEmits<{
+  (e: "update:modelValue", v: string): void;
+  (e: "clear"): void;
+}>();
+</script>
+
 <template>
   <div class="relative">
     <input
@@ -40,26 +63,3 @@
     </button>
   </div>
 </template>
-
-<script setup lang="ts">
-defineProps<{
-  modelValue: string;
-  placeholder?: string;
-  type?: string;
-  inputmode?:
-    | "text"
-    | "email"
-    | "search"
-    | "tel"
-    | "url"
-    | "none"
-    | "numeric"
-    | "decimal"
-    | undefined;
-}>();
-
-defineEmits<{
-  (e: "update:modelValue", v: string): void;
-  (e: "clear"): void;
-}>();
-</script>

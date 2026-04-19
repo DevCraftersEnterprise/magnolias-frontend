@@ -1,3 +1,17 @@
+<script setup lang="ts">
+const props = defineProps<{
+  modelValue: boolean;
+}>();
+
+const emit = defineEmits<{
+  (e: "update:modelValue", v: boolean): void;
+}>();
+
+function close() {
+  emit("update:modelValue", false);
+}
+</script>
+
 <template>
   <Teleport to="body">
     <div
@@ -50,17 +64,3 @@
     </div>
   </Teleport>
 </template>
-
-<script setup lang="ts">
-const props = defineProps<{
-  modelValue: boolean;
-}>();
-
-const emit = defineEmits<{
-  (e: "update:modelValue", v: boolean): void;
-}>();
-
-function close() {
-  emit("update:modelValue", false);
-}
-</script>

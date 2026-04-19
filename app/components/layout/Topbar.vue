@@ -1,3 +1,23 @@
+<script setup lang="ts">
+defineProps<{ title: string }>();
+defineEmits<{ (e: "toggle"): void; (e: "logout"): void }>();
+const { user, loading } = useAuthUser();
+const { branches, selectedBranch, bakerBranches } = useBranch();
+
+const username = computed(() => user.value?.username ?? "...");
+const role = computed(() => user.value?.role ?? "");
+const isBaker = computed(() => user.value?.role === "BAKER");
+const canSeeBranchSelect = computed(() =>
+  ["ADMIN", "SUPER"].includes(user.value?.role ?? ""),
+);
+
+const initials = computed(() => {
+  const u = user.value?.username?.trim();
+  if (!u) return "??";
+  return u.slice(0, 2).toUpperCase();
+});
+</script>
+
 <template>
   <header
     class="h-[86px] bg-white grid grid-cols-[auto_1fr_auto] items-center gap-4 px-[26px] border-b border-black/[0.06] shadow-[0_8px_22px_rgba(0,0,0,0.06)] sticky top-0 z-20 max-[900px]:h-[74px] max-[900px]:px-4 max-[640px]:h-[66px] max-[640px]:px-[14px]"
@@ -208,23 +228,3 @@
     </div>
   </header>
 </template>
-
-<script setup lang="ts">
-defineProps<{ title: string }>();
-defineEmits<{ (e: "toggle"): void; (e: "logout"): void }>();
-const { user, loading } = useAuthUser();
-const { branches, selectedBranch, bakerBranches } = useBranch();
-
-const username = computed(() => user.value?.username ?? "...");
-const role = computed(() => user.value?.role ?? "");
-const isBaker = computed(() => user.value?.role === "BAKER");
-const canSeeBranchSelect = computed(() =>
-  ["ADMIN", "SUPER"].includes(user.value?.role ?? ""),
-);
-
-const initials = computed(() => {
-  const u = user.value?.username?.trim();
-  if (!u) return "??";
-  return u.slice(0, 2).toUpperCase();
-});
-</script>
