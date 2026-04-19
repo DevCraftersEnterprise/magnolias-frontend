@@ -44,11 +44,6 @@
 const { loadUserFromToken, clearUser } = useAuthUser();
 const { loadBranches } = useBranch();
 
-onMounted(async () => {
-  await loadUserFromToken();
-  await loadBranches();
-});
-
 const drawerOpen = ref(false);
 const collapsed = ref(false);
 const isMobile = ref(false);
@@ -64,7 +59,9 @@ function computeIsMobile() {
   if (!isMobile.value) drawerOpen.value = false;
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await loadUserFromToken();
+  await loadBranches();
   computeIsMobile();
   window.addEventListener("resize", computeIsMobile);
 });

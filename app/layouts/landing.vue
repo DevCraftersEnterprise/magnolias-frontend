@@ -56,33 +56,65 @@
           />
         </NuxtLink>
 
-          <!-- Right: social icons -->
-          <div class="flex items-center justify-end gap-3">
-            <NuxtLink
-              to="/login"
-              class="hidden md:inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-[#C9007C] hover:bg-[#a8006a] transition px-4 py-1.5 rounded-full"
+        <!-- Right: social icons -->
+        <div class="flex items-center justify-end gap-3">
+          <NuxtLink
+            to="/login"
+            class="hidden md:inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-[#C9007C] hover:bg-[#a8006a] transition px-4 py-1.5 rounded-full"
+          >
+            <svg
+              class="h-[15px] w-[15px]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
             >
-              <svg class="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
-              </svg>
-              Ingresar
-            </NuxtLink>
-            <a href="https://web.facebook.com/pasteleriasmagnolias" target="_blank" rel="noopener noreferrer"
-               class="text-[#1E1E1E]/50 hover:text-[#1E1E1E] transition">
-              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
-              </svg>
-            </a>
-            <a href="https://www.instagram.com/pasteleriamagnolias" target="_blank" rel="noopener noreferrer"
-               class="text-[#1E1E1E]/50 hover:text-[#1E1E1E] transition">
-              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-              </svg>
-            </a>
-          </div>
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+            Ingresar
+          </NuxtLink>
+          <a
+            href="https://web.facebook.com/pasteleriasmagnolias"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-[#1E1E1E]/50 hover:text-[#1E1E1E] transition"
+          >
+            <svg
+              class="h-[18px] w-[18px]"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"
+              />
+            </svg>
+          </a>
+          <a
+            href="https://www.instagram.com/pasteleriamagnolias"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-[#1E1E1E]/50 hover:text-[#1E1E1E] transition"
+          >
+            <svg
+              class="h-[18px] w-[18px]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+            </svg>
+          </a>
         </div>
+      </div>
 
       <!-- Mobile menu -->
       <Transition name="slide">
@@ -105,8 +137,18 @@
             class="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#C9007C] hover:bg-[#C9007C]/5 transition"
             @click="mobileOpen = false"
           >
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+            <svg
+              class="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
             </svg>
             Ingresar
           </NuxtLink>
@@ -131,23 +173,44 @@
         />
 
         <div class="flex items-center gap-5">
-          <a href="https://web.facebook.com/pasteleriasmagnolias" target="_blank" rel="noopener noreferrer" class="text-white/50 hover:text-white transition">
+          <a
+            href="https://web.facebook.com/pasteleriasmagnolias"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-white/50 hover:text-white transition"
+          >
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
               <path
                 d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"
               />
             </svg>
           </a>
-          <a href="https://www.instagram.com/pasteleriamagnolias" target="_blank" rel="noopener noreferrer" class="text-white/50 hover:text-white transition">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+          <a
+            href="https://www.instagram.com/pasteleriamagnolias"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-white/50 hover:text-white transition"
+          >
+            <svg
+              class="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
             </svg>
           </a>
         </div>
 
-        <NuxtLink to="/terminos" class="text-xs text-white/40 underline underline-offset-4 hover:text-white/70 transition">
+        <NuxtLink
+          to="/terminos"
+          class="text-xs text-white/40 underline underline-offset-4 hover:text-white/70 transition"
+        >
           Términos y condiciones
         </NuxtLink>
 
@@ -164,12 +227,17 @@
 const mobileOpen = ref(false);
 const scrolled = ref(false);
 
+let onScrollHandler: (() => void) | null = null;
+
 onMounted(() => {
-  const onScroll = () => {
+  onScrollHandler = () => {
     scrolled.value = window.scrollY > 20;
   };
-  window.addEventListener("scroll", onScroll, { passive: true });
-  onUnmounted(() => window.removeEventListener("scroll", onScroll));
+  window.addEventListener("scroll", onScrollHandler, { passive: true });
+});
+
+onUnmounted(() => {
+  if (onScrollHandler) window.removeEventListener("scroll", onScrollHandler);
 });
 
 const navLinks = [
