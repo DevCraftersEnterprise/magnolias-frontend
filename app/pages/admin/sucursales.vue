@@ -112,8 +112,8 @@ onMounted(() => loadBranches());
         :phone2="sucursal.phones.phone2 ?? undefined"
         :whatsapp="sucursal.phones.whatsapp ?? undefined"
         :isActive="sucursal.isActive"
-        :latitude="sucursal.latitude"
-        :longitude="sucursal.longitude"
+        :latitude="Number(sucursal.latitude)"
+        :longitude="Number(sucursal.longitude)"
         @edit="editingBranch = sucursal"
       />
     </div>
