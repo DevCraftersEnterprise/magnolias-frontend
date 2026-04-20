@@ -18,7 +18,7 @@ const branches = ref<BranchResponse[]>([]);
 onMounted(async () => {
   try {
     const data = await $fetch<BranchResponse[]>(`${apiBase}/api/branches`);
-    branches.value = Array.isArray(data) ? data : [];
+    branches.value = Array.isArray(data) ? data.filter((b) => b.isActive) : [];
   } catch {
     errorMsg.value = "No se pudieron cargar las sucursales.";
   } finally {

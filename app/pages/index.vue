@@ -53,7 +53,9 @@ function productImg(p: ProductItem) {
 const { data: branchesData, pending: branchesLoading } = useFetch<
   BranchResponse[]
 >(`${apiBase}/api/branches`, { server: false, lazy: true });
-const branches = computed(() => branchesData.value ?? []);
+const branches = computed(
+  () => branchesData.value?.filter((b) => b.isActive) ?? [],
+);
 </script>
 
 <template>
@@ -136,7 +138,7 @@ const branches = computed(() => branchesData.value ?? []);
 
         <!-- Circular "Haz tu pedido" button -->
         <button
-          class="absolute z-10 bottom-4 left-4 sm:bottom-6 sm:left-6 w-[90px] h-[90px] sm:w-[104px] sm:h-[104px] rounded-full bg-[#1E1E1E] text-white flex flex-col items-center justify-center gap-0.5 shadow-xl hover:brightness-110 active:scale-95 transition text-center leading-tight"
+          class="cursor-default absolute z-10 bottom-4 left-4 sm:bottom-6 sm:left-6 w-[90px] h-[90px] sm:w-[104px] sm:h-[104px] rounded-full bg-[#1E1E1E] text-white flex flex-col items-center justify-center gap-0.5 shadow-xl hover:brightness-110 active:scale-95 transition text-center leading-tight"
           @click="onOrder"
         >
           <span class="text-[11px] sm:text-xs font-semibold">Haz tu</span>
