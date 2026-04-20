@@ -44,8 +44,13 @@ export function useOrderCatalogs() {
         return arr.find(x => x.id === id)?.name ?? '-';
     }
 
+    function locationLabel(val?: string | null) {
+        if (!val) return "";
+        return LOCATION_LABELS[val.toUpperCase()] ?? val;
+    }
+
     return {
         breadTypes, fillings, flavors, frostings, styles, flowerCatalog, colorCatalog, commonAddresses,
-        colorName, colorHex, catalogLabel
+        colorName, colorHex, catalogLabel, locationLabel
     };
 }

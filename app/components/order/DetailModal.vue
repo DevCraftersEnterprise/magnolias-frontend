@@ -13,24 +13,7 @@ const emit = defineEmits<{
 }>();
 
 // ── Location label translation ───────────────────────────────────────────────
-const LOCATION_LABELS: Record<string, string> = {
-  TOP: "Arriba",
-  BOTTOM: "Abajo",
-  CENTER: "Centro",
-  LEFT: "Izquierda",
-  RIGHT: "Derecha",
-  TOP_LEFT: "Arriba izquierda",
-  TOP_RIGHT: "Arriba derecha",
-  BOTTOM_LEFT: "Abajo izquierda",
-  BOTTOM_RIGHT: "Abajo derecha",
-  FRONT: "Frente",
-  BACK: "Atrás",
-  SIDE: "Lado",
-};
-function locationLabel(val?: string | null) {
-  if (!val) return "";
-  return LOCATION_LABELS[val.toUpperCase()] ?? val;
-}
+const { locationLabel } = useOrderCatalogs();
 
 // ── Fetch full detail on open ────────────────────────────────────────────────
 const activeData = ref<OrderDetail | null>(null);

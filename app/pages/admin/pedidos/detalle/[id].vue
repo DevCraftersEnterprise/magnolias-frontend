@@ -14,6 +14,8 @@ if (user.value?.role !== "BAKER") {
   await navigateTo("/admin/pedidos", { replace: true });
 }
 
+const { locationLabel } = useOrderCatalogs();
+
 // ─── Load detail ────────────────────────────────────────────────────────────
 const order = ref<OrderDetail | null>(null);
 const loading = ref(true);
@@ -359,7 +361,7 @@ function roundLabel(r?: string | null) {
                       >
                         {{
                           detail.productSize?.toUpperCase() === "CUSTOM"
-                            ? detail.customSize
+                            ? detail.customSize?.toUpperCase()
                             : (detail.productSize ?? detail.customSize)
                         }}
                       </dd>
@@ -506,7 +508,7 @@ function roundLabel(r?: string | null) {
                         >
                           <span class="font-semibold">Ubicación</span>
                           <span class="opacity-40">·</span>
-                          {{ detail.writingLocation }}
+                          {{ locationLabel(detail.writingLocation) }}
                         </span>
                         <span
                           v-if="detail.pipingLocation"

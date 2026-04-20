@@ -3591,7 +3591,9 @@ function next() {
                 <div v-if="detailRow.sizeId" class="flex justify-between py-2">
                   <span class="text-[12px] text-gray-500">Tamaño</span>
                   <span class="text-[12px] font-semibold text-[#111827]">{{
-                    detailRow.sizeId
+                    detailRow.sizeId === "CUSTOM"
+                      ? detailRow.customSize.toUpperCase()
+                      : detailRow.sizeId
                   }}</span>
                 </div>
                 <div

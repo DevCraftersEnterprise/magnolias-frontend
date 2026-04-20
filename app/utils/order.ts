@@ -45,3 +45,18 @@ export const DELIVERY_ROUND_LABELS: Record<string, string> = {
     ROUND_3: 'Ronda 3',
     ROUND_4: 'Ronda 4',
 }
+
+export const LOCATION_LABELS: Record<string, string> = {
+    TOP: "Arriba",
+    BOTTOM: "Abajo",
+    CENTER: "Centro",
+    LEFT: "Izquierda",
+    RIGHT: "Derecha",
+    TOP_LEFT: "Arriba izquierda",
+    TOP_RIGHT: "Arriba derecha",
+    BOTTOM_LEFT: "Abajo izquierda",
+    BOTTOM_RIGHT: "Abajo derecha",
+    FRONT: "Frente",
+    BACK: "Atrás",
+    SIDE: "Lado",
+};
