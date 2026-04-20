@@ -5,10 +5,25 @@ defineEmits<{ (e: "navigate"): void }>();
 const { user } = useAuthUser();
 
 const itemsBase = [
-  { label: "Productos", to: "/admin/productos", key: "productos" },
+  {
+    label: "Productos",
+    to: "/admin/productos",
+    key: "productos",
+    adminOnly: true,
+  },
   { label: "Pedidos", to: "/admin/pedidos", key: "pedidos" },
-  { label: "Sucursales", to: "/admin/sucursales", key: "sucursales" },
-  { label: "Catálogos", to: "/admin/catalogos", key: "catalogos" },
+  {
+    label: "Sucursales",
+    to: "/admin/sucursales",
+    key: "sucursales",
+    adminOnly: true,
+  },
+  {
+    label: "Catálogos",
+    to: "/admin/catalogos",
+    key: "catalogos",
+    adminOnly: true,
+  },
   { label: "Clientes", to: "/admin/clientes", key: "clientes" },
   {
     label: "Usuarios",
