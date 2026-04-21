@@ -6,11 +6,13 @@ import { ordersService } from "~/services/orders.service";
 import { usersService } from "~/services/users.service";
 import type { OrderItem, OrderStatus, OrderType } from "~/types/order.types";
 import type { UserItem } from "~/types/user.types";
+import { useToast } from "vue-toastification";
 
 const { user } = useAuthUser();
 const { selectedBranch } = useBranch();
 
 const isBaker = computed(() => user.value?.role === "BAKER");
+const toast = useToast();
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function typeColor(t?: OrderType) {
@@ -24,7 +26,6 @@ function typeLabel(t?: OrderType) {
 
 // ─── TABLE STATE ─────────────────────────────────────────────────────────────
 const loading = ref(true);
-const errorMsg = ref("");
 const orders = ref<OrderItem[]>([]);
 
 const filterStatus = ref<OrderStatus | "">("");
@@ -73,8 +74,9 @@ async function executeDeliver() {
     deliverConfirm.value = false;
     deliverTarget.value = null;
     await loadOrders(true);
+    toast.success("Pedido marcado como entregado.");
   } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo marcar como entregado.";
+    toast.error(e?.message || "No se pudo marcar como entregado.");
     deliverConfirm.value = false;
   } finally {
     delivering.value = false;
@@ -86,7 +88,6 @@ const assignTarget = ref<OrderItem | null>(null);
 const assignOpen = ref(false);
 const bakers = ref<UserItem[]>([]);
 const bakersLoading = ref(false);
-const bakersError = ref("");
 const selectedBakerId = ref("");
 const assigning = ref(false);
 
@@ -94,7 +95,6 @@ async function openAssignModal(order: OrderItem) {
   assignTarget.value = order;
   selectedBakerId.value = order.assignments?.[0]?.baker.id ?? "";
   assignOpen.value = true;
-  bakersError.value = "";
   bakers.value = [];
   bakersLoading.value = true;
   try {
@@ -103,7 +103,7 @@ async function openAssignModal(order: OrderItem) {
     const res = await usersService.getBakersByBranch(branchId);
     bakers.value = Array.isArray(res) ? res : ((res as any).items ?? []);
   } catch (e: any) {
-    bakersError.value = e?.message || "No se pudieron cargar los pasteleros.";
+    toast.error(e?.message || "No se pudieron cargar los pasteleros.");
   } finally {
     bakersLoading.value = false;
   }
@@ -137,8 +137,9 @@ async function executeAssign() {
     }
     assignOpen.value = false;
     assignTarget.value = null;
+    toast.success("Pastelero asignado correctamente.");
   } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo asignar el pastelero.";
+    toast.error(e?.message || "No se pudo asignar el pastelero.");
     assignOpen.value = false;
   } finally {
     assigning.value = false;
@@ -148,14 +149,11 @@ async function executeAssign() {
 async function loadOrders(reset = false) {
   if (isBaker.value) return;
   if (!selectedBranch.value?.id) {
-    // Sin sucursal seleccionada no se puede llamar al endpoint
     orders.value = [];
     loading.value = false;
-    errorMsg.value = "";
     return;
   }
   loading.value = true;
-  errorMsg.value = "";
   try {
     if (reset) {
       paginationReset();
@@ -170,7 +168,7 @@ async function loadOrders(reset = false) {
     orders.value = data.items ?? [];
     paginationUpdate(data.pagination, data.total);
   } catch (e: any) {
-    errorMsg.value = e?.message || "Error al cargar pedidos.";
+    toast.error(e?.message || "Error al cargar pedidos.");
   } finally {
     loading.value = false;
   }
@@ -191,8 +189,9 @@ async function executeCancel() {
     cancelTarget.value = null;
     cancelReason.value = "";
     await loadOrders(true);
+    toast.success("Pedido cancelado.");
   } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo cancelar el pedido.";
+    toast.error(e?.message || "No se pudo cancelar el pedido.");
     cancelConfirm.value = false;
   } finally {
     canceling.value = false;
@@ -203,7 +202,6 @@ async function executeCancel() {
 type KanbanTab = "tomorrow" | "dayAfter" | "all" | "range";
 const kanbanTab = ref<KanbanTab>("tomorrow");
 const kanbanLoading = ref(true);
-const kanbanError = ref("");
 const kanbanOrders = ref<OrderItem[]>([]);
 const updatingId = ref<string | null>(null);
 const rangeFrom = ref("");
@@ -266,6 +264,10 @@ const rangeError = computed(() => {
   return "";
 });
 
+watch(rangeError, (newVal, oldVal) => {
+  if (newVal && !oldVal) toast.error(newVal);
+});
+
 async function loadRangeOrders() {
   if (rangeError.value) {
     rangeKanbanOrders.value = [];
@@ -277,7 +279,6 @@ async function loadRangeOrders() {
   }
   if (!selectedBranch.value?.id) return;
   rangeKanbanLoading.value = true;
-  kanbanError.value = "";
   try {
     const data = await ordersService.getOrders(selectedBranch.value.id, {
       limit: 200,
@@ -295,7 +296,7 @@ async function loadRangeOrders() {
         )
       : activeRangeItems;
   } catch (e: any) {
-    kanbanError.value = e?.message || "Error al cargar pedidos por rango.";
+    toast.error(e?.message || "Error al cargar pedidos por rango.");
   } finally {
     rangeKanbanLoading.value = false;
   }
@@ -334,7 +335,6 @@ async function loadKanbanOrders() {
     return;
   }
   kanbanLoading.value = true;
-  kanbanError.value = "";
   try {
     const data = await ordersService.getOrders(selectedBranch.value.id, {
       limit: 200,
@@ -350,7 +350,7 @@ async function loadKanbanOrders() {
         )
       : activeItems;
   } catch (e: any) {
-    kanbanError.value = e?.message || "Error al cargar pedidos.";
+    toast.error(e?.message || "Error al cargar pedidos.");
   } finally {
     kanbanLoading.value = false;
   }
@@ -363,9 +363,11 @@ async function advanceStatus(order: OrderItem) {
     if (order.status === "CREATED") {
       await ordersService.markInProcess(order.id);
       order.status = "IN PROCESS";
+      toast.success("Producción iniciada.");
     } else if (order.status === "IN PROCESS") {
       await ordersService.markDone(order.id);
       order.status = "DONE";
+      toast.success("Pedido marcado como listo.");
     }
   } catch (e: any) {
     console.error("Error actualizando estado:", e);
@@ -524,14 +526,6 @@ function onOrderPaymentUpdated(payload: {
             </div>
 
             <template v-else>
-              <!-- Error -->
-              <div
-                v-if="errorMsg"
-                class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200"
-              >
-                {{ errorMsg }}
-              </div>
-
               <!-- Loading -->
               <div v-if="loading" class="py-14 text-center">
                 <div
@@ -1211,40 +1205,14 @@ function onOrderPaymentUpdated(payload: {
                   >
                     Limpiar
                   </button>
-                  <!-- Validation error -->
-                  <p
-                    v-if="rangeError"
-                    class="w-full text-[12px] font-medium text-red-600 flex items-center gap-1"
-                  >
-                    <svg
-                      class="h-3.5 w-3.5 shrink-0"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 8v4M12 16h.01" />
-                    </svg>
-                    {{ rangeError }}
-                  </p>
+                  <!-- Validation error removed: now shown via toast -->
                 </div>
               </Transition>
             </div>
 
-            <!-- Error -->
-            <div
-              v-if="kanbanError"
-              class="m-5 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200"
-            >
-              {{ kanbanError }}
-            </div>
-
             <!-- Loading -->
             <div
-              v-else-if="kanbanLoading || rangeKanbanLoading"
+              v-if="kanbanLoading || rangeKanbanLoading"
               class="py-16 flex justify-center"
             >
               <div
@@ -1979,24 +1947,6 @@ function onOrderPaymentUpdated(payload: {
               v-if="bakersLoading"
               class="h-10 rounded-xl bg-gray-100 animate-pulse"
             />
-            <p
-              v-else-if="bakersError"
-              class="text-[13px] text-red-600 py-2 flex items-center gap-1.5"
-            >
-              <svg
-                class="h-4 w-4 shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 8v4M12 16h.01" />
-              </svg>
-              {{ bakersError }}
-            </p>
             <p
               v-else-if="bakers.length === 0"
               class="text-[13px] text-gray-400 py-2"

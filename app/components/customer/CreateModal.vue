@@ -27,7 +27,6 @@ const props = defineProps<{
   model: CustomerCreateForm | null;
   title?: string;
   saving?: boolean;
-  error?: string;
 }>();
 
 const emit = defineEmits<{
@@ -171,13 +170,6 @@ function submit() {
 
           <!-- Body con scroll interno -->
           <div class="p-6 space-y-5 overflow-y-auto flex-1">
-            <div
-              v-if="error"
-              class="rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200"
-            >
-              {{ error }}
-            </div>
-
             <!-- Datos principales -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="sm:col-span-2">

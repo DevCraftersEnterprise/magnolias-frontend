@@ -10,10 +10,12 @@ import type {
   UpdateOrderDetailPayload,
   UpdateOrderPayload,
 } from "~/types/order.types";
+import { useToast } from "vue-toastification";
 
 const router = useRouter();
 const routeP = useRoute();
 const orderId = routeP.params.id as string;
+const toast = useToast();
 
 const { branches, selectedBranch: topbarBranch } = useBranch();
 
@@ -35,14 +37,12 @@ const {
   selectedCustomer,
   phoneQuery,
   searching,
-  searchError,
   results,
   hasSearched,
   searchByPhone,
   selectCustomer,
   showRegister,
   registering,
-  registerError,
   regForm,
   canRegister,
   registerAndSelect,
@@ -107,7 +107,6 @@ const { flowerRows, addFlowerRow, removeFlowerRow } = useFlowerRows();
 
 // ─── Loading state ────────────────────────────────────────────────────────────
 const loadingOrder = ref(true);
-const loadError = ref("");
 
 // ─── Stepper ──────────────────────────────────────────────────────────────────
 const STEPS = ["Cliente", "Tipo y logística", "Productos", "Pago"] as const;
@@ -396,7 +395,8 @@ onMounted(async () => {
       );
     }
   } catch (e: any) {
-    loadError.value = e?.message || "No se pudo cargar el pedido.";
+    toast.error(e?.message || "No se pudo cargar el pedido.");
+    router.push("/admin/pedidos");
   } finally {
     loadingOrder.value = false;
   }
@@ -404,12 +404,10 @@ onMounted(async () => {
 
 // ─── Submit (update) ──────────────────────────────────────────────────────────
 const submitting = ref(false);
-const submitError = ref("");
 
 async function submitOrder() {
   if (!canNext.value || submitting.value) return;
   submitting.value = true;
-  submitError.value = "";
 
   try {
     const cust = selectedCustomer.value!;
@@ -566,10 +564,12 @@ async function submitOrder() {
     };
 
     await ordersService.updateOrder(payload);
+    toast.success("Pedido actualizado correctamente.");
     router.push("/admin/pedidos");
   } catch (e: any) {
-    submitError.value =
-      e?.message || "Error al actualizar el pedido. Inténtalo de nuevo.";
+    toast.error(
+      e?.message || "Error al actualizar el pedido. Inténtalo de nuevo.",
+    );
   } finally {
     submitting.value = false;
   }
@@ -596,19 +596,7 @@ function next() {
       </div>
 
       <!-- Error -->
-      <div
-        v-else-if="loadError"
-        class="rounded-2xl bg-red-50 ring-1 ring-red-200 px-6 py-8 text-center"
-      >
-        <p class="text-[15px] font-semibold text-red-700">{{ loadError }}</p>
-        <button
-          type="button"
-          class="mt-4 text-[13px] font-semibold text-red-500 underline"
-          @click="router.push('/admin/pedidos')"
-        >
-          Volver a pedidos
-        </button>
-      </div>
+      <!-- Load error is now handled via toast + redirect -->
 
       <!-- Wizard (identical structure to crear.vue, data is pre-populated) -->
       <template v-else>
@@ -756,12 +744,6 @@ function next() {
                 <p class="mt-1.5 text-[12px] text-gray-400">
                   Presiona Enter o el ícono para buscar.
                 </p>
-                <div
-                  v-if="searchError"
-                  class="mt-2 rounded-xl bg-red-50 px-3 py-2 text-[12px] text-red-700 ring-1 ring-red-200"
-                >
-                  {{ searchError }}
-                </div>
               </div>
 
               <button
@@ -808,12 +790,6 @@ function next() {
                   v-if="showRegister"
                   class="rounded-2xl ring-1 ring-black/10 bg-[#FAFAFA] p-5 space-y-4"
                 >
-                  <div
-                    v-if="registerError"
-                    class="rounded-xl bg-red-50 px-3 py-2 text-[12px] text-red-700 ring-1 ring-red-200"
-                  >
-                    {{ registerError }}
-                  </div>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="sm:col-span-2">
                       <label
@@ -3061,12 +3037,6 @@ function next() {
             {{ step === 1 ? "Cancelar" : "← Atrás" }}
           </button>
           <div class="flex flex-col items-end gap-1">
-            <p
-              v-if="submitError"
-              class="text-[12px] text-red-500 text-right max-w-xs"
-            >
-              {{ submitError }}
-            </p>
             <button
               type="button"
               class="h-11 px-7 rounded-xl text-[14px] font-bold text-white transition disabled:opacity-40 flex items-center gap-2"

@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { branchesService } from "~/services/branches.service";
 import type { BranchResponse } from "~/types/branch.types";
+import { useToast } from "vue-toastification";
 
 const emit = defineEmits<{
   (e: "close"): void;
@@ -9,7 +10,7 @@ const emit = defineEmits<{
 
 const step = ref<1 | 2>(1);
 const saving = ref(false);
-const errorMsg = ref("");
+const toast = useToast();
 const createdBranchId = ref("");
 const createdBranch = ref<BranchResponse | null>(null);
 
@@ -23,7 +24,6 @@ const form = reactive({
 
 function onClose() {
   step.value = 1;
-  errorMsg.value = "";
   form.name = "";
   form.address = "";
   form.phone1 = "";
@@ -35,7 +35,6 @@ function onClose() {
 }
 
 async function onStep1() {
-  errorMsg.value = "";
   saving.value = true;
   try {
     const branch = await branchesService.createBranch({
@@ -46,14 +45,13 @@ async function onStep1() {
     createdBranch.value = branch;
     step.value = 2;
   } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo crear la sucursal.";
+    toast.error(e?.message || "No se pudo crear la sucursal.");
   } finally {
     saving.value = false;
   }
 }
 
 async function onStep2() {
-  errorMsg.value = "";
   saving.value = true;
   try {
     const phones = await branchesService.addBranchPhones(
@@ -74,10 +72,11 @@ async function onStep2() {
       },
     };
     saving.value = false;
+    toast.success("Sucursal creada correctamente.");
     emit("close");
     emit("created", fullBranch);
   } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudieron guardar los teléfonos.";
+    toast.error(e?.message || "No se pudieron guardar los teléfonos.");
     saving.value = false;
   }
 }
@@ -114,13 +113,6 @@ async function onStep2() {
           placeholder="Ej. Av. Juárez 123, Col. Centro"
           required
         />
-      </div>
-
-      <div
-        v-if="errorMsg"
-        class="rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200"
-      >
-        {{ errorMsg }}
       </div>
 
       <div class="mt-2 flex justify-end gap-2">
@@ -177,13 +169,6 @@ async function onStep2() {
           class="mt-1 h-11 w-full rounded-xl bg-black/5 px-3 text-sm outline-none focus:ring-2 focus:ring-black/10"
           placeholder="Ej. 55 1234 5678"
         />
-      </div>
-
-      <div
-        v-if="errorMsg"
-        class="rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200"
-      >
-        {{ errorMsg }}
       </div>
 
       <div class="mt-2 flex justify-end gap-2">

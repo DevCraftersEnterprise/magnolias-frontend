@@ -1,11 +1,12 @@
 import { customersService } from "~/services/customers.service";
 import type { CreateCustomerRequest, CustomerItem } from "~/types/customer.types";
+import { useToast } from "vue-toastification";
 
 export function useCustomerLookup() {
+    const toast = useToast();
     const selectedCustomer = ref<CustomerItem | null>(null);
     const phoneQuery = ref("");
     const searching = ref(false);
-    const searchError = ref("");
     const results = ref<CustomerItem[]>([]);
     const hasSearched = ref(false);
 
@@ -13,13 +14,12 @@ export function useCustomerLookup() {
         const digits = phoneQuery.value.replace(/\D/g, "").trim();
         if (!digits) return;
         searching.value = true;
-        searchError.value = "";
         hasSearched.value = true;
         try {
             const data = await customersService.getCustomers({ phone: digits, isActive: true, limit: 10 });
             results.value = data.items ?? [];
         } catch (e: any) {
-            searchError.value = e?.message || "Error al buscar.";
+            toast.error(e?.message || "Error al buscar.");
             results.value = [];
         } finally {
             searching.value = false;
@@ -40,7 +40,6 @@ export function useCustomerLookup() {
     // ── Inline registration ──────────────────────────────────────────────────
     const showRegister = ref(false);
     const registering = ref(false);
-    const registerError = ref("");
     const regForm = reactive({
         fullName: "", phone: "", email: "", notes: "", withAddress: false,
         address: {
@@ -60,7 +59,6 @@ export function useCustomerLookup() {
             postalCode: "", interphoneCode: "", betweenStreets: "",
             reference: "", addressNotes: "",
         };
-        registerError.value = "";
     });
 
     const canRegister = computed(() => {
@@ -76,7 +74,6 @@ export function useCustomerLookup() {
     async function registerAndSelect() {
         if (!canRegister.value) return;
         registering.value = true;
-        registerError.value = "";
         try {
             const payload: CreateCustomerRequest = {
                 fullName: regForm.fullName.trim(),
@@ -117,16 +114,17 @@ export function useCustomerLookup() {
             hasSearched.value = true;
             phoneQuery.value = created.phone;
             showRegister.value = false;
+            toast.success("Cliente registrado correctamente.");
         } catch (e: any) {
-            registerError.value = e?.message || "No se pudo registrar el cliente.";
+            toast.error(e?.message || "No se pudo registrar el cliente.");
         } finally {
             registering.value = false;
         }
     }
 
     return {
-        selectedCustomer, phoneQuery, searching, searchError,
+        selectedCustomer, phoneQuery, searching,
         results, hasSearched, searchByPhone, selectCustomer, formatCustomerAddress,
-        showRegister, registering, registerError, regForm, canRegister, registerAndSelect,
+        showRegister, registering, regForm, canRegister, registerAndSelect,
     };
 }

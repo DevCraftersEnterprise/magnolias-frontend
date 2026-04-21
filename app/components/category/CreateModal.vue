@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { categoriesService } from "~/services/categories.service";
 import type { CategoryItem } from "~/types/product.types";
+import { useToast } from "vue-toastification";
 
 const props = defineProps<{
   open: boolean;
@@ -14,7 +15,7 @@ const emit = defineEmits<{
 }>();
 
 const saving = ref(false);
-const errorMsg = ref("");
+const toast = useToast();
 
 const form = reactive({
   name: "",
@@ -25,7 +26,6 @@ watch(
   () => props.open,
   (v) => {
     if (!v) return;
-    errorMsg.value = "";
     form.name = props.mode === "edit" ? (props.category?.name ?? "") : "";
     form.description =
       props.mode === "edit" ? (props.category?.description ?? "") : "";
@@ -34,7 +34,6 @@ watch(
 );
 
 async function onSubmit() {
-  errorMsg.value = "";
   saving.value = true;
   try {
     if (props.mode === "create") {
@@ -50,10 +49,15 @@ async function onSubmit() {
         isActive: true,
       });
     }
+    toast.success(
+      props.mode === "create"
+        ? "Categoría creada correctamente."
+        : "Categoría actualizada correctamente.",
+    );
     emit("saved");
     emit("close");
   } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo guardar.";
+    toast.error(e?.message || "No se pudo guardar.");
   } finally {
     saving.value = false;
   }
@@ -85,13 +89,6 @@ async function onSubmit() {
           placeholder="Descripción"
           required
         />
-      </div>
-
-      <div
-        v-if="errorMsg"
-        class="rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200"
-      >
-        {{ errorMsg }}
       </div>
 
       <div class="mt-2 flex justify-end gap-2">

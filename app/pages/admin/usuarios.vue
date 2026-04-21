@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { usersService } from "~/services/users.service";
 import type { UserItem, UserRole } from "~/types/user.types";
+import { useToast } from "vue-toastification";
 
 definePageMeta({ layout: "admin", pageTitle: "Usuarios" });
 useHead({ title: "Usuarios · Magnolias" });
 
 // ─── State ───────────────────────────────────────────────────────────────────
 const loading = ref(true);
-const errorMsg = ref("");
+const toast = useToast();
 const users = ref<UserItem[]>([]);
 const roleFilter = ref<UserRole | "">("");
 
@@ -33,7 +34,6 @@ const {
 // ─── Load ────────────────────────────────────────────────────────────────────
 async function loadUsers(shouldReset = false) {
   loading.value = true;
-  errorMsg.value = "";
   try {
     if (shouldReset) {
       reset();
@@ -50,7 +50,7 @@ async function loadUsers(shouldReset = false) {
     users.value = data.items ?? [];
     update(data.pagination, data.total);
   } catch (e: any) {
-    errorMsg.value = e?.message || "Ocurrió un error cargando usuarios.";
+    toast.error(e?.message || "Ocurrió un error cargando usuarios.");
   } finally {
     loading.value = false;
   }
@@ -157,13 +157,6 @@ function roleBadge(r: string) {
 
         <!-- Body -->
         <div class="px-6 py-5">
-          <div
-            v-if="errorMsg"
-            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200"
-          >
-            {{ errorMsg }}
-          </div>
-
           <div
             v-if="loading"
             class="py-12 text-center text-[13px] text-gray-500"

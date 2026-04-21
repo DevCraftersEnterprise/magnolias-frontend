@@ -9,10 +9,11 @@ import type {
   CustomerItem,
   UpdateCustomerRequest,
 } from "~/types/customer.types";
+import { useToast } from "vue-toastification";
 
-// ─── Composables ─────────────────────────────────────────────────────────────
+// ─── Composables ───────────────────────────────────────────────
 const loading = ref(true);
-const errorMsg = ref("");
+const toast = useToast();
 
 const customers = ref<CustomerItem[]>([]);
 
@@ -43,7 +44,6 @@ const {
 // ─── Load ────────────────────────────────────────────────────────────────────
 async function loadCustomers(shouldReset = false) {
   loading.value = true;
-  errorMsg.value = "";
 
   try {
     if (shouldReset) {
@@ -62,7 +62,7 @@ async function loadCustomers(shouldReset = false) {
     update(data.pagination, data.total);
   } catch (e: any) {
     console.error(e);
-    errorMsg.value = e?.message || "Ocurrió un error cargando clientes.";
+    toast.error(e?.message || "Ocurrió un error cargando clientes.");
   } finally {
     loading.value = false;
   }
@@ -92,12 +92,10 @@ function openDetail(title: string, text: string) {
 // ─── Create ──────────────────────────────────────────────────────────────────
 const createOpen = ref(false);
 const createSaving = ref(false);
-const createError = ref("");
 
 const createModel = ref<CustomerCreateForm | null>(null);
 
 function openCreate() {
-  createError.value = "";
   createModel.value = {
     fullName: "",
     phone: "",
@@ -127,7 +125,6 @@ function toNullIfEmpty(v: string | null | undefined) {
 
 async function onCreateSave(model: CustomerCreateForm) {
   createSaving.value = true;
-  createError.value = "";
   try {
     if (!model.fullName.trim()) throw new Error("El nombre es obligatorio.");
     if (!model.phone.trim()) throw new Error("El teléfono es obligatorio.");
@@ -165,11 +162,12 @@ async function onCreateSave(model: CustomerCreateForm) {
 
     await customersService.createCustomer(payload);
 
+    toast.success("Cliente creado correctamente.");
     createOpen.value = false;
     await loadCustomers(true);
   } catch (e: any) {
     console.error(e);
-    createError.value = e?.message || "No se pudo crear el cliente.";
+    toast.error(e?.message || "No se pudo crear el cliente.");
   } finally {
     createSaving.value = false;
   }
@@ -178,7 +176,6 @@ async function onCreateSave(model: CustomerCreateForm) {
 // ─── Edit ────────────────────────────────────────────────────────────────────
 const editOpen = ref(false);
 const editSaving = ref(false);
-const editError = ref("");
 const editingId = ref<string | null>(null);
 
 const editModel = ref<CustomerCreateForm | null>(null);
@@ -188,7 +185,6 @@ function safeStr(v: any) {
 }
 
 function openEdit(c: CustomerItem) {
-  editError.value = "";
   editingId.value = c.id;
 
   const hasAddress = !!c.address;
@@ -219,7 +215,6 @@ function openEdit(c: CustomerItem) {
 async function onEditSave(model: CustomerCreateForm) {
   if (!editingId.value) return;
   editSaving.value = true;
-  editError.value = "";
 
   try {
     if (!model.fullName.trim()) throw new Error("El nombre es obligatorio.");
@@ -258,12 +253,13 @@ async function onEditSave(model: CustomerCreateForm) {
 
     await customersService.updateCustomer(editingId.value, payload);
 
+    toast.success("Cliente actualizado correctamente.");
     editOpen.value = false;
     editingId.value = null;
     await loadCustomers(false);
   } catch (e: any) {
     console.error(e);
-    editError.value = e?.message || "No se pudo actualizar el cliente.";
+    toast.error(e?.message || "No se pudo actualizar el cliente.");
   } finally {
     editSaving.value = false;
   }
@@ -272,19 +268,17 @@ async function onEditSave(model: CustomerCreateForm) {
 // ─── Delete ──────────────────────────────────────────────────────────────────
 const deleteConfirmOpen = ref(false);
 const deleteSaving = ref(false);
-const deleteError = ref("");
 function onEditDelete() {
-  deleteError.value = "";
   deleteConfirmOpen.value = true;
 }
 async function confirmDelete() {
   if (!editingId.value) return;
   deleteSaving.value = true;
-  deleteError.value = "";
 
   try {
     await customersService.deleteCustomer(editingId.value);
 
+    toast.success("Cliente eliminado correctamente.");
     deleteConfirmOpen.value = false;
     editOpen.value = false;
     editingId.value = null;
@@ -292,7 +286,7 @@ async function confirmDelete() {
     await loadCustomers(false);
   } catch (e: any) {
     console.error(e);
-    deleteError.value = e?.message || "No se pudo eliminar el cliente.";
+    toast.error(e?.message || "No se pudo eliminar el cliente.");
   } finally {
     deleteSaving.value = false;
   }
@@ -338,13 +332,6 @@ async function confirmDelete() {
 
         <!-- Body -->
         <div class="px-6 py-5">
-          <div
-            v-if="errorMsg"
-            class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200"
-          >
-            {{ errorMsg }}
-          </div>
-
           <div
             v-if="loading"
             class="py-12 text-center text-[13px] text-gray-500"
@@ -554,7 +541,6 @@ async function confirmDelete() {
       :model="createModel"
       title="Agregar cliente"
       :saving="createSaving"
-      :error="createError"
       @save="onCreateSave"
     />
 
@@ -564,7 +550,6 @@ async function confirmDelete() {
       title="Editar cliente"
       mode="edit"
       :saving="editSaving"
-      :error="editError"
       @save="onEditSave"
       @delete="onEditDelete"
     />

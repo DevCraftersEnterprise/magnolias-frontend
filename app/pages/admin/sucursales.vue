@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useToast } from "vue-toastification";
 import { branchesService } from "~/services/branches.service";
 import type { BranchResponse } from "~/types/branch.types";
 
@@ -6,8 +7,8 @@ definePageMeta({ layout: "admin", pageTitle: "Sucursales" });
 useHead({ title: "Sucursales · Magnolias" });
 
 // ─── State ───────────────────────────────────────────────────────────────────
+const toast = useToast();
 const loading = ref(true);
-const errorMsg = ref("");
 const showModal = ref(false);
 const editingBranch = ref<BranchResponse | null>(null);
 const branches = ref<BranchResponse[]>([]);
@@ -18,7 +19,7 @@ async function loadBranches() {
     const data = await branchesService.getBranches();
     branches.value = data;
   } catch (error) {
-    errorMsg.value = "Error al cargar las sucursales.";
+    toast.error("Error al cargar las sucursales.");
     console.error(error);
   } finally {
     loading.value = false;
@@ -93,13 +94,6 @@ onMounted(() => loadBranches());
     </div>
 
     <div
-      v-else-if="errorMsg"
-      class="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-    >
-      {{ errorMsg }}
-    </div>
-
-    <div
       v-if="branches.length > 0"
       class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     >
@@ -119,7 +113,7 @@ onMounted(() => loadBranches());
     </div>
 
     <div
-      v-else-if="!loading && !errorMsg"
+      v-else-if="!loading && !branches.length"
       class="mt-12 flex flex-col items-center justify-center gap-3 text-center"
     >
       <div

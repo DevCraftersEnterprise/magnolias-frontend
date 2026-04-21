@@ -4,8 +4,10 @@ useHead({ title: "Crear Pedido · Magnolias" });
 
 import { ordersService } from "~/services/orders.service";
 import type { CreateOrderPayload } from "~/types/order.types";
+import { useToast } from "vue-toastification";
 
 const router = useRouter();
+const toast = useToast();
 const { branches, selectedBranch: topbarBranch } = useBranch();
 
 // ─── Composables ──────────────────────────────────────────────────────────────
@@ -27,14 +29,12 @@ const {
   selectedCustomer,
   phoneQuery,
   searching,
-  searchError,
   results,
   hasSearched,
   searchByPhone,
   selectCustomer,
   showRegister,
   registering,
-  registerError,
   regForm,
   canRegister,
   registerAndSelect,
@@ -191,12 +191,10 @@ const canNext = computed(() => {
 
 // ─── Submit ─────────────────────────────────────────────────────────────────────
 const submitting = ref(false);
-const submitError = ref("");
 
 async function submitOrder() {
   if (!canNext.value || submitting.value) return;
   submitting.value = true;
-  submitError.value = "";
 
   try {
     const cust = selectedCustomer.value!;
@@ -370,10 +368,10 @@ async function submitOrder() {
     };
 
     await ordersService.createOrder(payload);
+    toast.success("Pedido creado correctamente.");
     router.push("/admin/pedidos");
   } catch (e: any) {
-    submitError.value =
-      e?.message || "Error al crear el pedido. Inténtalo de nuevo.";
+    toast.error(e?.message || "Error al crear el pedido. Inténtalo de nuevo.");
   } finally {
     submitting.value = false;
   }
@@ -541,12 +539,6 @@ function next() {
               <p class="mt-1.5 text-[12px] text-gray-400">
                 Presiona Enter o el ícono para buscar.
               </p>
-              <div
-                v-if="searchError"
-                class="mt-2 rounded-xl bg-red-50 px-3 py-2 text-[12px] text-red-700 ring-1 ring-red-200"
-              >
-                {{ searchError }}
-              </div>
             </div>
 
             <!-- Not-registered toggle -->
@@ -614,13 +606,6 @@ function next() {
                   <p class="text-[14px] font-bold text-[#111827]">
                     Registrar cliente
                   </p>
-                </div>
-
-                <div
-                  v-if="registerError"
-                  class="rounded-xl bg-red-50 px-3 py-2 text-[12px] text-red-700 ring-1 ring-red-200"
-                >
-                  {{ registerError }}
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3866,13 +3851,6 @@ function next() {
               Selecciona un cliente para continuar
             </p>
           </Transition>
-
-          <p
-            v-if="submitError"
-            class="text-[12px] text-red-500 text-right max-w-xs"
-          >
-            {{ submitError }}
-          </p>
 
           <button
             type="button"

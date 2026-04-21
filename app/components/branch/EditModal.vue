@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { branchesService } from "~/services/branches.service";
 import type { BranchResponse } from "~/types/branch.types";
+import { useToast } from "vue-toastification";
 
 const props = defineProps<{
   branch: BranchResponse;
@@ -12,7 +13,7 @@ const emit = defineEmits<{
 }>();
 
 const saving = ref(false);
-const errorMsg = ref("");
+const toast = useToast();
 
 // Keep only last 10 digits — handles values stored with +52 prefix
 const toDigits = (v: string | null | undefined) =>
@@ -34,7 +35,6 @@ const form = reactive({
 });
 
 async function onSubmit() {
-  errorMsg.value = "";
   saving.value = true;
   try {
     const newPhone1 = toDigits(form.phone1);
@@ -93,10 +93,11 @@ async function onSubmit() {
     }
 
     saving.value = false;
+    toast.success("Sucursal actualizada correctamente.");
     emit("close");
     emit("saved", fullBranch);
   } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo actualizar la sucursal.";
+    toast.error(e?.message || "No se pudo actualizar la sucursal.");
     saving.value = false;
   }
 }
@@ -180,13 +181,6 @@ async function onSubmit() {
           class="mt-1 h-11 w-full rounded-xl bg-black/5 px-3 text-sm outline-none focus:ring-2 focus:ring-black/10"
           placeholder="Ej. 55 1234 5678"
         />
-      </div>
-
-      <div
-        v-if="errorMsg"
-        class="rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200"
-      >
-        {{ errorMsg }}
       </div>
 
       <div class="mt-2 flex justify-end gap-2">

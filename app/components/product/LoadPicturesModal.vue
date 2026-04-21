@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { productsService } from "~/services/products.service";
 import type { ProductItem } from "~/types/product.types";
+import { useToast } from "vue-toastification";
 
 const props = defineProps<{
   open: boolean;
@@ -16,13 +17,12 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const files = ref<File[]>([]);
 const previews = ref<string[]>([]);
 const saving = ref(false);
-const errorMsg = ref("");
+const toast = useToast();
 
 watch(
   () => props.open,
   (v) => {
     if (!v) return;
-    errorMsg.value = "";
     files.value = [];
     previews.value = [];
   },
@@ -63,7 +63,6 @@ function clearFiles() {
 }
 
 async function upload() {
-  errorMsg.value = "";
   saving.value = true;
   try {
     await productsService.uploadPictures({
@@ -77,10 +76,11 @@ async function upload() {
     });
 
     clearFiles();
+    toast.success("Fotos subidas correctamente.");
     emit("uploaded");
     emit("close");
   } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudieron subir las fotos.";
+    toast.error(e?.message || "No se pudieron subir las fotos.");
   } finally {
     saving.value = false;
   }
@@ -181,13 +181,6 @@ async function upload() {
             </button>
           </div>
         </div>
-      </div>
-
-      <div
-        v-if="errorMsg"
-        class="rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200"
-      >
-        {{ errorMsg }}
       </div>
 
       <!-- Actions -->

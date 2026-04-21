@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ordersService } from "~/services/orders.service";
 import type { OrderDetail, OrderItem, OrderType } from "~/types/order.types";
+import { useToast } from "vue-toastification";
 
 const props = defineProps<{
   open: boolean;
@@ -47,7 +48,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 // ── Abono rápido ─────────────────────────────────────────────────────────────
 const abonoAmount = ref<number | "">("");
 const abonoSaving = ref(false);
-const abonoError = ref("");
+const toast = useToast();
 const abonoSuccess = ref(false);
 
 const remainingParsed = computed(() => {
@@ -64,7 +65,6 @@ watch(
   (v) => {
     if (!v) {
       abonoAmount.value = "";
-      abonoError.value = "";
       abonoSuccess.value = false;
     }
   },
@@ -74,13 +74,13 @@ async function saveAbono() {
   const amount = Number(abonoAmount.value);
   if (!amount || amount <= 0 || !props.order) return;
   abonoSaving.value = true;
-  abonoError.value = "";
   abonoSuccess.value = false;
   try {
     await ordersService.updateOrder({ id: props.order.id, payment: amount });
     activeData.value = await ordersService.getOrder(props.order.id);
     abonoAmount.value = "";
     abonoSuccess.value = true;
+    toast.success("Abono registrado correctamente.");
     emit("order-updated", {
       id: props.order.id,
       remainingBalance: activeData.value?.remainingBalance ?? "0",
@@ -89,7 +89,7 @@ async function saveAbono() {
       abonoSuccess.value = false;
     }, 3000);
   } catch (e: any) {
-    abonoError.value = e?.message || "No se pudo registrar el abono.";
+    toast.error(e?.message || "No se pudo registrar el abono.");
   } finally {
     abonoSaving.value = false;
   }
@@ -521,12 +521,6 @@ async function downloadFormat() {
                           <span v-else>Guardar</span>
                         </button>
                       </div>
-                      <p
-                        v-if="abonoError"
-                        class="mt-2 text-[12px] text-red-600"
-                      >
-                        {{ abonoError }}
-                      </p>
                       <p
                         v-if="abonoSuccess"
                         class="mt-2 text-[12px] font-semibold text-green-600"

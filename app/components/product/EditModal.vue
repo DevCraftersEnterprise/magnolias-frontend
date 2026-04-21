@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { productsService } from "~/services/products.service";
 import type { ProductItem, ProductPicture } from "~/types/product.types";
+import { useToast } from "vue-toastification";
 
 type CategoryOption = {
   id: string;
@@ -19,7 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const saving = ref(false);
-const errorMsg = ref("");
+const toast = useToast();
 const activeThumb = ref(0);
 const confirmOpen = ref(false);
 const selectedToDelete = ref<ProductPicture | null>(null);
@@ -41,7 +42,6 @@ watch(
   ([isOpen]) => {
     if (!isOpen || !props.product) return;
 
-    errorMsg.value = "";
     form.id = props.product.id;
     form.name = props.product.name || "";
     form.description = props.product.description || "";
@@ -88,7 +88,6 @@ function onPickFiles(e: Event) {
 }
 
 async function upload(files: File[]) {
-  errorMsg.value = "";
   saving.value = true;
 
   try {
@@ -113,8 +112,9 @@ async function upload(files: File[]) {
     }
 
     emit("updated");
+    toast.success("Fotos subidas correctamente.");
   } catch (e: any) {
-    errorMsg.value = normalizeError(e, "No se pudieron subir las fotos.");
+    toast.error(normalizeError(e, "No se pudieron subir las fotos."));
   } finally {
     saving.value = false;
   }
@@ -124,15 +124,15 @@ async function toggleProductStatus() {
   const newStatus = !form.isActive;
 
   if (!newStatus) {
-    errorMsg.value = "";
     saving.value = true;
 
     try {
       await productsService.deactivateProduct(form.id);
       form.isActive = newStatus;
       emit("updated");
+      toast.success("Producto desactivado.");
     } catch (e: any) {
-      errorMsg.value = normalizeError(e, "No se pudo deactivar el producto.");
+      toast.error(normalizeError(e, "No se pudo deactivar el producto."));
     } finally {
       saving.value = false;
     }
@@ -142,7 +142,6 @@ async function toggleProductStatus() {
 }
 
 async function save() {
-  errorMsg.value = "";
   saving.value = true;
 
   try {
@@ -155,10 +154,11 @@ async function save() {
       isActive: !!form.isActive,
     });
 
+    toast.success("Producto actualizado correctamente.");
     emit("updated");
     close();
   } catch (e: any) {
-    errorMsg.value = normalizeError(e, "No se pudo actualizar el producto.");
+    toast.error(normalizeError(e, "No se pudo actualizar el producto."));
   } finally {
     saving.value = false;
   }
@@ -169,7 +169,6 @@ async function deleteSelectedPicture() {
 
   const pictureToDelete = selectedToDelete.value;
   saving.value = true;
-  errorMsg.value = "";
 
   try {
     await productsService.deletePicture(pictureToDelete.id);
@@ -189,9 +188,10 @@ async function deleteSelectedPicture() {
 
     selectedToDelete.value = null;
     confirmOpen.value = false;
+    toast.success("Imagen eliminada.");
     emit("updated");
   } catch (e: any) {
-    errorMsg.value = normalizeError(e, "No se pudo eliminar la imagen.");
+    toast.error(normalizeError(e, "No se pudo eliminar la imagen."));
   } finally {
     saving.value = false;
   }
@@ -433,14 +433,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
                 accept="image/*"
                 @change="onPickFiles"
               />
-            </div>
-
-            <!-- Error -->
-            <div
-              v-if="errorMsg"
-              class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
-              {{ errorMsg }}
             </div>
 
             <!-- Acciones -->

@@ -4,6 +4,7 @@ useHead({ title: "Detalle de pedido · Magnolias" });
 
 import { ordersService } from "~/services/orders.service";
 import type { OrderDetail, OrderStatus, OrderType } from "~/types/order.types";
+import { useToast } from "vue-toastification";
 
 const route = useRoute();
 const id = route.params.id as string;
@@ -15,6 +16,7 @@ if (user.value?.role !== "BAKER") {
 }
 
 const { locationLabel } = useOrderCatalogs();
+const toast = useToast();
 
 // ─── Load detail ────────────────────────────────────────────────────────────
 const order = ref<OrderDetail | null>(null);
@@ -33,7 +35,6 @@ onMounted(async () => {
 
 // ─── Status advance ──────────────────────────────────────────────────────────
 const advancing = ref(false);
-const advanceError = ref("");
 const confirmOpen = ref(false);
 
 const canAdvance = computed(
@@ -53,7 +54,6 @@ const advanceNextLabel = computed(() => {
 
 function requestAdvance() {
   if (!order.value || !canAdvance.value) return;
-  advanceError.value = "";
   confirmOpen.value = true;
 }
 
@@ -61,17 +61,18 @@ async function advance() {
   if (!order.value || advancing.value) return;
   confirmOpen.value = false;
   advancing.value = true;
-  advanceError.value = "";
   try {
     if (order.value.status === "CREATED") {
       await ordersService.markInProcess(order.value.id);
       order.value.status = "IN PROCESS";
+      toast.success("Producción iniciada.");
     } else if (order.value.status === "IN PROCESS") {
       await ordersService.markDone(order.value.id);
       order.value.status = "DONE";
+      toast.success("Pedido marcado como listo.");
     }
   } catch (e: any) {
-    advanceError.value = e?.message || "No se pudo actualizar el estado.";
+    toast.error(e?.message || "No se pudo actualizar el estado.");
   } finally {
     advancing.value = false;
   }
@@ -266,13 +267,7 @@ function roundLabel(r?: string | null) {
           </span>
         </div>
 
-        <!-- Error de avance -->
-        <div
-          v-if="advanceError"
-          class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200"
-        >
-          {{ advanceError }}
-        </div>
+        <!-- Error de avance removido: ahora se muestra via toast -->
 
         <!-- ══ GRID PRINCIPAL ═════════════════════════════════════════════════ -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">

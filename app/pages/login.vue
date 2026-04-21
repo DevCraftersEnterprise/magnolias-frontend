@@ -2,20 +2,20 @@
 definePageMeta({ layout: "auth", middleware: ["guest"] });
 useHead({ title: "Iniciar sesión · Magnolias" });
 import { Icon } from "@iconify/vue";
+import { useToast } from "vue-toastification";
 
 const { login, loading } = useAuth();
+const toast = useToast();
 
 const username = ref("");
 const userkey = ref("");
 const show = ref(false);
-const err = ref("");
 
 const onSubmit = async () => {
-  err.value = "";
   try {
     await login(username.value.trim(), userkey.value);
   } catch (e: any) {
-    err.value = e?.message || "No se pudo iniciar sesión";
+    toast.error(e?.message || "No se pudo iniciar sesión");
   }
 };
 </script>
@@ -62,8 +62,6 @@ const onSubmit = async () => {
           </button>
         </div>
       </div>
-
-      <p v-if="err" class="text-sm text-red-600">{{ err }}</p>
 
       <button
         class="w-full mt-2 rounded-xl bg-[#1f1f1f] text-white font-semibold py-3 shadow-sm hover:opacity-95 disabled:opacity-60"

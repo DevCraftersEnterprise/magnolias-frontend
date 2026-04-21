@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useToast } from "vue-toastification";
 import type { BranchResponse } from "~/types/branch.types";
 
 definePageMeta({ layout: "landing" });
@@ -10,8 +11,8 @@ const apiBase = (useRuntimeConfig().public.apiBase as string).replace(
 );
 
 // ─── State ───────────────────────────────────────────────────────────────────
+const toast = useToast();
 const loading = ref(true);
-const errorMsg = ref("");
 const branches = ref<BranchResponse[]>([]);
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
@@ -20,7 +21,7 @@ onMounted(async () => {
     const data = await $fetch<BranchResponse[]>(`${apiBase}/api/branches`);
     branches.value = Array.isArray(data) ? data.filter((b) => b.isActive) : [];
   } catch {
-    errorMsg.value = "No se pudieron cargar las sucursales.";
+    toast.error("No se pudieron cargar las sucursales.");
   } finally {
     loading.value = false;
   }
@@ -76,14 +77,6 @@ onMounted(async () => {
           <div class="h-3 w-3/4 rounded bg-black/10"></div>
           <div class="h-3 w-2/3 rounded bg-black/10"></div>
         </div>
-      </div>
-
-      <!-- Error -->
-      <div
-        v-else-if="errorMsg"
-        class="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700"
-      >
-        {{ errorMsg }}
       </div>
 
       <!-- Cards -->

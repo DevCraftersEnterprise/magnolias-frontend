@@ -6,6 +6,9 @@ export type ColorEditPayload = {
 };
 
 const open = defineModel<boolean>({ required: true });
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
 
 const props = defineProps<{
   mode: "create" | "edit";
@@ -64,7 +67,10 @@ function onPickColor(e: Event) {
 
 function submit() {
   normalizeHex();
-  if (!canSave.value) return;
+  if (!canSave.value) {
+    if (hexError.value) toast.error(hexError.value);
+    return;
+  }
   emit("save", { id: local.id, name: local.name, value: local.value });
 }
 </script>
@@ -105,9 +111,6 @@ function submit() {
             placeholder="#FFB6C1"
             @blur="normalizeHex"
           />
-          <p v-if="hexError" class="mt-1 text-[12px] text-red-600">
-            {{ hexError }}
-          </p>
         </div>
 
         <!-- Picker + preview -->

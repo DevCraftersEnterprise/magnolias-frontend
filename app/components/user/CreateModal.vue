@@ -7,6 +7,7 @@ import type {
   UserItem,
 } from "~/types/user.types";
 import type { BranchResponse } from "~/types/branch.types";
+import { useToast } from "vue-toastification";
 
 const props = defineProps<{
   mode: "create" | "edit";
@@ -19,8 +20,9 @@ const emit = defineEmits<{
   (e: "saved"): void;
 }>();
 
+const toast = useToast();
+
 const saving = ref(false);
-const errorMsg = ref("");
 const showPassword = ref(false);
 
 const branches = ref<BranchResponse[]>([]);
@@ -68,7 +70,6 @@ onMounted(async () => {
 });
 
 async function onSubmit() {
-  errorMsg.value = "";
   saving.value = true;
   try {
     const payload: CreateUserPayload = {
@@ -119,9 +120,11 @@ async function onSubmit() {
       emit("saved");
     }
 
+    toast.success("Usuario guardado correctamente.");
+
     emit("close");
   } catch (e: any) {
-    errorMsg.value = e?.message || "No se pudo guardar el usuario.";
+    toast.error(e?.message || "No se pudo guardar el usuario.");
   } finally {
     saving.value = false;
   }
@@ -423,13 +426,6 @@ async function onSubmit() {
             :class="form.isActive ? 'translate-x-6' : 'translate-x-1'"
           />
         </button>
-      </div>
-
-      <div
-        v-if="errorMsg"
-        class="rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200"
-      >
-        {{ errorMsg }}
       </div>
 
       <div class="mt-2 flex justify-end gap-2">
