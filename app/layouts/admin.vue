@@ -81,4 +81,6 @@ async function logout() {
       </main>
     </div>
   </div>
+
+  <UiFloatingDownloadButton />
 </template>
