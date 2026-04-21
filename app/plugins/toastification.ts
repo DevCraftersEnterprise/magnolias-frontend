@@ -3,7 +3,7 @@ import 'vue-toastification/dist/index.css';
 
 export default defineNuxtPlugin((nuxtApp) => {
     const options: PluginOptions = {
-        position: POSITION.BOTTOM_RIGHT,
+        position: POSITION.BOTTOM_LEFT,
         timeout: 5000,
         closeOnClick: true,
         pauseOnHover: true,
@@ -12,7 +12,7 @@ export default defineNuxtPlugin((nuxtApp) => {
         hideProgressBar: false,
         closeButton: 'button',
         rtl: false,
-        icon: false,
+        icon: true,
     };
 
     nuxtApp.vueApp.use(Toast, options)

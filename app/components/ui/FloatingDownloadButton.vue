@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { h } from "vue";
 import { useToast } from "vue-toastification";
 
 const toast = useToast();
 const email = "devcrafters.enterprise@gmail.com";
+const isHover = ref(false);
 
 function copyEmail() {
   navigator.clipboard.writeText(email);
@@ -52,15 +52,21 @@ function downloadPDF() {
       closeButton: false,
     },
   );
-  window.open("/format/formulario.pdf", "_blank");
+  const link = document.createElement("a");
+  link.href = "/format/formulario.pdf";
+  link.download = "formulario.pdf";
+  link.click();
 }
 </script>
 
 <template>
   <button
-    class="fixed bottom-8 right-8 z-50 bg-red-400 text-black rounded-full shadow-lg p-4 hover:bg-red-500 transition"
+    class="fixed bottom-8 right-8 z-50 bg-red-400 text-black rounded-full shadow-lg p-2 hover:bg-red-500 transition-all duration-300 flex items-center overflow-hidden group"
     @click="downloadPDF"
+    @mouseenter="isHover = true"
+    @mouseleave="isHover = false"
     aria-label="Descargar formulario PDF"
+    :style="{ width: isHover ? '150px' : '40px' }"
   >
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -71,7 +77,7 @@ function downloadPDF() {
       stroke-linecap="round"
       stroke-linejoin="round"
       stroke-width="2"
-      class="lucide lucide-bug-icon lucide-bug"
+      class="lucide lucide-bug-icon lucide-bug flex-shrink-0"
       viewBox="0 0 24 24"
     >
       <path
@@ -81,5 +87,11 @@ function downloadPDF() {
         d="M21 21a4 4 0 0 0-3.81-4M21 5a4 4 0 0 1-3.55 3.97M22 13h-4M3 21a4 4 0 0 1 3.81-4M3 5a4 4 0 0 0 3.55 3.97M6 13H2M8 2l1.88 1.88M9 7.13V6a3 3 0 1 1 6 0v1.13"
       />
     </svg>
+    <span
+      class="ml-3 whitespace-nowrap text-white font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm"
+      :class="{ 'opacity-100': isHover, 'opacity-0': !isHover }"
+    >
+      Reportar error
+    </span>
   </button>
 </template>
