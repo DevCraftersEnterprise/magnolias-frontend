@@ -204,6 +204,15 @@ async function submitOrder() {
     const branchId = isVitrina
       ? step2.pickupBranchId || (topbarBranch.value?.id ?? "")
       : (topbarBranch.value?.id ?? "");
+
+    if (!isVitrina && !branchId) {
+      toast.warning(
+        "Debes seleccionar una sucursal en la barra superior para este tipo de pedido.",
+      );
+      submitting.value = false;
+      return;
+    }
+
     const isEvento = step2.orderType === "EVENTO";
 
     const deliveryDateISO = isVitrina

@@ -931,7 +931,7 @@ async function downloadFormat() {
                           {{ pay.paidAmount }}
                         </p>
                         <p class="text-[11px] text-gray-400">
-                          {{ formatDateTime(pay.createdAt) }}
+                          {{ formatDate(pay.createdAt) }}
                         </p>
                       </div>
                     </div>
