@@ -12,6 +12,16 @@ export function formatDate(iso: string): string {
     return `${d}/${m}/${y}`;
 }
 
+export function formatLocalDate(iso: string): string {
+    if (!iso) return '-';
+
+    const date = new Date(iso);
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear();
+    return `${d}/${m}/${y}`;
+}
+
 export function formatTime(t: string): string {
     if (!t) return '-';
     const parts = t.split('T')[1]?.split(':') ?? [];
