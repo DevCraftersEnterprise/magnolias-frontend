@@ -2,16 +2,10 @@
 import { useToast } from "vue-toastification";
 
 const toast = useToast();
-const email = "devcrafters.enterprise@gmail.com";
 const isHover = ref(false);
 
-function copyEmail() {
-  navigator.clipboard.writeText(email);
-  toast.success("Correo copiado al portapapeles");
-}
-
 function downloadPDF() {
-  toast.error(
+  toast.info(
     {
       component: {
         render() {
@@ -25,21 +19,7 @@ function downloadPDF() {
               h(
                 "span",
                 { class: "font-medium" },
-                "Después de llenar el formato, enviar al siguiente correo:",
-              ),
-              h(
-                "span",
-                { class: "ml-0 sm:ml-2 font-mono underline break-all" },
-                email,
-              ),
-              h(
-                "button",
-                {
-                  class:
-                    "mt-2 sm:mt-0 ml-0 sm:ml-4 px-3 py-1 bg-white text-pink-600 font-semibold rounded hover:bg-pink-100 hover:text-pink-700 text-xs transition border border-pink-200",
-                  onClick: copyEmail,
-                },
-                "Copiar correo",
+                "Aprende sobre el funcionamiento del sistema",
               ),
             ],
           );
@@ -53,19 +33,19 @@ function downloadPDF() {
     },
   );
   const link = document.createElement("a");
-  link.href = "/format/formulario.pdf";
-  link.download = "formulario.pdf";
+  link.href = "/format/manual.pdf";
+  link.download = "manual.pdf";
   link.click();
 }
 </script>
 
 <template>
   <button
-    class="bg-red-400 text-black rounded-full shadow-lg p-2 hover:bg-red-500 transition-all duration-300 flex items-center overflow-hidden group"
+    class="bg-pink-400 text-black rounded-full shadow-lg p-2 hover:bg-pink-500 transition-all duration-300 flex items-center overflow-hidden group"
     @click="downloadPDF"
     @mouseenter="isHover = true"
     @mouseleave="isHover = false"
-    aria-label="Descargar formulario PDF"
+    aria-label="Descargar manual PDF"
     :style="{ width: isHover ? '180px' : '40px' }"
   >
     <svg
@@ -77,21 +57,18 @@ function downloadPDF() {
       stroke-linecap="round"
       stroke-linejoin="round"
       stroke-width="2"
-      class="lucide lucide-bug-icon lucide-bug flex-shrink-0"
+      class="lucide lucide-notebook-text flex-shrink-0"
       viewBox="0 0 24 24"
     >
-      <path
-        d="M12 20v-9m2-4a4 4 0 0 1 4 4v3a6 6 0 0 1-12 0v-3a4 4 0 0 1 4-4zm.12-3.12L16 2"
-      />
-      <path
-        d="M21 21a4 4 0 0 0-3.81-4M21 5a4 4 0 0 1-3.55 3.97M22 13h-4M3 21a4 4 0 0 1 3.81-4M3 5a4 4 0 0 0 3.55 3.97M6 13H2M8 2l1.88 1.88M9 7.13V6a3 3 0 1 1 6 0v1.13"
-      />
+      <path d="M2 6h4m-4 4h4m-4 4h4m-4 4h4" />
+      <rect width="16" height="20" x="4" y="2" rx="2" />
+      <path d="M9.5 8h5m-5 4H16m-6.5 4H14" />
     </svg>
     <span
       class="ml-3 whitespace-nowrap text-white font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm"
       :class="{ 'opacity-100': isHover, 'opacity-0': !isHover }"
     >
-      Reportar error
+      Manual de usuario
     </span>
   </button>
 </template>
