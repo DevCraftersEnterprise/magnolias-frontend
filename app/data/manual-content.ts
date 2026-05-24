@@ -198,7 +198,7 @@ export const manualSections: ManualSection[] = [
                     ['Vitrina', 'Gris', 'Pedidos para recoger en tienda'],
                     ['Evento', 'Azul claro', 'Pedidos para eventos especiales'],
                     ['Domicilio', 'Morado', 'Pedidos con entrega a domicilio'],
-                    ['Flor', 'Rosa', 'Pedidos de arreglos florales'],
+                    ['Flor', 'Rosa', 'Pedidos con arreglos florales'],
                 ],
             },
             {
