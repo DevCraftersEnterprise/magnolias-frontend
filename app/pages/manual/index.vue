@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { manualSections } from "~/data/manual-content";
 
+// ── SEO ───────────────────────────────────────────────────────────────
 useHead({
   title: "Manual de Usuario | Panel de Administración Pastelería Magnolias",
   meta: [
@@ -9,27 +10,31 @@ useHead({
       content:
         "Centro de capacitación interactivo para el Panel de Administración de Pastelería Magnolias. Aprende a gestionar pedidos, productos, clientes, sucursales y usuarios.",
     },
-    {
-      name: "robots",
-      content: "noindex, nofollow",
-    },
+    { name: "robots", content: "noindex, nofollow" }, // Internal tool
   ],
 });
 
+// ── State ────────────────────────────────────────────────────────────
 const searchOpen = ref(false);
 const mobileMenuOpen = ref(false);
-const showBackTop = ref(false);
+const showBackToTop = ref(false);
 const sectionRefs = ref<any[]>([]);
 
-function onKeyDown(e: KeyboardEvent) {
+// ── Keyboard shortcut ────────────────────────────────────────────────
+function onKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === "k") {
     e.preventDefault();
     searchOpen.value = true;
   }
 }
 
+// ── Scroll helpers ───────────────────────────────────────────────────
 function onScroll() {
-  showBackTop.value = window.screenY > 400;
+  showBackToTop.value = window.scrollY > 400;
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function scrollToSection(id: string) {
@@ -38,13 +43,14 @@ function scrollToSection(id: string) {
 }
 
 function handleNavigate(sectionId: string) {
+  // Open the section if collapsed
   const idx = manualSections.findIndex((s) => s.id === sectionId);
-
   if (idx !== -1 && sectionRefs.value[idx]) {
     sectionRefs.value[idx].isOpen = true;
   }
 }
 
+// ── Expand / Collapse all ────────────────────────────────────────────
 function expandAll() {
   sectionRefs.value.forEach((ref) => {
     if (ref) ref.isOpen = true;
@@ -57,46 +63,48 @@ function collapseAll() {
   });
 }
 
+// ── Lifecycle ────────────────────────────────────────────────────────
 onMounted(() => {
-  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keydown", onKeydown);
   window.addEventListener("scroll", onScroll, { passive: true });
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener("keydown", onKeyDown);
+  window.removeEventListener("keydown", onKeydown);
   window.removeEventListener("scroll", onScroll);
 });
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-50/40">
-    <ManualSearch v-model="searchOpen" @naviagte="handleNavigate" />
+    <!-- ── Search modal ── -->
+    <ManualSearch v-model="searchOpen" @navigate="handleNavigate" />
 
+    <!-- ── Sticky header ── -->
     <header
       class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm"
     >
       <div
         class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-4"
       >
+        <!-- Logo/Brand -->
         <div class="flex items-center gap-2.5 flex-shrink-0">
           <div
-            class="w-8 h-8 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-white font-black text-sm select-none"
+            class="w-8 h-8 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-white font-black text-sm"
           >
             M
           </div>
-          <span
-            class="text-sm font-bold text-gray-900 hidden sm:block select-none"
+          <span class="text-sm font-bold text-gray-900 hidden sm:block"
+            >Magnolias</span
           >
-            Magnolias
-          </span>
-          <span class="text-gray-300 hidden sm:block select-none">/</span>
-          <span class="text-sm text-gray-500 hidden sm:block select-none">
-            Manual
-          </span>
+          <span class="text-gray-300 hidden sm:block">/</span>
+          <span class="text-sm text-gray-500 hidden sm:block">Manual</span>
         </div>
 
-        <div class="flex-1"></div>
+        <!-- Spacer -->
+        <div class="flex-1" />
 
+        <!-- Search trigger -->
         <button
           class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
           @click="searchOpen = true"
@@ -109,6 +117,7 @@ onBeforeUnmount(() => {
           >
         </button>
 
+        <!-- Mobile menu toggle -->
         <button
           class="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors"
           @click="mobileMenuOpen = !mobileMenuOpen"
@@ -130,6 +139,7 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
+      <!-- Mobile navigation -->
       <Transition name="slide-down">
         <div
           v-if="mobileMenuOpen"
@@ -152,10 +162,125 @@ onBeforeUnmount(() => {
       </Transition>
     </header>
 
+    <!-- ── Hero ── -->
     <ManualHero
       @scroll-to-start="scrollToSection('proceso-inicio')"
       @open-search="searchOpen = true"
     />
+
+    <!-- ── Main content layout ── -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="flex gap-8">
+        <!-- ── Sidebar ── -->
+        <ManualSidebar
+          :sections="manualSections"
+          @expand-all="expandAll"
+          @collapse-all="collapseAll"
+        />
+
+        <!-- ── Content area ── -->
+        <main class="flex-1 min-w-0 space-y-6">
+          <!-- Global controls -->
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-gray-500">
+              <strong class="text-gray-900">
+                {{ manualSections.length }} secciones
+              </strong>
+              ·
+              {{
+                manualSections.reduce((acc, s) => acc + s.subsections.length, 0)
+              }}
+              subsecciones
+            </p>
+            <div class="flex gap-2">
+              <button
+                class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-gray-200 hover:border-pink-300 hover:text-pink-700 transition-colors"
+                @click="expandAll"
+              >
+                ⊞ Expandir todo
+              </button>
+              <button
+                class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-gray-200 hover:border-gray-400 transition-colors"
+                @click="collapseAll"
+              >
+                ⊟ Contraer todo
+              </button>
+            </div>
+          </div>
+
+          <!-- ── SPECIAL: Proceso de inicio — Timeline visual ── -->
+          <section id="proceso-inicio-timeline" class="scroll-mt-24">
+            <div
+              class="bg-white rounded-2xl border-2 border-pink-200 shadow-sm overflow-hidden"
+            >
+              <!-- Section badge header -->
+              <div
+                class="px-5 py-4 bg-gradient-to-r from-pink-50 to-purple-50 border-b border-pink-100"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-white text-xl"
+                  >
+                    🚀
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h2 class="text-base font-bold text-gray-900">
+                        Proceso de inicio del sistema
+                      </h2>
+                      <span
+                        class="px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-pink-500 to-purple-500 text-white"
+                      >
+                        Nuevo
+                      </span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                      3 pasos que el administrador debe completar antes de todo
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="p-5">
+                <ManualTimeline />
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Admin Checklist ── -->
+          <section>
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div class="xl:col-span-1">
+                <ManualChecklist />
+              </div>
+              <div class="xl:col-span-2">
+                <ManualRoleCards />
+              </div>
+            </div>
+          </section>
+
+          <!-- ── All manual sections ── -->
+          <ManualSection
+            v-for="(section, idx) in manualSections"
+            :key="section.id"
+            ref="sectionRefs"
+            :section="section"
+            :default-open="idx === 0"
+          />
+
+          <!-- ── Back to top button ── -->
+          <Transition name="modal-fade">
+            <button
+              v-if="showBackToTop"
+              class="fixed bottom-8 right-8 z-30 w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-500 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center text-lg"
+              @click="scrollToTop"
+              aria-label="Volver arriba"
+            >
+              ↑
+            </button>
+          </Transition>
+        </main>
+      </div>
+    </div>
   </div>
 </template>
 
