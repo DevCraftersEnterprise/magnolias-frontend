@@ -84,6 +84,5 @@ async function logout() {
 
   <div class="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3">
     <UiFloatingDownloadButton />
-    <UiFloatingManualButton />
   </div>
 </template>

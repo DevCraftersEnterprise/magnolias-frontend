@@ -9,7 +9,11 @@ export default defineNuxtConfig({
       apiBase: '',
     },
   },
-
+  vite: {
+    ssr: {
+      noExternal: ['three']
+    }
+  },
   app: {
     head: {
       charset: 'utf-8',
