@@ -696,7 +696,7 @@ export interface RoleCard {
 export const roleCards: RoleCard[] = [
     {
         role: 'SUPER',
-        name: 'Superadministrador',
+        name: 'Super usuario',
         color: '#1a1a2e',
         bgColor: '#e8e8f0',
         icon: '👑',
@@ -719,7 +719,7 @@ export const roleCards: RoleCard[] = [
             'Gestión de sucursales propias',
             'Creación y edición de usuarios',
             'Configuración de catálogos',
-            'Ver estadísticas de sucursal',
+            'Ver estadísticas por sucursal',
         ],
     },
     {
@@ -743,11 +743,8 @@ export const roleCards: RoleCard[] = [
         bgColor: '#d1e7dd',
         icon: '🌟',
         permissions: [
-            'Ver y gestionar el catálogo de productos',
-            'Crear y editar categorías',
-            'Agregar y editar productos',
+            'Ver el catálogo de productos',
             'Subir fotografías de productos',
-            'Activar/desactivar productos',
         ],
     },
     {
