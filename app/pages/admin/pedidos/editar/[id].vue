@@ -46,7 +46,6 @@ const {
   regForm,
   canRegister,
   registerAndSelect,
-  formatCustomerAddress,
 } = useCustomerLookup();
 
 const {

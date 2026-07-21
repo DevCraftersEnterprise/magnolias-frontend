@@ -30,13 +30,6 @@ export function useCustomerLookup() {
         selectedCustomer.value = c;
     }
 
-    function formatCustomerAddress(c: CustomerItem) {
-        const a = c.address;
-        if (!a?.street) return "";
-        return [a.street, a.number ? `#${a.number}` : null, a.neighborhood, a.city]
-            .filter(Boolean).join(", ");
-    }
-
     // ── Inline registration ──────────────────────────────────────────────────
     const showRegister = ref(false);
     const registering = ref(false);
@@ -124,7 +117,7 @@ export function useCustomerLookup() {
 
     return {
         selectedCustomer, phoneQuery, searching,
-        results, hasSearched, searchByPhone, selectCustomer, formatCustomerAddress,
+        results, hasSearched, searchByPhone, selectCustomer,
         showRegister, registering, regForm, canRegister, registerAndSelect,
     };
 }
