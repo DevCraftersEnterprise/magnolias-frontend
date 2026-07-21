@@ -400,16 +400,18 @@ async function confirmDelete() {
                       <td class="px-4 py-3 text-[13px] text-gray-700">
                         <div class="flex items-center gap-2">
                           <span class="truncate max-w-[260px]">{{
-                            shortText(formatAddress(c), 36)
+                            shortText(formatCustomerAddress(c), 36)
                           }}</span>
                           <button
                             v-if="
-                              formatAddress(c) !== '—' &&
-                              formatAddress(c).length > 36
+                              formatCustomerAddress(c) !== '—' &&
+                              formatCustomerAddress(c).length > 36
                             "
                             class="shrink-0 text-[12px] font-semibold text-[#111827] hover:underline"
                             type="button"
-                            @click="openDetail('Dirección', formatAddress(c))"
+                            @click="
+                              openDetail('Dirección', formatCustomerAddress(c))
+                            "
                           >
                             Ver más…
                           </button>
@@ -471,16 +473,18 @@ async function confirmDelete() {
                     <p class="text-gray-400">Dirección</p>
                     <div class="flex items-center gap-2">
                       <p class="text-gray-700">
-                        {{ shortText(formatAddress(c), 70) }}
+                        {{ shortText(formatCustomerAddress(c), 70) }}
                       </p>
                       <button
                         v-if="
-                          formatAddress(c) !== '—' &&
-                          formatAddress(c).length > 70
+                          formatCustomerAddress(c) !== '—' &&
+                          formatCustomerAddress(c).length > 70
                         "
                         class="text-[12px] font-semibold text-[#111827] hover:underline"
                         type="button"
-                        @click="openDetail('Dirección', formatAddress(c))"
+                        @click="
+                          openDetail('Dirección', formatCustomerAddress(c))
+                        "
                       >
                         Ver más…
                       </button>

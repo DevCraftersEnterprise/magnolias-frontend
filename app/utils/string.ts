@@ -29,22 +29,20 @@ export function normalizeError(error: any, fallback: string): string {
     return error?.message || fallback;
 }
 
-export function formatCustomerAddress(c: CustomerItem) {
-    const a = c.address;
-    if (!a) return "";
-    return [a.street, a.number ? `#${a.number}` : null, a.neighborhood, a.city]
+export function formatCustomerAddress(
+    customer: CustomerItem,
+    options: { emptyFallback?: string } = {},
+): string {
+    const { emptyFallback = "" } = options;
+    const address = customer.address;
+    if (!address?.street) return emptyFallback;
+
+    return [
+        address.street,
+        address.number ? `#${address.number}` : null,
+        address.neighborhood,
+        address.city,
+    ]
         .filter(Boolean)
         .join(", ");
-}
-
-export function formatAddress(c: CustomerItem) {
-    const a = c.address;
-    if (!a) return "—";
-    const parts = [
-        a.street,
-        a.number ? `#${a.number}` : null,
-        a.neighborhood,
-        a.city,
-    ].filter(Boolean);
-    return parts.length ? parts.join(" ") : "—";
 }
