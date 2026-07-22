@@ -1,10 +1,11 @@
 import { productsService, getProductImageUrl } from "~/services/products.service";
 import type { ProductItem } from "~/types/product.types";
+import type { ProductSize } from '~/types/order.types';
 
 export type OrderProductRow = {
     product: ProductItem;
     qty: number; price: number;
-    sizeId: string; colorId: string; breadId: string;
+    sizeId: ProductSize | ''; colorId: string; breadId: string;
     flavorId: string; fillingId: string; frostingId: string; styleId: string;
     withText: boolean; text: string; textLocation: string;
     mangaStyle: string; mangaNotes: string;
