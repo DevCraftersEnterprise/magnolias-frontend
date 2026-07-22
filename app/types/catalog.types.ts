@@ -5,12 +5,22 @@ export type ColorItem = {
     isActive: boolean;
 }
 
-export type BreadTypeItem = { id: string; name: string; description: string; isActive: boolean }
-export type FillingItem = { id: string; name: string; description: string; isActive: boolean }
-export type FlavorItem = { id: string; name: string; description: string; isActive: boolean }
-export type FrostingItem = { id: string; name: string; description: string; isActive: boolean }
-export type StyleItem = { id: string; name: string; description: string; isActive: boolean }
-export type FlowerItem = { id: string; name: string; description: string; isActive: boolean; createdAt: string; updatedAt: string }
+export type CatalogItem = {
+    id: string;
+    name: string;
+    description: string;
+    isActive: boolean;
+}
+
+export type BreadTypeItem = CatalogItem;
+export type FillingItem = CatalogItem;
+export type FlavorItem = CatalogItem;
+export type FrostingItem = CatalogItem;
+export type StyleItem = CatalogItem;
+export type FlowerItem = CatalogItem & {
+    createdAt: string;
+    updatedAt: string
+}
 
 export type CreateCatalogPayload = {
     name: string;
