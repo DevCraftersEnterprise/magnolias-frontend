@@ -1,4 +1,15 @@
-import type { OrderType, OrderStatus } from '~/types/order.types'
+import type { OrderType, OrderStatus, ProductSize } from '~/types/order.types'
+
+export const PRODUCT_SIZE_LABELS: Record<ProductSize, string> = {
+    '10P': '10 P',
+    '15P': '15 P',
+    '20P': '20 P',
+    '25P': '25 P',
+    '30P': '30 P',
+    '40P': '40 P',
+    '50P': '50 P',
+    CUSTOM: 'Personalizado',
+}
 
 export const TYPE_LABELS: Record<OrderType, string> = {
     DOMICILIO: 'Domicilio',

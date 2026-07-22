@@ -1,5 +1,6 @@
 export type OrderStatus = 'CREATED' | 'IN PROCESS' | 'DONE' | 'DELIVERED' | 'CANCELED';
 export type OrderType = 'DOMICILIO' | 'EVENTO' | 'VITRINA' | 'PERSONALIZADO' | 'FLOR';
+export type ProductSize = '10P' | '15P' | '20P' | '25P' | '30P' | '40P' | '50P' | 'CUSTOM';
 
 export type OrderDeliveryAddress = {
     street?: string;
@@ -113,7 +114,7 @@ export type OrderDetailItem = {
     id: string;
     price: string;
     quantity: number;
-    productSize?: string | null;
+    productSize?: ProductSize | null;
     customSize?: string | null;
     hasWriting?: boolean;
     writingText?: string | null;
@@ -229,7 +230,7 @@ export type UpdateOrderDetailPayload = {
     productId: string;
     price: number;
     quantity: number;
-    productSize?: string;
+    productSize?: ProductSize;
     customSize?: string;
     hasWriting: boolean;
     writingText?: string;
@@ -281,7 +282,7 @@ export type CreateOrderDetail = {
     productId: string;
     price: number;
     quantity: number;
-    productSize?: string;
+    productSize?: ProductSize;
     customSize?: string;
     hasWriting: boolean;
     writingText?: string;
