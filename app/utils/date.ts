@@ -1,5 +1,14 @@
+/** 
+ * Fechas calendario ancladas en UTC (deliveryDate, pickupDate): se
+ * generan como "YYYY-MM-DDT00:00:00Z" y deben leerse con getters UTC
+ * para no desplazar el día según la zona horaria del navegador.
+*/
+
 export function isoDate(d: Date): string {
-    return d.toISOString().split('T')[0]!;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
 }
 
 export function formatDate(iso: string): string {
@@ -11,6 +20,13 @@ export function formatDate(iso: string): string {
     const y = date.getUTCFullYear();
     return `${d}/${m}/${y}`;
 }
+
+/** 
+ * Timestamps reales de servidor (createdAt/updatedAt de pedidos y
+ * pagos): representan un instante real, no un día anclado — se
+ * muestran en hora local para que coincidan entre sí y con la hora
+ * que efectivamente vivió quien los generó.
+*/
 
 export function formatLocalDate(iso: string): string {
     if (!iso) return '-';
@@ -34,8 +50,8 @@ export function formatDateTime(iso: string): string {
     if (!iso) return '—';
 
     const d = new Date(iso);
-    const date = `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`;
-    const time = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    const date = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
     return `${date} ${time}`;
 }
