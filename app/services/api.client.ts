@@ -14,7 +14,10 @@ function normalizeError(status: number, data: any): ApiError {
 
 export async function apiFetch<T>(
   path: string,
-  opts: RequestInit & { auth?: boolean } = {}
+  opts: Omit<RequestInit, 'body'> & {
+    auth?: boolean
+    body?: BodyInit | Record<string, unknown> | null
+  } = {}
 ): Promise<T> {
   const config = useRuntimeConfig()
   const base = String(config.public.apiBase || '').replace(/\/$/, '')
@@ -26,7 +29,7 @@ export async function apiFetch<T>(
     typeof FormData !== 'undefined' && opts.body instanceof FormData
 
   // Body seguro (si viene objeto, lo convertimos a JSON)
-  let body = opts.body
+  let body = opts.body as BodyInit | null | undefined
   if (!isFormData) {
     if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
 
