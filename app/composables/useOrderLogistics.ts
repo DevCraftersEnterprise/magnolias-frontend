@@ -69,12 +69,9 @@ export function useOrderLogistics(
     });
 
     const customerHasAddress = computed(() => !!selectedCustomer.value?.address?.street);
-    const customerAddressFormatted = computed(() => {
-        const a = selectedCustomer.value?.address;
-        if (!a) return "";
-        return [a.street, a.number ? `#${a.number}` : null, a.neighborhood, a.city]
-            .filter(Boolean).join(", ");
-    });
+    const customerAddressFormatted = computed(() =>
+        selectedCustomer.value ? formatCustomerAddress(selectedCustomer.value) : ""
+    );
 
     const needsDelivery = computed(() =>
         step2.orderType !== null &&
@@ -126,7 +123,7 @@ export function useOrderLogistics(
     const minDeliveryDate = computed(() => {
         const d = new Date();
         d.setDate(d.getDate() + 1);
-        return d.toISOString().slice(0, 10);
+        return isoDate(d);
     });
 
     const step2AddressValid = computed(() => {

@@ -1,5 +1,5 @@
 import { nextTick, ref } from 'vue'
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { buildTime24, parseTime24, useOrderLogistics } from './useOrderLogistics'
 import type { CustomerItem } from '~/types/customer.types'
 
@@ -201,14 +201,6 @@ describe('useOrderLogistics', () => {
         expect(captured).toBe('5555555555')
     })
 
-    it('CARACTERIZACIÓN: minDeliveryDate usa toISOString (UTC), no getters locales — mismo patrón de bug ya corregido en utils/date.ts#isoDate, pero duplicado aquí sin el fix', () => {
-        const { minDeliveryDate } = setup()
-        const d = new Date()
-        d.setDate(d.getDate() + 1)
-
-        expect(minDeliveryDate.value).toBe(d.toISOString().slice(0, 10))
-    })
-
     it('step2AddressValid es true si no se necesita entrega', () => {
         const { step2AddressValid } = setup()
         expect(step2AddressValid.value).toBe(true)
@@ -244,3 +236,29 @@ describe('useOrderLogistics', () => {
         expect(step2AddressValid.value).toBe(true)
     })
 })
+
+describe('minDeliveryDate', () => {
+    const ORIGINAL_TZ = process.env.TZ
+
+    beforeAll(() => {
+        process.env.TZ = 'America/Mexico_City' // UTC-6 todo el año
+    })
+
+    afterAll(() => {
+        process.env.TZ = ORIGINAL_TZ
+    })
+
+    it('usa getters locales (isoDate) para calcular "mañana", sin el corrimiento de día de toISOString/UTC', () => {
+        vi.useFakeTimers()
+        // 2023-10-15T02:00:00Z es 2023-10-14 20:00 en America/Mexico_City (UTC-6)
+        vi.setSystemTime(new Date('2023-10-15T02:00:00.000Z'))
+
+        const { minDeliveryDate } = setup()
+
+        // "mañana" en local es 2023-10-15; con el bug de toISOString habría sido 2023-10-16
+        expect(minDeliveryDate.value).toBe('2023-10-15')
+
+        vi.useRealTimers()
+    })
+})
+
