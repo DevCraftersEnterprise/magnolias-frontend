@@ -225,6 +225,7 @@ describe('useProductBuilder', () => {
 
             expect(productsServiceMock.getProducts).toHaveBeenCalledWith(12, 0, {
                 name: 'pastel',
+                includeHidden: true,
             })
             expect(productResults.value).toEqual([product()])
             expect(showProductPanel.value).toBe(true)
