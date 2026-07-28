@@ -46,6 +46,7 @@ async function onSubmit() {
         name: form.name.trim(),
         description: form.description.trim(),
         isFavorite: false,
+        isPublic: true,
         categoryId: props.categoryId,
       });
       toast.success("Producto creado correctamente.");

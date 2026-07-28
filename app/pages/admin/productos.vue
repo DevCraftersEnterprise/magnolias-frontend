@@ -20,6 +20,14 @@ function productImg(p: ProductItem) {
   return url ? String(url).trim() : null;
 }
 
+/** Posición vertical del badge "Oculto al público", según cuántos badges lo preceden */
+function hiddenBadgeOffsetClass(p: ProductItem) {
+  const badgesBefore = (p.isFavorite ? 1 : 0) + (!p.isActive ? 1 : 0);
+  if (badgesBefore === 2) return "top-24";
+  if (badgesBefore === 1) return "top-14";
+  return "top-3";
+}
+
 // ─── Fetch ──────────────────────────────────────────────────────────────────
 async function fetchAllProducts() {
   const data = await categoriesService.getAll();
@@ -327,9 +335,16 @@ async function reloadAll() {
 
                   <!-- Heart: arriba derecha, clickeable, centrado -->
                   <button
-                    class="absolute right-3 top-3 z-10 h-10 w-10 rounded-xl bg-white/90 shadow-sm ring-1 ring-black/5 hover:bg-white transition flex items-center justify-center"
+                    class="absolute right-3 top-3 z-10 h-10 w-10 rounded-xl bg-white/90 shadow-sm ring-1 ring-black/5 hover:bg-white transition flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                     @click.stop="toggleFavorite(p)"
-                    :title="p.isFavorite ? 'Favorito' : 'Marcar como favorito'"
+                    :disabled="p.isPublic === false"
+                    :title="
+                      p.isPublic === false
+                        ? 'No se puede marcar como favorito un producto oculto al público'
+                        : p.isFavorite
+                          ? 'Favorito'
+                          : 'Marcar como favorito'
+                    "
                   >
                     <svg
                       class="h-5 w-5 -translate-x-0.5"
@@ -362,6 +377,15 @@ async function reloadAll() {
                     :class="p.isFavorite ? 'top-14' : 'top-3'"
                   >
                     No Disponible
+                  </span>
+
+                  <!-- Badge Oculto al público -->
+                  <span
+                    v-if="p.isPublic === false"
+                    class="absolute left-3 z-10 rounded-full bg-[#101541]/90 px-3 py-1 text-[11px] font-semibold text-white ring-1 ring-black/10 backdrop-blur-sm"
+                    :class="hiddenBadgeOffsetClass(p)"
+                  >
+                    Oculto al público
                   </span>
 
                   <!-- Ver detalles -->

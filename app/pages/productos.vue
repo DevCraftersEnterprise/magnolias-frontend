@@ -1,13 +1,10 @@
 <script setup lang="ts">
+import { productsService } from "~/services/products.service";
 import type { ProductItem } from "~/types/product.types";
 
 definePageMeta({ layout: "landing" });
 useHead({ title: "Productos · Magnolias" });
 
-const apiBase = (useRuntimeConfig().public.apiBase as string).replace(
-  /\/$/,
-  "",
-);
 const LIMIT = 10;
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -27,15 +24,10 @@ async function fetchProducts(reset = false) {
     hasMore.value = true;
   }
 
-  const params = new URLSearchParams({
-    limit: String(LIMIT),
-    offset: String(offset.value),
+  const result = await productsService.getPublicProducts(LIMIT, offset.value, {
+    name: searchQuery.value.trim() || undefined,
   });
-  if (searchQuery.value.trim()) params.set("name", searchQuery.value.trim());
 
-  const result = await $fetch<{ items: ProductItem[] }>(
-    `${apiBase}/api/products?${params.toString()}`,
-  );
   const items = result?.items ?? [];
   products.value.push(...items);
   offset.value += items.length;

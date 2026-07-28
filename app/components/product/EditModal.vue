@@ -34,6 +34,7 @@ const form = reactive({
   description: "",
   isFavorite: false,
   isActive: true,
+  isPublic: true,
   categoryId: "",
 });
 
@@ -47,6 +48,7 @@ watch(
     form.description = props.product.description || "";
     form.isFavorite = !!props.product.isFavorite;
     form.isActive = !!props.product.isActive;
+    form.isPublic = props.product.isPublic !== false;
     form.categoryId = props.product.category.id || "";
     activeThumb.value = 0;
     selectedToDelete.value = null;
@@ -152,6 +154,7 @@ async function save() {
       isFavorite: !!form.isFavorite,
       categoryId: form.categoryId,
       isActive: !!form.isActive,
+      isPublic: !!form.isPublic,
     });
 
     toast.success("Producto actualizado correctamente.");
@@ -334,6 +337,39 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
                 >
                   <span
                     :class="form.isActive ? 'translate-x-5' : 'translate-x-0'"
+                    class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  ></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Visibilidad pública -->
+            <div>
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-semibold text-black/60">
+                    Visible al público
+                  </label>
+                  <p class="mt-0.5 text-xs text-black/50">
+                    {{
+                      form.isPublic
+                        ? "Aparece en el catálogo público"
+                        : "Oculto del catálogo público (visible solo en el admin)"
+                    }}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  :aria-checked="form.isPublic"
+                  @click="form.isPublic = !form.isPublic"
+                  :disabled="saving"
+                  class="relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-black/20 focus:ring-offset-2"
+                  :class="form.isPublic ? 'bg-[#FFBEE6]' : 'bg-gray-300'"
+                >
+                  <span
+                    :class="form.isPublic ? 'translate-x-5' : 'translate-x-0'"
                     class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
                   ></span>
                 </button>

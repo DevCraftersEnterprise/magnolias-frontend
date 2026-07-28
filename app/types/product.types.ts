@@ -10,6 +10,7 @@ export type ProductItem = {
     description: string;
     isFavorite: boolean;
     isActive: boolean;
+    isPublic: boolean;
     category: { id: string; name: string; };
     createdAt: string;
     updatedAt: string;
@@ -53,12 +54,14 @@ export type ProductsFilters = Partial<{
     categoryId: string;
     isActive: boolean;
     isFavorite: boolean;
+    includeHidden: boolean;
 }>
 
 export type CreateProductPayload = {
     name: string;
     description: string;
     isFavorite: boolean;
+    isPublic?: boolean;
     categoryId: string;
 }
 
@@ -79,6 +82,7 @@ export type PatchProductPayload = {
     isFavorite: boolean;
     categoryId: string;
     isActive: boolean;
+    isPublic: boolean;
 }
 
 export type UpdateFavoritePayload = {
