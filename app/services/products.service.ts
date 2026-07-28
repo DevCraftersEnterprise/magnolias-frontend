@@ -89,6 +89,7 @@ export const productsService = {
         isFavorite: payload.isFavorite,
         categoryId: payload.categoryId,
         isActive: payload.isActive,
+        isPublic: payload.isPublic,
       },
     })
   },

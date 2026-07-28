@@ -45,7 +45,7 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
         if (!trimmed) { productResults.value = []; showProductPanel.value = false; return; }
         productSearchTimer = setTimeout(() => {
             productSearching.value = true;
-            productsService.getProducts(12, 0, { name: trimmed })
+            productsService.getProducts(12, 0, { name: trimmed, includeHidden: true })
                 .then((r) => { productResults.value = r.items; showProductPanel.value = true; })
                 .catch(() => { productResults.value = []; })
                 .finally(() => { productSearching.value = false; });
