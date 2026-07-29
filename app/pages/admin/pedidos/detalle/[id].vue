@@ -289,32 +289,39 @@ function roundLabel(r?: string | null) {
                   :key="detail.id"
                   class="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_10px_28px_rgba(16,24,40,0.06)] overflow-hidden"
                 >
-                  <!-- Imagen de referencia -->
+                  <!-- Imágenes de referencia -->
                   <div
-                    v-if="detail.referenceImageUrl"
-                    class="relative cursor-zoom-in group"
-                    @click="openLightbox(detail.referenceImageUrl!)"
+                    v-if="detail.referenceImages && detail.referenceImages.length > 0"
+                    class="grid gap-1"
+                    :class="detail.referenceImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'"
                   >
-                    <img
-                      :src="detail.referenceImageUrl"
-                      alt="Referencia"
-                      class="w-full max-h-80 object-cover bg-gray-100 transition group-hover:brightness-90"
-                    />
-                    <span
-                      class="absolute bottom-3 right-3 rounded-lg bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm flex items-center gap-1.5"
+                    <div
+                      v-for="img in detail.referenceImages"
+                      :key="img.id"
+                      class="relative cursor-zoom-in group"
+                      @click="openLightbox(img.imageUrl)"
                     >
-                      <svg
-                        class="h-3 w-3"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
+                      <img
+                        :src="img.imageUrl"
+                        alt="Referencia"
+                        class="w-full max-h-80 object-cover bg-gray-100 transition group-hover:brightness-90"
+                      />
+                      <span
+                        class="absolute bottom-3 right-3 rounded-lg bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm flex items-center gap-1.5"
                       >
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.35-4.35M11 8v6M8 11h6" />
-                      </svg>
-                      Ver foto
-                    </span>
+                        <svg
+                          class="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <circle cx="11" cy="11" r="8" />
+                          <path d="m21 21-4.35-4.35M11 8v6M8 11h6" />
+                        </svg>
+                        Ver foto
+                      </span>
+                    </div>
                   </div>
 
                   <!-- Nombre + cantidad -->

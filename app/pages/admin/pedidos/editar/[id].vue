@@ -59,10 +59,14 @@ const {
   addProduct,
   removeProduct,
   refModal,
+  refModalRow,
   openRefModal,
   onRefFileChange,
   confirmRefImage,
   removeRefImage,
+  removeRefImageAt,
+  removeExistingReferenceImage,
+  MAX_REFERENCE_IMAGES_PER_ROW,
   detailModal,
   detailRow,
   detailRowHasDetails,
@@ -73,6 +77,19 @@ const {
   UBICACION_OPTIONS,
   MANGA_OPTIONS,
 } = useProductBuilder(colorCatalog);
+
+const removingRefImage = ref<string | null>(null);
+async function removeExistingRefImage(rowIndex: number, imageId: string) {
+  removingRefImage.value = imageId;
+  try {
+    await ordersService.hideOrderDetailReferenceImage(imageId);
+    removeExistingReferenceImage(rowIndex, imageId);
+  } catch (e: any) {
+    toast.error(e?.message || "No se pudo eliminar la imagen.");
+  } finally {
+    removingRefImage.value = null;
+  }
+}
 
 const { step4, serviceCost, subtotal, orderTotal, remaining, PAYMENT_TYPES } =
   useOrderPayment(orderProducts);
@@ -157,7 +174,7 @@ const canNext = computed(() => {
       (r) =>
         r.price > 0 &&
         (!r.withText || r.text.trim()) &&
-        (!r.withReference || !!r.referenceFile || !!r.referencePreview),
+        (!r.withReference || r.referenceFiles.length > 0 || r.existingReferenceImages.length > 0),
     );
   }
   return true;
@@ -321,9 +338,13 @@ function populateFromOrder(order: OrderDetail) {
       mangaNotes: d.decorationNotes ?? "",
       customSize: d.customSize ?? "",
       notes: d.notes ?? "",
-      withReference: !!d.referenceImageUrl,
-      referenceFile: null,
-      referencePreview: d.referenceImageUrl ?? "",
+      withReference: (d.referenceImages ?? []).length > 0,
+      referenceFiles: [],
+      referencePreviews: [],
+      existingReferenceImages: (d.referenceImages ?? []).map((img) => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+      })),
     };
   });
 
@@ -508,6 +529,7 @@ async function submitOrder() {
         flavorId: r.flavorId || undefined,
         frostingId: r.frostingId || undefined,
         styleId: r.styleId || undefined,
+        referenceFiles: r.referenceFiles.length > 0 ? r.referenceFiles : undefined,
       }),
     );
 
@@ -2385,7 +2407,9 @@ function next() {
                           type="checkbox"
                           class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3]"
                           @change="
-                            row.withReference && !row.referencePreview
+                            row.withReference &&
+                            row.existingReferenceImages.length === 0 &&
+                            row.referencePreviews.length === 0
                               ? openRefModal(i)
                               : null
                           "
@@ -2396,26 +2420,27 @@ function next() {
                       </label>
                       <template v-if="row.withReference">
                         <div
-                          v-if="row.referencePreview"
+                          v-if="row.existingReferenceImages.length > 0 || row.referencePreviews.length > 0"
                           class="flex items-center gap-2"
                         >
-                          <img
-                            :src="row.referencePreview"
-                            class="h-8 w-8 rounded-md object-cover ring-1 ring-black/10"
-                          />
+                          <div class="relative">
+                            <img
+                              :src="row.existingReferenceImages[0]?.imageUrl ?? row.referencePreviews[0]"
+                              class="h-8 w-8 rounded-md object-cover ring-1 ring-black/10"
+                            />
+                            <span
+                              v-if="row.existingReferenceImages.length + row.referencePreviews.length > 1"
+                              class="absolute -top-1.5 -right-1.5 flex items-center justify-center h-4 min-w-4 px-0.5 rounded-full bg-[#C9007C] text-white text-[9px] font-semibold"
+                            >
+                              +{{ row.existingReferenceImages.length + row.referencePreviews.length - 1 }}
+                            </span>
+                          </div>
                           <button
                             type="button"
                             @click="openRefModal(i)"
                             class="text-[11px] text-[#C9007C] hover:underline"
                           >
-                            Cambiar
-                          </button>
-                          <button
-                            type="button"
-                            @click="removeRefImage(i)"
-                            class="text-[11px] text-gray-400 hover:text-red-400"
-                          >
-                            Quitar
+                            Gestionar ({{ row.existingReferenceImages.length + row.referencePreviews.length }}/{{ MAX_REFERENCE_IMAGES_PER_ROW }})
                           </button>
                         </div>
                         <button
@@ -2426,8 +2451,8 @@ function next() {
                           :class="{
                             'ring-red-300 text-red-400':
                               row.withReference &&
-                              !row.referenceFile &&
-                              !row.referencePreview,
+                              row.existingReferenceImages.length === 0 &&
+                              row.referenceFiles.length === 0,
                           }"
                         >
                           <svg
@@ -2478,13 +2503,13 @@ function next() {
               @click.self="refModal.open = false"
             >
               <div
-                class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+                class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
               >
                 <div
                   class="px-5 py-4 border-b border-black/8 flex items-center justify-between"
                 >
                   <h3 class="text-[16px] font-bold text-[#111827]">
-                    Imagen de referencia
+                    Imágenes de referencia
                   </h3>
                   <button
                     type="button"
@@ -2504,32 +2529,81 @@ function next() {
                 </div>
                 <div class="px-5 py-5 space-y-4">
                   <div
-                    class="rounded-xl overflow-hidden bg-[#F3F3F4] flex items-center justify-center"
-                    style="min-height: 200px"
+                    v-if="refModalRow && (refModalRow.existingReferenceImages.length > 0 || refModalRow.referencePreviews.length > 0)"
+                    class="grid grid-cols-3 gap-2"
                   >
-                    <img
-                      v-if="refModal.preview"
-                      :src="refModal.preview"
-                      class="max-h-64 w-full object-contain"
-                    />
                     <div
-                      v-else
-                      class="flex flex-col items-center text-gray-300 py-10"
+                      v-for="img in refModalRow.existingReferenceImages"
+                      :key="img.id"
+                      class="relative rounded-xl overflow-hidden bg-[#F3F3F4] ring-1 ring-black/8"
+                      style="aspect-ratio: 1"
                     >
-                      <svg
-                        viewBox="0 0 24 24"
-                        class="h-12 w-12 mb-2"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1"
+                      <img :src="img.imageUrl" class="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        :disabled="removingRefImage === img.id"
+                        @click="removeExistingRefImage(refModal.rowIndex, img.id)"
+                        class="absolute top-1 right-1 flex items-center justify-center h-5 w-5 rounded-full bg-black/60 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
                       >
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <path d="M21 15l-5-5L5 21" />
-                      </svg>
-                      <p class="text-[13px]">Sin imagen</p>
+                        <svg
+                          viewBox="0 0 24 24"
+                          class="h-3 w-3"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                        >
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div
+                      v-for="(preview, idx) in refModalRow.referencePreviews"
+                      :key="`new-${idx}`"
+                      class="relative rounded-xl overflow-hidden bg-[#F3F3F4] ring-1 ring-black/8"
+                      style="aspect-ratio: 1"
+                    >
+                      <img :src="preview" class="h-full w-full object-cover" />
+                      <span
+                        class="absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white"
+                      >
+                        Nueva
+                      </span>
+                      <button
+                        type="button"
+                        @click="removeRefImageAt(refModal.rowIndex, idx)"
+                        class="absolute top-1 right-1 flex items-center justify-center h-5 w-5 rounded-full bg-black/60 text-white hover:bg-red-500 transition-colors"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          class="h-3 w-3"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                        >
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
+                  <div
+                    v-else
+                    class="rounded-xl overflow-hidden bg-[#F3F3F4] flex flex-col items-center justify-center text-gray-300 py-10"
+                    style="min-height: 160px"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      class="h-12 w-12 mb-2"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M21 15l-5-5L5 21" />
+                    </svg>
+                    <p class="text-[13px]">Sin imágenes</p>
+                  </div>
                   <label
+                    v-if="refModalRow && (refModalRow.existingReferenceImages.length + refModalRow.referencePreviews.length) < MAX_REFERENCE_IMAGES_PER_ROW"
                     class="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#FC9AD3]/50 hover:border-[#FC9AD3] px-4 py-3 cursor-pointer transition-colors"
                   >
                     <svg
@@ -2544,31 +2618,27 @@ function next() {
                       <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
                     <span class="text-[13px] font-medium text-[#C9007C]"
-                      >Seleccionar imagen</span
+                      >Agregar imágenes ({{ refModalRow.existingReferenceImages.length + refModalRow.referencePreviews.length }}/{{ MAX_REFERENCE_IMAGES_PER_ROW }})</span
                     >
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       class="sr-only"
                       @change="onRefFileChange"
                     />
                   </label>
+                  <p v-else class="text-center text-[12px] text-gray-400">
+                    Alcanzaste el máximo de {{ MAX_REFERENCE_IMAGES_PER_ROW }} imágenes
+                  </p>
                 </div>
                 <div class="px-5 pb-5 flex justify-end gap-2">
                   <button
                     type="button"
-                    @click="refModal.open = false"
-                    class="px-4 py-2 rounded-xl text-[13px] text-gray-500 ring-1 ring-black/10 hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
                     @click="confirmRefImage"
-                    :disabled="!refModal.preview"
-                    class="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-[#FC9AD3] disabled:opacity-40 transition-colors"
+                    class="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-[#FC9AD3] hover:bg-[#f98acd] transition-colors"
                   >
-                    Confirmar
+                    Listo
                   </button>
                 </div>
               </div>
@@ -2970,15 +3040,29 @@ function next() {
                       >{{ detailRow.notes }}</span
                     >
                   </div>
-                  <div v-if="detailRow.referencePreview" class="pt-3 pb-1">
+                  <div
+                    v-if="detailRow.existingReferenceImages.length > 0 || detailRow.referencePreviews.length > 0"
+                    class="pt-3 pb-1"
+                  >
                     <p class="text-[12px] text-gray-500 mb-2">
-                      Imagen de referencia
+                      Imágenes de referencia ({{ detailRow.existingReferenceImages.length + detailRow.referencePreviews.length }})
                     </p>
-                    <img
-                      :src="detailRow.referencePreview"
-                      alt="Referencia"
-                      class="w-full max-h-44 object-contain rounded-lg ring-1 ring-black/10"
-                    />
+                    <div class="grid grid-cols-3 gap-2">
+                      <img
+                        v-for="img in detailRow.existingReferenceImages"
+                        :key="img.id"
+                        :src="img.imageUrl"
+                        alt="Referencia"
+                        class="w-full aspect-square object-cover rounded-lg ring-1 ring-black/10"
+                      />
+                      <img
+                        v-for="(preview, idx) in detailRow.referencePreviews"
+                        :key="`new-${idx}`"
+                        :src="preview"
+                        alt="Referencia"
+                        class="w-full aspect-square object-cover rounded-lg ring-1 ring-black/10"
+                      />
+                    </div>
                   </div>
                 </div>
                 <div

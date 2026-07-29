@@ -122,7 +122,7 @@ export type OrderDetailItem = {
     pipingLocation?: string | null;
     decorationNotes?: string | null;
     notes?: string | null;
-    referenceImageUrl?: string | null;
+    referenceImages?: { id: string; imageUrl: string }[];
     isActive?: boolean;
     product?: OrderDetailProduct | null;
     color?: OrderDetailCatalogItem;
@@ -244,6 +244,7 @@ export type UpdateOrderDetailPayload = {
     flavorId?: string;
     frostingId?: string;
     styleId?: string;
+    referenceFiles?: File[];
 }
 
 export type UpdateOrderPayload = {
@@ -296,7 +297,7 @@ export type CreateOrderDetail = {
     flavorId?: string;
     frostingId?: string;
     styleId?: string;
-    referenceFile?: File | null;
+    referenceFiles?: File[];
 }
 
 export type CreateOrderFlower = {
