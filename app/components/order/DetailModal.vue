@@ -726,10 +726,16 @@ async function downloadFormat() {
                     :key="detail.id"
                     class="rounded-xl bg-[#F8F8F9] overflow-hidden ring-1 ring-black/5"
                   >
-                    <!-- Image -->
-                    <div v-if="detail.referenceImageUrl" class="w-full">
+                    <!-- Images -->
+                    <div
+                      v-if="detail.referenceImages && detail.referenceImages.length > 0"
+                      class="grid gap-1"
+                      :class="detail.referenceImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'"
+                    >
                       <img
-                        :src="detail.referenceImageUrl"
+                        v-for="img in detail.referenceImages"
+                        :key="img.id"
+                        :src="img.imageUrl"
                         alt="Referencia"
                         class="w-full max-h-52 object-cover bg-gray-100"
                       />

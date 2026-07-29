@@ -100,46 +100,120 @@ describe('useProductBuilder', () => {
     })
 
     describe('modal de imagen de referencia', () => {
-        it('openRefModal abre el modal con el preview de la fila', () => {
-            const { orderProducts, addProduct, openRefModal, refModal } = setup()
+        it('openRefModal abre el modal en la fila indicada', () => {
+            const { addProduct, openRefModal, refModal } = setup()
             addProduct(product())
-            orderProducts.value[0]!.referencePreview = 'blob:preview'
 
             openRefModal(0)
 
             expect(refModal.open).toBe(true)
             expect(refModal.rowIndex).toBe(0)
-            expect(refModal.preview).toBe('blob:preview')
         })
 
-        it('onRefFileChange asigna el archivo y genera un preview', () => {
-            const { orderProducts, addProduct, openRefModal, onRefFileChange, refModal } =
+        it('onRefFileChange agrega los archivos seleccionados y genera sus previews', () => {
+            const { orderProducts, addProduct, openRefModal, onRefFileChange } =
                 setup()
             addProduct(product())
             openRefModal(0)
 
-            const file = new File(['contenido'], 'foto.png', { type: 'image/png' })
+            const file1 = new File(['a'], 'foto1.png', { type: 'image/png' })
+            const file2 = new File(['b'], 'foto2.png', { type: 'image/png' })
             const createObjectURLSpy = vi
                 .spyOn(URL, 'createObjectURL')
-                .mockReturnValue('blob:nuevo-preview')
+                .mockReturnValueOnce('blob:preview-1')
+                .mockReturnValueOnce('blob:preview-2')
             const input = document.createElement('input')
             input.type = 'file'
-            Object.defineProperty(input, 'files', { value: [file] })
+            Object.defineProperty(input, 'files', { value: [file1, file2] })
 
             onRefFileChange({ target: input } as unknown as Event)
 
-            expect(orderProducts.value[0]!.referenceFile).toStrictEqual(file)
-            expect(orderProducts.value[0]!.referencePreview).toBe('blob:nuevo-preview')
-            expect(refModal.preview).toBe('blob:nuevo-preview')
+            expect(orderProducts.value[0]!.referenceFiles).toStrictEqual([file1, file2])
+            expect(orderProducts.value[0]!.referencePreviews).toEqual([
+                'blob:preview-1',
+                'blob:preview-2',
+            ])
 
             createObjectURLSpy.mockRestore()
         })
 
-        it('removeRefImage limpia el archivo, preview y withReference', () => {
+        it('onRefFileChange no agrega más archivos de los que caben hasta el máximo', () => {
+            const { orderProducts, addProduct, openRefModal, onRefFileChange } =
+                setup()
+            addProduct(product())
+            orderProducts.value[0]!.referenceFiles = Array.from(
+                { length: 9 },
+                (_, i) => new File([''], `x${i}.png`),
+            )
+            orderProducts.value[0]!.referencePreviews = Array.from(
+                { length: 9 },
+                (_, i) => `blob:${i}`,
+            )
+            openRefModal(0)
+
+            const file1 = new File(['a'], 'foto1.png')
+            const file2 = new File(['b'], 'foto2.png')
+            const createObjectURLSpy = vi
+                .spyOn(URL, 'createObjectURL')
+                .mockReturnValue('blob:nuevo')
+            const input = document.createElement('input')
+            input.type = 'file'
+            Object.defineProperty(input, 'files', { value: [file1, file2] })
+
+            onRefFileChange({ target: input } as unknown as Event)
+
+            expect(orderProducts.value[0]!.referenceFiles).toHaveLength(10)
+
+            createObjectURLSpy.mockRestore()
+        })
+
+        it('removeRefImageAt quita una imagen puntual sin afectar las demás', () => {
+            const { orderProducts, addProduct, removeRefImageAt } = setup()
+            addProduct(product())
+            orderProducts.value[0]!.referenceFiles = [
+                new File([''], 'a.png'),
+                new File([''], 'b.png'),
+            ]
+            orderProducts.value[0]!.referencePreviews = ['blob:a', 'blob:b']
+            orderProducts.value[0]!.withReference = true
+            const revokeSpy = vi
+                .spyOn(URL, 'revokeObjectURL')
+                .mockImplementation(() => { })
+
+            removeRefImageAt(0, 0)
+
+            expect(orderProducts.value[0]!.referencePreviews).toEqual(['blob:b'])
+            expect(orderProducts.value[0]!.withReference).toBe(true)
+            expect(revokeSpy).toHaveBeenCalledWith('blob:a')
+
+            revokeSpy.mockRestore()
+        })
+
+        it('removeRefImageAt desactiva withReference cuando ya no quedan imágenes', () => {
+            const { orderProducts, addProduct, removeRefImageAt } = setup()
+            addProduct(product())
+            orderProducts.value[0]!.referenceFiles = [new File([''], 'a.png')]
+            orderProducts.value[0]!.referencePreviews = ['blob:a']
+            orderProducts.value[0]!.withReference = true
+            const revokeSpy = vi
+                .spyOn(URL, 'revokeObjectURL')
+                .mockImplementation(() => { })
+
+            removeRefImageAt(0, 0)
+
+            expect(orderProducts.value[0]!.withReference).toBe(false)
+
+            revokeSpy.mockRestore()
+        })
+
+        it('removeRefImage limpia todos los archivos, previews y withReference', () => {
             const { orderProducts, addProduct, removeRefImage } = setup()
             addProduct(product())
-            orderProducts.value[0]!.referenceFile = new File([''], 'x.png')
-            orderProducts.value[0]!.referencePreview = 'blob:x'
+            orderProducts.value[0]!.referenceFiles = [
+                new File([''], 'a.png'),
+                new File([''], 'b.png'),
+            ]
+            orderProducts.value[0]!.referencePreviews = ['blob:a', 'blob:b']
             orderProducts.value[0]!.withReference = true
             const revokeSpy = vi
                 .spyOn(URL, 'revokeObjectURL')
@@ -147,12 +221,46 @@ describe('useProductBuilder', () => {
 
             removeRefImage(0)
 
-            expect(orderProducts.value[0]!.referenceFile).toBeNull()
-            expect(orderProducts.value[0]!.referencePreview).toBe('')
+            expect(orderProducts.value[0]!.referenceFiles).toEqual([])
+            expect(orderProducts.value[0]!.referencePreviews).toEqual([])
             expect(orderProducts.value[0]!.withReference).toBe(false)
-            expect(revokeSpy).toHaveBeenCalledWith('blob:x')
+            expect(revokeSpy).toHaveBeenCalledTimes(2)
 
             revokeSpy.mockRestore()
+        })
+    })
+
+    describe('removeExistingReferenceImage', () => {
+        it('quita una imagen existente del servidor sin afectar los archivos nuevos', () => {
+            const { orderProducts, addProduct, removeExistingReferenceImage } = setup()
+            addProduct(product())
+            orderProducts.value[0]!.existingReferenceImages = [
+                { id: 'img-1', imageUrl: 'https://cdn/a.png' },
+                { id: 'img-2', imageUrl: 'https://cdn/b.png' },
+            ]
+            orderProducts.value[0]!.referenceFiles = [new File([''], 'c.png')]
+            orderProducts.value[0]!.referencePreviews = ['blob:c']
+            orderProducts.value[0]!.withReference = true
+
+            removeExistingReferenceImage(0, 'img-1')
+
+            expect(orderProducts.value[0]!.existingReferenceImages).toEqual([
+                { id: 'img-2', imageUrl: 'https://cdn/b.png' },
+            ])
+            expect(orderProducts.value[0]!.withReference).toBe(true)
+        })
+
+        it('desactiva withReference si no quedan imágenes existentes ni archivos nuevos', () => {
+            const { orderProducts, addProduct, removeExistingReferenceImage } = setup()
+            addProduct(product())
+            orderProducts.value[0]!.existingReferenceImages = [
+                { id: 'img-1', imageUrl: 'https://cdn/a.png' },
+            ]
+            orderProducts.value[0]!.withReference = true
+
+            removeExistingReferenceImage(0, 'img-1')
+
+            expect(orderProducts.value[0]!.withReference).toBe(false)
         })
     })
 

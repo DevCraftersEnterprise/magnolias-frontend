@@ -50,10 +50,43 @@ export const ordersService = {
   },
 
   updateOrder(payload: UpdateOrderPayload) {
+    const hasFiles = (payload.details ?? []).some(
+      (d) => d.referenceFiles && d.referenceFiles.length > 0,
+    )
+    if (hasFiles) {
+      const form = new FormData()
+      const { details, flowers, deliveryAddress, eventServices, ...scalars } = payload
+      const detailsMeta = (details ?? []).map(({ referenceFiles, ...d }) => d)
+      Object.entries(scalars).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) form.append(key, String(value))
+      })
+      form.append('details', JSON.stringify(detailsMeta))
+      if (flowers && flowers.length > 0) form.append('flowers', JSON.stringify(flowers))
+      if (deliveryAddress) form.append('deliveryAddress', JSON.stringify(deliveryAddress))
+      if (eventServices && eventServices.length > 0) form.append('eventServices', JSON.stringify(eventServices))
+      const referenceImageDetailIndex: number[] = []
+        ; (details ?? []).forEach((d, detailIndex) => {
+          (d.referenceFiles ?? []).forEach((file) => {
+            form.append('referenceImages', file)
+            referenceImageDetailIndex.push(detailIndex)
+          })
+        })
+      if (referenceImageDetailIndex.length > 0) {
+        form.append('referenceImageDetailIndex', JSON.stringify(referenceImageDetailIndex))
+      }
+      return apiFetch<OrderDetail>(`/api/orders`, { method: 'PATCH', auth: true, body: form })
+    }
     return apiFetch<OrderDetail>(`/api/orders`, {
       method: 'PATCH',
       auth: true,
       body: JSON.stringify(payload),
+    })
+  },
+
+  hideOrderDetailReferenceImage(imageId: string) {
+    return apiFetch<void>(`/api/orders/details/reference-image/${imageId}`, {
+      method: 'DELETE',
+      auth: true,
     })
   },
 
@@ -80,13 +113,13 @@ export const ordersService = {
   },
 
   createOrder(payload: CreateOrderPayload) {
-    // If any product carries a reference image, send as multipart FormData
-    const hasFiles = payload.details.some(d => d.referenceFile)
+    // If any product carries reference images, send as multipart FormData
+    const hasFiles = payload.details.some(d => d.referenceFiles && d.referenceFiles.length > 0)
     if (hasFiles) {
       const form = new FormData()
       // Destructure complex/nested fields that cannot be safely stringified with String()
       const { details, flowers, deliveryAddress, eventServices, ...scalars } = payload
-      const detailsMeta = details.map(({ referenceFile, ...d }) => d)
+      const detailsMeta = details.map(({ referenceFiles, ...d }) => d)
       // Append primitive/scalar fields directly
       Object.entries(scalars).forEach(([key, value]) => {
         if (value !== undefined && value !== null) form.append(key, String(value))
@@ -96,14 +129,21 @@ export const ordersService = {
       if (flowers && flowers.length > 0) form.append('flowers', JSON.stringify(flowers))
       if (deliveryAddress) form.append('deliveryAddress', JSON.stringify(deliveryAddress))
       if (eventServices && eventServices.length > 0) form.append('eventServices', JSON.stringify(eventServices))
-      // Append reference images
-      details.forEach((d) => {
-        if (d.referenceFile) form.append('referenceImages', d.referenceFile)
+      // Flatten reference images across details, tracking which detail each file belongs to
+      const referenceImageDetailIndex: number[] = []
+      details.forEach((d, detailIndex) => {
+        (d.referenceFiles ?? []).forEach((file) => {
+          form.append('referenceImages', file)
+          referenceImageDetailIndex.push(detailIndex)
+        })
       })
+      if (referenceImageDetailIndex.length > 0) {
+        form.append('referenceImageDetailIndex', JSON.stringify(referenceImageDetailIndex))
+      }
       return apiFetch<OrderItem>('/api/orders', { method: 'POST', auth: true, body: form })
     }
     const { details, ...rest } = payload
-    const detailsMeta = details.map(({ referenceFile, ...d }) => d)
+    const detailsMeta = details.map(({ referenceFiles, ...d }) => d)
     const jsonBody = { ...rest, details: detailsMeta }
     return apiFetch<OrderItem>('/api/orders', {
       method: 'POST',
