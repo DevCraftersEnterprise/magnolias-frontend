@@ -128,7 +128,6 @@ export type OrderDetailItem = {
     color?: OrderDetailCatalogItem;
     breadType?: OrderDetailCatalogItem;
     filling?: OrderDetailCatalogItem;
-    flavor?: OrderDetailCatalogItem;
     frosting?: OrderDetailCatalogItem;
     style?: OrderDetailCatalogItem;
     createdAt?: string;
@@ -241,7 +240,6 @@ export type UpdateOrderDetailPayload = {
     breadTypeId?: string;
     colorId?: string;
     fillingId?: string;
-    flavorId?: string;
     frostingId?: string;
     styleId?: string;
     referenceFiles?: File[];
@@ -294,7 +292,6 @@ export type CreateOrderDetail = {
     breadTypeId?: string;
     colorId?: string;
     fillingId?: string;
-    flavorId?: string;
     frostingId?: string;
     styleId?: string;
     referenceFiles?: File[];

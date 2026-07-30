@@ -14,7 +14,6 @@ export type CatalogItem = {
 
 export type BreadTypeItem = CatalogItem;
 export type FillingItem = CatalogItem;
-export type FlavorItem = CatalogItem;
 export type FrostingItem = CatalogItem;
 export type StyleItem = CatalogItem;
 export type FlowerItem = CatalogItem & {

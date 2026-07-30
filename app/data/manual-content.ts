@@ -111,7 +111,7 @@ export const manualSections: ManualSection[] = [
                     'Una vez creada la sucursal, debes llenar los catálogos del sistema. Los catálogos son las listas de opciones que se usan al personalizar productos dentro de un pedido. Sin catálogos cargados, los empleados no podrán registrar pedidos completos.',
                 steps: [
                     'Ve al menú lateral y haz clic en "Catálogos".',
-                    'Verás 7 bloques: Tipo de pan, Rellenos, Sabores, Cubiertas, Forma, Flores y Colores.',
+                    'Verás 6 bloques: Tipo de pan, Rellenos, Cubiertas, Forma, Flores y Colores.',
                     'En cada bloque, haz clic en el botón "+ Agregar" para agregar opciones.',
                     'Ingresa el nombre y una descripción para cada opción y haz clic en "Guardar".',
                     'Repite el proceso en cada bloque hasta tener las opciones básicas cargadas.',
@@ -119,9 +119,8 @@ export const manualSections: ManualSection[] = [
                 ],
                 tableHeaders: ['Catálogo', '¿Para qué se usa?', 'Ejemplos'],
                 tableRows: [
-                    ['Tipo de pan', 'Base del pastel', 'Vainilla, Chocolate, Zanahoria'],
+                    ['Tipo de pan', 'Base y sabor del pastel', 'Vainilla, Chocolate, Zanahoria, Moka, Fresa'],
                     ['Rellenos', 'Interior del pastel', 'Crema pastelera, Dulce de leche, Nutella'],
-                    ['Sabores', 'Sabor de la mezcla', 'Limón, Moka, Fresa'],
                     ['Cubiertas', 'Decoración exterior', 'Fondant, Buttercream, Ganache'],
                     ['Forma', 'Forma decorativa', 'Clásico, Moderno, Corazón'],
                     ['Flores', 'Pedidos tipo Flor', 'Girasol, Rosa, Tulipán'],
@@ -238,7 +237,7 @@ export const manualSections: ManualSection[] = [
                 steps: [
                     'Paso 1 — Cliente: busca al cliente por teléfono o regístralo si es nuevo.',
                     'Paso 2 — Tipo y logística: elige En tienda, Domicilio, Flor o Evento. Ingresa fecha, hora y dirección según el tipo.',
-                    'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, sabor, relleno, cubierta, forma, texto e imagen de referencia.',
+                    'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, relleno, cubierta, forma, texto e imagen de referencia.',
                     'Paso 4 — Pago: elige la forma de pago (Efectivo, Tarjeta o Transferencia) y el modo (Pago completo o Anticipo). Haz clic en "Registrar pedido".',
                 ],
                 warning: 'El sistema solo permite registrar pedidos con hora entre las 8:00 AM y las 7:59 PM. La fecha mínima de entrega es el día siguiente al actual.',
@@ -378,7 +377,7 @@ export const manualSections: ManualSection[] = [
         id: 'catalogos',
         title: 'Catálogos',
         icon: '📋',
-        description: 'Listas de opciones para personalizar productos en los pedidos: tipos de pan, rellenos, sabores, cubiertas, formas, flores y colores.',
+        description: 'Listas de opciones para personalizar productos en los pedidos: tipos de pan, rellenos, cubiertas, formas, flores y colores.',
         roleAccess: ['SUPER', 'ADMIN'],
         subsections: [
             {
@@ -388,9 +387,8 @@ export const manualSections: ManualSection[] = [
                     'La sección está dividida en 7 bloques independientes. Mantener los catálogos actualizados es fundamental para que los empleados puedan registrar pedidos correctamente.',
                 tableHeaders: ['Bloque', '¿Para qué se usa?'],
                 tableRows: [
-                    ['Tipo de pan', 'Base del pastel (ej: vainilla, chocolate, zanahoria)'],
+                    ['Tipo de pan', 'Base y sabor del pastel (ej: vainilla, chocolate, zanahoria)'],
                     ['Relleno', 'Tipo de relleno interior del pastel'],
-                    ['Sabor', 'Sabor de la mezcla del pastel'],
                     ['Cubierta', 'Tipo de decoración exterior (ej: fondant, buttercream)'],
                     ['Forma', 'Forma decorativa del pastel'],
                     ['Flor', 'Tipos de flores disponibles para pedidos tipo Flor'],
@@ -655,7 +653,7 @@ export const adminChecklist: ChecklistItem[] = [
     {
         id: 'catalogos',
         label: 'Catálogos cargados',
-        description: 'Tipos de pan, rellenos, sabores, cubiertas, formas, flores y colores disponibles.',
+        description: 'Tipos de pan, rellenos, cubiertas, formas, flores y colores disponibles.',
         section: 'catalogos',
     },
     {

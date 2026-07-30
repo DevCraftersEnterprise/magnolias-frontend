@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const catalogsServiceMock = vi.hoisted(() => ({
     getBreadTypes: vi.fn(),
     getFillings: vi.fn(),
-    getFlavors: vi.fn(),
     getFrostings: vi.fn(),
     getStyles: vi.fn(),
     getFlowers: vi.fn(),
@@ -35,9 +34,6 @@ describe('useOrderCatalogs', () => {
         catalogsServiceMock.getFillings.mockResolvedValue({
             items: [{ id: 'fi-1', name: 'Chocolate' }],
         })
-        catalogsServiceMock.getFlavors.mockResolvedValue({
-            items: [{ id: 'fl-1', name: 'Vainilla' }],
-        })
         catalogsServiceMock.getFrostings.mockResolvedValue({ items: [] })
         catalogsServiceMock.getStyles.mockResolvedValue({ items: [] })
         catalogsServiceMock.getFlowers.mockResolvedValue({ items: [] })
@@ -48,13 +44,12 @@ describe('useOrderCatalogs', () => {
     })
 
     it('carga los catálogos en paralelo al invocarse', async () => {
-        const { breadTypes, fillings, flavors, colorCatalog, commonAddresses } =
+        const { breadTypes, fillings, colorCatalog, commonAddresses } =
             useOrderCatalogs()
         await flushPromises()
 
         expect(breadTypes.value).toEqual([{ id: 'bt-1', name: 'Blanco' }])
         expect(fillings.value).toEqual([{ id: 'fi-1', name: 'Chocolate' }])
-        expect(flavors.value).toEqual([{ id: 'fl-1', name: 'Vainilla' }])
         expect(colorCatalog.value).toEqual([
             { id: 'co-1', name: 'Rosa', value: '#ffc0cb' },
         ])

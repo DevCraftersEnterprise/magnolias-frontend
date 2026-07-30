@@ -8,7 +8,7 @@ export type OrderProductRow = {
     product: ProductItem;
     qty: number; price: number;
     sizeId: ProductSize | ''; colorId: string; breadId: string;
-    flavorId: string; fillingId: string; frostingId: string; styleId: string;
+    fillingId: string; frostingId: string; styleId: string;
     withText: boolean; text: string; textLocation: string;
     mangaStyle: string; mangaNotes: string;
     customSize: string; notes: string;
@@ -70,7 +70,7 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
     function makeProductRow(p: ProductItem): OrderProductRow {
         return {
             product: p, qty: 1, price: 0,
-            sizeId: "", colorId: "", breadId: "", flavorId: "",
+            sizeId: "", colorId: "", breadId: "",
             fillingId: "", frostingId: "", styleId: "",
             withText: false, text: "", textLocation: "TOP",
             mangaStyle: "", mangaNotes: "", customSize: "", notes: "",
@@ -150,7 +150,7 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
     const detailRowHasDetails = computed(() => {
         const r = detailRow.value;
         if (!r) return false;
-        return !!(r.sizeId || r.colorId || r.breadId || r.flavorId || r.fillingId ||
+        return !!(r.sizeId || r.colorId || r.breadId || r.fillingId ||
             r.frostingId || r.styleId || (r.withText && r.text) ||
             (r.mangaStyle && r.mangaStyle !== "NONE") || r.notes ||
             r.referencePreviews.length > 0 || r.existingReferenceImages.length > 0);

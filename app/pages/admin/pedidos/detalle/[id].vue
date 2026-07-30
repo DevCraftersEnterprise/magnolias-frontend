@@ -376,21 +376,6 @@ function roundLabel(r?: string | null) {
                       </dd>
                     </div>
                     <div
-                      v-if="detail.flavor"
-                      class="flex items-center justify-between px-6 py-3.5"
-                    >
-                      <dt
-                        class="text-[11px] font-semibold uppercase tracking-widest text-gray-400 shrink-0 mr-6"
-                      >
-                        Sabor
-                      </dt>
-                      <dd
-                        class="text-[15px] font-bold text-[#111827] text-right"
-                      >
-                        {{ detail.flavor.name }}
-                      </dd>
-                    </div>
-                    <div
                       v-if="detail.filling"
                       class="flex items-center justify-between px-6 py-3.5"
                     >

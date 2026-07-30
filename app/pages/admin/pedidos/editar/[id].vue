@@ -23,7 +23,6 @@ const { branches, selectedBranch: topbarBranch } = useBranch();
 const {
   breadTypes,
   fillings,
-  flavors,
   frostings,
   styles,
   flowerCatalog,
@@ -327,7 +326,6 @@ function populateFromOrder(order: OrderDetail) {
       sizeId: d.productSize ?? "",
       colorId: d.color?.id ?? "",
       breadId: d.breadType?.id ?? "",
-      flavorId: d.flavor?.id ?? "",
       fillingId: d.filling?.id ?? "",
       frostingId: d.frosting?.id ?? "",
       styleId: d.style?.id ?? "",
@@ -526,7 +524,6 @@ async function submitOrder() {
         breadTypeId: r.breadId || undefined,
         colorId: r.colorId || undefined,
         fillingId: r.fillingId || undefined,
-        flavorId: r.flavorId || undefined,
         frostingId: r.frostingId || undefined,
         styleId: r.styleId || undefined,
         referenceFiles: r.referenceFiles.length > 0 ? r.referenceFiles : undefined,
@@ -2145,39 +2142,6 @@ function next() {
                           </svg>
                         </div>
                       </div>
-                      <div class="flex items-center gap-2">
-                        <span
-                          class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                          >Sabor</span
-                        >
-                        <div class="relative">
-                          <select
-                            v-model="row.flavorId"
-                            class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                          >
-                            <option value="">—</option>
-                            <option
-                              v-for="f in flavors"
-                              :key="f.id"
-                              :value="f.id"
-                            >
-                              {{ f.name }}
-                            </option></select
-                          ><svg
-                            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                          >
-                            <path
-                              d="M6 9l6 6 6-6"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
                     </div>
                     <div
                       class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
@@ -2971,15 +2935,6 @@ function next() {
                     <span class="text-[12px] text-gray-500">Tipo de Pan</span
                     ><span class="text-[12px] font-semibold text-[#111827]">{{
                       catalogLabel(breadTypes, detailRow.breadId)
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="detailRow.flavorId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Sabor</span
-                    ><span class="text-[12px] font-semibold text-[#111827]">{{
-                      catalogLabel(flavors, detailRow.flavorId)
                     }}</span>
                   </div>
                   <div
