@@ -41,8 +41,6 @@ const items = computed(() => {
   switch (role) {
     case "BAKER":
       return itemsBase.filter((i) => i.key === "pedidos");
-    case "ASSISTANT":
-      return itemsBase.filter((i) => i.key === "productos");
     default:
       return itemsBase.filter(
         (i) => !i.adminOnly || role === "ADMIN" || role === "SUPER",

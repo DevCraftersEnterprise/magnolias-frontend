@@ -14,7 +14,6 @@ function getRoleBadgeClass(role: string): string {
     SUPER: "bg-gray-100 text-gray-700 border-gray-200",
     ADMIN: "bg-pink-50 text-pink-700 border-pink-200",
     EMPLOYEE: "bg-blue-50 text-blue-700 border-blue-200",
-    ASSISTANT: "bg-green-50 text-green-700 border-green-200",
     BAKER: "bg-orange-50 text-orange-700 border-orange-200",
   };
   return map[role] ?? "bg-gray-50 text-gray-600 border-gray-200";

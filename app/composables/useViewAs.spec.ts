@@ -32,8 +32,8 @@ describe('useViewAs', () => {
             expect(useViewAs().canToggleViewAs.value).toBe(true)
         })
 
-        it('es false para EMPLOYEE, BAKER y ASSISTANT', () => {
-            for (const role of ['EMPLOYEE', 'BAKER', 'ASSISTANT'] as const) {
+        it('es false para EMPLOYEE y BAKER', () => {
+            for (const role of ['EMPLOYEE', 'BAKER'] as const) {
                 setUserRole(role)
                 expect(useViewAs().canToggleViewAs.value).toBe(false)
             }
