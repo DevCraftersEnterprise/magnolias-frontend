@@ -112,7 +112,7 @@ export const manualSections: ManualSection[] = [
                     'Una vez creada la sucursal, debes llenar los catálogos del sistema. Los catálogos son las listas de opciones que se usan al personalizar productos dentro de un pedido. Sin catálogos cargados, los empleados no podrán registrar pedidos completos.',
                 steps: [
                     'Ve al menú lateral y haz clic en "Catálogos".',
-                    'Verás 7 bloques: Tipo de pan, Rellenos, Sabores, Cubiertas, Estilos, Flores y Colores.',
+                    'Verás 7 bloques: Tipo de pan, Rellenos, Sabores, Cubiertas, Forma, Flores y Colores.',
                     'En cada bloque, haz clic en el botón "+ Agregar" para agregar opciones.',
                     'Ingresa el nombre y una descripción para cada opción y haz clic en "Guardar".',
                     'Repite el proceso en cada bloque hasta tener las opciones básicas cargadas.',
@@ -124,7 +124,7 @@ export const manualSections: ManualSection[] = [
                     ['Rellenos', 'Interior del pastel', 'Crema pastelera, Dulce de leche, Nutella'],
                     ['Sabores', 'Sabor de la mezcla', 'Limón, Moka, Fresa'],
                     ['Cubiertas', 'Decoración exterior', 'Fondant, Buttercream, Ganache'],
-                    ['Estilos', 'Estilo decorativo', 'Clásico, Moderno, Corazón'],
+                    ['Forma', 'Forma decorativa', 'Clásico, Moderno, Corazón'],
                     ['Flores', 'Pedidos tipo Flor', 'Girasol, Rosa, Tulipán'],
                     ['Colores', 'Colores disponibles', 'Rosa pastel, Blanco, Azul cielo'],
                 ],
@@ -195,7 +195,7 @@ export const manualSections: ManualSection[] = [
                     'Debajo del resumen de estados, encontrarás un segundo bloque con el conteo de pedidos agrupados por tipo:',
                 tableHeaders: ['Tarjeta', 'Color', 'Descripción'],
                 tableRows: [
-                    ['Vitrina', 'Gris', 'Pedidos para recoger en tienda'],
+                    ['En tienda', 'Gris', 'Pedidos para recoger en tienda'],
                     ['Evento', 'Azul claro', 'Pedidos para eventos especiales'],
                     ['Domicilio', 'Morado', 'Pedidos con entrega a domicilio'],
                     ['Flor', 'Rosa', 'Pedidos con arreglos florales'],
@@ -239,8 +239,8 @@ export const manualSections: ManualSection[] = [
                     'Para registrar un pedido, haz clic en el botón "+" junto al título "Pedidos Registrados". Serás llevado a un formulario de 4 pasos.',
                 steps: [
                     'Paso 1 — Cliente: busca al cliente por teléfono o regístralo si es nuevo.',
-                    'Paso 2 — Tipo y logística: elige Vitrina, Domicilio, Flor o Evento. Ingresa fecha, hora y dirección según el tipo.',
-                    'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, sabor, relleno, cubierta, estilo, texto e imagen de referencia.',
+                    'Paso 2 — Tipo y logística: elige En tienda, Domicilio, Flor o Evento. Ingresa fecha, hora y dirección según el tipo.',
+                    'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, sabor, relleno, cubierta, forma, texto e imagen de referencia.',
                     'Paso 4 — Pago: elige la forma de pago (Efectivo, Tarjeta o Transferencia) y el modo (Pago completo o Anticipo). Haz clic en "Registrar pedido".',
                 ],
                 warning: 'El sistema solo permite registrar pedidos con hora entre las 8:00 AM y las 7:59 PM. La fecha mínima de entrega es el día siguiente al actual.',
@@ -251,9 +251,9 @@ export const manualSections: ManualSection[] = [
                 content: 'Cada tipo de pedido tiene sus propios campos de logística:',
                 tableHeaders: ['Tipo', 'Descripción', 'Requiere dirección', 'Requiere sucursal'],
                 tableRows: [
-                    ['VITRINA', 'Recogida en tienda', 'No', 'Sí'],
+                    ['EN TIENDA', 'Recogida en tienda', 'No', 'Sí'],
                     ['DOMICILIO', 'Entrega a domicilio', 'Sí', 'No'],
-                    ['FLOR', 'Arreglo floral (vitrina o domicilio)', 'Depende del modo', 'Depende del modo'],
+                    ['FLOR', 'Arreglo floral (en tienda o domicilio)', 'Depende del modo', 'Depende del modo'],
                     ['EVENTO', 'Evento especial con servicios adicionales', 'Sí', 'No'],
                 ],
             },
@@ -380,7 +380,7 @@ export const manualSections: ManualSection[] = [
         id: 'catalogos',
         title: 'Catálogos',
         icon: '📋',
-        description: 'Listas de opciones para personalizar productos en los pedidos: tipos de pan, rellenos, sabores, cubiertas, estilos, flores y colores.',
+        description: 'Listas de opciones para personalizar productos en los pedidos: tipos de pan, rellenos, sabores, cubiertas, formas, flores y colores.',
         roleAccess: ['SUPER', 'ADMIN'],
         subsections: [
             {
@@ -394,7 +394,7 @@ export const manualSections: ManualSection[] = [
                     ['Relleno', 'Tipo de relleno interior del pastel'],
                     ['Sabor', 'Sabor de la mezcla del pastel'],
                     ['Cubierta', 'Tipo de decoración exterior (ej: fondant, buttercream)'],
-                    ['Estilo', 'Estilo decorativo del pastel'],
+                    ['Forma', 'Forma decorativa del pastel'],
                     ['Flor', 'Tipos de flores disponibles para pedidos tipo Flor'],
                     ['Colores', 'Paleta de colores seleccionables en los productos'],
                 ],
@@ -587,7 +587,7 @@ export const manualSections: ManualSection[] = [
                 tableHeaders: ['Término', 'Definición'],
                 tableRows: [
                     ['Pedido', 'Solicitud registrada por un cliente para la compra de uno o más productos'],
-                    ['Vitrina', 'Tipo de pedido en el que el cliente recoge en sucursal'],
+                    ['En tienda', 'Tipo de pedido en el que el cliente recoge en sucursal'],
                     ['Domicilio', 'Tipo de pedido con entrega en el domicilio del cliente'],
                     ['Flor', 'Pedido de arreglos florales; puede ser para recoger o a domicilio'],
                     ['Evento', 'Pedido para celebraciones con posibles servicios adicionales'],
@@ -658,7 +658,7 @@ export const adminChecklist: ChecklistItem[] = [
     {
         id: 'catalogos',
         label: 'Catálogos cargados',
-        description: 'Tipos de pan, rellenos, sabores, cubiertas, estilos, flores y colores disponibles.',
+        description: 'Tipos de pan, rellenos, sabores, cubiertas, formas, flores y colores disponibles.',
         section: 'catalogos',
     },
     {

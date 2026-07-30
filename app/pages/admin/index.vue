@@ -81,7 +81,7 @@ async function loadOrderStatistics() {
     orderTypeSummary.value = [
       {
         key: "store",
-        label: "Vitrina",
+        label: "En tienda",
         value: data.order_type_counts.vitrina,
         icon: "store",
         backgroundColor: "#ADADAD",

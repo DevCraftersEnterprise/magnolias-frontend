@@ -11,10 +11,12 @@ export const PRODUCT_SIZE_LABELS: Record<ProductSize, string> = {
     CUSTOM: 'Personalizado',
 }
 
+// VITRINA se muestra al usuario como "En tienda" — el valor interno del
+// enum OrderType no cambia, solo su etiqueta visible.
 export const TYPE_LABELS: Record<OrderType, string> = {
     DOMICILIO: 'Domicilio',
     EVENTO: 'Evento',
-    VITRINA: 'Vitrina',
+    VITRINA: 'En tienda',
     PERSONALIZADO: 'Personalizado',
     FLOR: 'Flor',
 }

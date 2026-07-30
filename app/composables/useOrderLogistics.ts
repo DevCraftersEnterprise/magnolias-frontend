@@ -4,7 +4,7 @@ export type OrderTypeKey = "DOMICILIO" | "VITRINA" | "FLOR" | "EVENTO";
 
 export const ORDER_TYPES: { key: OrderTypeKey; label: string; sub: string; icon: string }[] = [
     { key: "DOMICILIO", label: "Domicilio", sub: "Entrega a domicilio", icon: "delivery" },
-    { key: "VITRINA", label: "Vitrina", sub: "Venta en mostrador", icon: "shop" },
+    { key: "VITRINA", label: "En tienda", sub: "Venta en mostrador", icon: "shop" },
     { key: "FLOR", label: "Flor", sub: "Pedido con flores", icon: "flower" },
     { key: "EVENTO", label: "Evento", sub: "Evento especial", icon: "event" },
 ];
