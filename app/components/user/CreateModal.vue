@@ -45,7 +45,6 @@ const roleSubtitles: Record<string, string> = {
   ADMIN: "Administración general",
   EMPLOYEE: "Asignado a una sucursal y área",
   BAKER: "Puede pertenecer a varias sucursales",
-  ASSISTANT: "Asignado a una sucursal",
 };
 
 const roleSubtitle = computed(() => roleSubtitles[form.role] ?? "");
@@ -80,7 +79,7 @@ async function onSubmit() {
       role: form.role,
     };
 
-    if (form.role === "EMPLOYEE" || form.role === "ASSISTANT") {
+    if (form.role === "EMPLOYEE") {
       payload.branchId = form.branchId || null;
     }
     if (form.role === "BAKER") {
@@ -101,7 +100,7 @@ async function onSubmit() {
         role: form.role,
         isActive: form.isActive,
       };
-      if (form.role === "EMPLOYEE" || form.role === "ASSISTANT") {
+      if (form.role === "EMPLOYEE") {
         if (form.branchId) editPayload.branchId = form.branchId;
       }
       if (form.role === "BAKER") {
@@ -250,7 +249,6 @@ async function onSubmit() {
             <option value="ADMIN">Admin</option>
             <option value="EMPLOYEE">Empleado</option>
             <option value="BAKER">Pastelero</option>
-            <option value="ASSISTANT">Asistente</option>
           </select>
           <svg
             class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
@@ -373,39 +371,6 @@ async function onSubmit() {
             class="mt-1 h-11 w-full rounded-xl bg-black/5 px-3 text-sm outline-none focus:ring-2 focus:ring-black/10"
             placeholder="Ej. Especialista en pasteles de tres leches"
           />
-        </div>
-      </template>
-
-      <!-- === ASSISTANT: branchId === -->
-      <template v-else-if="form.role === 'ASSISTANT'">
-        <div>
-          <label class="text-xs font-semibold text-black/60">Sucursal</label>
-          <div class="relative mt-1">
-            <select
-              v-model="form.branchId"
-              class="h-11 w-full appearance-none rounded-xl bg-black/5 px-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-black/10"
-              required
-            >
-              <option value="" disabled>Selecciona una sucursal</option>
-              <option v-for="b in branches" :key="b.id" :value="b.id">
-                {{ b.name }}
-              </option>
-            </select>
-            <svg
-              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
         </div>
       </template>
 

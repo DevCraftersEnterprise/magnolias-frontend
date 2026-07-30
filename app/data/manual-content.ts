@@ -29,7 +29,7 @@ export const manualSections: ManualSection[] = [
         title: 'Introducción',
         icon: '📖',
         description: 'Conoce el Panel de Administración de Magnolias, cómo acceder y la navegación general del sistema.',
-        roleAccess: ['SUPER', 'ADMIN', 'EMPLOYEE', 'ASSISTANT', 'BAKER'],
+        roleAccess: ['SUPER', 'ADMIN', 'EMPLOYEE', 'BAKER'],
         subsections: [
             {
                 id: 'que-es',
@@ -65,13 +65,12 @@ export const manualSections: ManualSection[] = [
                 id: 'roles-usuario',
                 title: 'Roles de usuario',
                 content:
-                    'El sistema maneja 5 roles. Cada rol tiene acceso únicamente a las secciones que le corresponden:',
+                    'El sistema maneja 4 roles. Cada rol tiene acceso únicamente a las secciones que le corresponden:',
                 tableHeaders: ['Rol', 'Nombre', 'Acceso'],
                 tableRows: [
                     ['SUPER', 'Superadministrador', 'Acceso completo a todo el sistema'],
                     ['ADMIN', 'Administrador', 'Acceso completo a todo el sistema'],
                     ['EMPLOYEE', 'Empleado', 'Pedidos y Clientes'],
-                    ['ASSISTANT', 'Asistente', 'Solo Productos'],
                     ['BAKER', 'Pastelero', 'Solo pedidos asignados a él/ella'],
                 ],
                 tip: 'Los usuarios con rol Pastelero tienen una vista simplificada del módulo de pedidos. Solo pueden ver los pedidos que les han sido asignados y avanzar su estado de producción.',
@@ -139,7 +138,7 @@ export const manualSections: ManualSection[] = [
                     'Ve al menú lateral y haz clic en "Usuarios".',
                     'Haz clic en el botón "+" junto al título Usuarios.',
                     'Llena los campos: Nombre, Apellido, Usuario (sin espacios), Contraseña y Rol.',
-                    'Para Empleado y Asistente: selecciona la sucursal única a la que pertenecen.',
+                    'Para Empleado: selecciona la sucursal única a la que pertenece.',
                     'Para Pastelero: puedes asignar varias sucursales, además de su área y especialidad.',
                     'Haz clic en "Guardar" para crear el usuario.',
                 ],
@@ -148,10 +147,9 @@ export const manualSections: ManualSection[] = [
                     ['SUPER', 'Superadministrador', 'Todo el sistema', 'Todas'],
                     ['ADMIN', 'Administrador', 'Todo el sistema', 'Todas'],
                     ['EMPLOYEE', 'Empleado', 'Pedidos y Clientes', 'Una sola'],
-                    ['ASSISTANT', 'Asistente', 'Solo Productos', 'Una sola'],
                     ['BAKER', 'Pastelero', 'Solo sus pedidos asignados', 'Una o varias'],
                 ],
-                tip: 'Los empleados y asistentes normalmente pertenecen a una sucursal específica, mientras que los pasteleros pueden pertenecer a varias. Esto permite controlar correctamente los permisos y asignar pedidos de manera eficiente.',
+                tip: 'Los empleados normalmente pertenecen a una sucursal específica, mientras que los pasteleros pueden pertenecer a varias. Esto permite controlar correctamente los permisos y asignar pedidos de manera eficiente.',
                 warning: 'Antes de capacitar a los empleados, el administrador debe asegurarse de que exista al menos una sucursal activa, que los catálogos principales estén cargados y que cada usuario tenga su rol y sucursal asignados correctamente.',
             },
         ],
@@ -303,7 +301,7 @@ export const manualSections: ManualSection[] = [
         title: 'Gestión de Productos',
         icon: '🎂',
         description: 'Administra el catálogo completo de productos: categorías, fotografías, estado y visibilidad.',
-        roleAccess: ['SUPER', 'ADMIN', 'ASSISTANT'],
+        roleAccess: ['SUPER', 'ADMIN'],
         subsections: [
             {
                 id: 'categorias',
@@ -543,7 +541,7 @@ export const manualSections: ManualSection[] = [
                     ['Rol', 'Sí', 'Tipo de usuario'],
                 ],
                 steps: [
-                    'Para Empleado y Asistente: selecciona la única sucursal a la que pertenecen.',
+                    'Para Empleado: selecciona la única sucursal a la que pertenece.',
                     'Para Pastelero: puedes asignar varias sucursales (selección múltiple), su área y especialidad.',
                 ],
             },
@@ -563,7 +561,6 @@ export const manualSections: ManualSection[] = [
                     ['SUPER', 'Todo el sistema'],
                     ['ADMIN', 'Todo el sistema'],
                     ['EMPLOYEE', 'Pedidos y Clientes'],
-                    ['ASSISTANT', 'Solo Productos'],
                     ['BAKER', 'Solo sus pedidos asignados (tablero de producción)'],
                 ],
             },
@@ -578,7 +575,7 @@ export const manualSections: ManualSection[] = [
         title: 'Apéndice y Preguntas Frecuentes',
         icon: '❓',
         description: 'Glosario de términos, estados de pedidos, tipos de pedido y respuestas a las dudas más comunes.',
-        roleAccess: ['SUPER', 'ADMIN', 'EMPLOYEE', 'ASSISTANT', 'BAKER'],
+        roleAccess: ['SUPER', 'ADMIN', 'EMPLOYEE', 'BAKER'],
         subsections: [
             {
                 id: 'glosario',
@@ -734,17 +731,6 @@ export const roleCards: RoleCard[] = [
             'Marcar pedidos como entregados',
             'Registrar abonos de pago',
             'Cancelar pedidos con motivo',
-        ],
-    },
-    {
-        role: 'ASSISTANT',
-        name: 'Asistente',
-        color: '#198754',
-        bgColor: '#d1e7dd',
-        icon: '🌟',
-        permissions: [
-            'Ver el catálogo de productos',
-            'Subir fotografías de productos',
         ],
     },
     {
