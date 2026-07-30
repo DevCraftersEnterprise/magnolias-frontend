@@ -3,13 +3,21 @@ defineProps<{ title: string }>();
 defineEmits<{ (e: "toggle"): void; (e: "logout"): void }>();
 const { user, loading } = useAuthUser();
 const { branches, selectedBranch, bakerBranches } = useBranch();
+const { viewAsBaker, canToggleViewAs, effectiveRole, enterViewAsBaker, exitViewAs } =
+  useViewAs();
 
 const username = computed(() => user.value?.username ?? "...");
 const role = computed(() => user.value?.role ?? "");
-const isBaker = computed(() => user.value?.role === "BAKER");
+const isBaker = computed(() => effectiveRole.value === "BAKER");
 const canSeeBranchSelect = computed(() =>
-  ["ADMIN", "SUPER"].includes(user.value?.role ?? ""),
+  ["ADMIN", "SUPER"].includes(effectiveRole.value),
 );
+
+function onToggleViewAs(e: Event) {
+  const checked = (e.target as HTMLInputElement).checked;
+  if (checked) enterViewAsBaker();
+  else exitViewAs();
+}
 
 const initials = computed(() => {
   const u = user.value?.username?.trim();
@@ -62,6 +70,23 @@ const initials = computed(() => {
       >
         {{ title }}
       </h1>
+
+      <!-- Aviso de vista simulada como pastelero -->
+      <div
+        v-if="viewAsBaker"
+        class="flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-xl py-[6px] pl-3 pr-[6px]"
+      >
+        <span class="text-[12px] font-semibold text-amber-700 whitespace-nowrap"
+          >Viendo como: PASTELERO</span
+        >
+        <button
+          type="button"
+          class="text-[11px] font-semibold text-amber-700 underline hover:text-amber-900"
+          @click="exitViewAs"
+        >
+          Salir
+        </button>
+      </div>
 
       <!-- ADMIN / SUPER: selector de todas las sucursales -->
       <div
@@ -177,6 +202,22 @@ const initials = computed(() => {
     </div>
 
     <div class="flex items-center gap-3 justify-self-end bg-transparent">
+      <!-- SUPER/ADMIN: interruptor para previsualizar la vista de pastelero -->
+      <label
+        v-if="canToggleViewAs"
+        class="hidden items-center gap-2 cursor-pointer select-none min-[900px]:flex"
+      >
+        <span class="text-[12px] font-medium text-gray-500 whitespace-nowrap"
+          >Ver como pastelero</span
+        >
+        <input
+          type="checkbox"
+          class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3]"
+          :checked="viewAsBaker"
+          @change="onToggleViewAs"
+        />
+      </label>
+
       <div
         class="w-[46px] h-[46px] rounded-full bg-[#f3b7d1] grid place-items-center text-[#1a1a1a] font-bold shadow-[0_6px_14px_rgba(0,0,0,0.08)] shrink-0 max-[640px]:w-9 max-[640px]:h-9 max-[640px]:text-[13px]"
       >

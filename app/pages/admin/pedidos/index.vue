@@ -10,8 +10,9 @@ import { useToast } from "vue-toastification";
 
 const { user } = useAuthUser();
 const { selectedBranch } = useBranch();
+const { effectiveRole } = useViewAs();
 
-const isBaker = computed(() => user.value?.role === "BAKER");
+const isBaker = computed(() => effectiveRole.value === "BAKER");
 const toast = useToast();
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -395,10 +396,17 @@ async function confirmAdvanceStatus() {
 }
 
 // ─── Lifecycle & watchers ─────────────────────────────────────────────────────
-onMounted(() => {
-  if (isBaker.value) loadKanbanOrders();
-  else loadOrders(true);
-});
+// isBaker puede cambiar sin que la ruta cambie (toggle "ver como pastelero"
+// estando ya en /admin/pedidos), por eso se observa de forma reactiva en vez
+// de solo cargar datos en onMounted.
+watch(
+  isBaker,
+  () => {
+    if (isBaker.value) loadKanbanOrders();
+    else loadOrders(true);
+  },
+  { immediate: true },
+);
 
 watch(selectedBranch, () => {
   if (isBaker.value) loadKanbanOrders();

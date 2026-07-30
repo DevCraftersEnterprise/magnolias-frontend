@@ -10,7 +10,7 @@ import { dashboardService } from "~/services/dashboard.service";
 
 // ─── Composables ─────────────────────────────────────────────────────────────
 const { selectedBranch } = useBranch();
-const { user } = useAuthUser();
+const { effectiveRole } = useViewAs();
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type OrderSummaryItem = {
@@ -121,7 +121,7 @@ async function loadOrderStatistics() {
 }
 
 // ─── Lifecycle & watchers ───────────────────────────────────────────────────
-const isBaker = user.value?.role === "BAKER";
+const isBaker = effectiveRole.value === "BAKER";
 
 onMounted(() => {
   if (!isBaker) loadOrderStatistics();

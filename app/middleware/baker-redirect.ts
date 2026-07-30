@@ -1,8 +1,8 @@
 export default defineNuxtRouteMiddleware(async () => {
     const { ensureSession } = useAuth();
     await ensureSession();
-    const { user } = useAuthUser();
-    if (user.value?.role === 'BAKER') {
+    const { effectiveRole } = useViewAs();
+    if (effectiveRole.value === 'BAKER') {
         return navigateTo('/admin/pedidos', { replace: true });
     }
 });
