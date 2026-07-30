@@ -17,12 +17,14 @@ type BlockKey =
   | "color"
   | "cubierta";
 
+// La clave "estilo" (BlockKey) es el nombre interno del catálogo `styles`;
+// se muestra al usuario como "Forma", solo cambia la etiqueta visible.
 const blockLabel: Record<BlockKey, string> = {
   pan: "tipo de pan",
   relleno: "relleno",
   sabor: "sabor",
   flor: "flor",
-  estilo: "estilo",
+  estilo: "forma",
   color: "color",
   cubierta: "tipo de cubierta",
 };
@@ -381,7 +383,7 @@ const cards = [
   },
   {
     key: "estilo",
-    title: "Estilos",
+    title: "Forma",
     items: stylesBlock.items,
     lm: stylesBlock.lm,
   },

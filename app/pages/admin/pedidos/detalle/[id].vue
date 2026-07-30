@@ -457,7 +457,7 @@ function roundLabel(r?: string | null) {
                       <dt
                         class="text-[11px] font-semibold uppercase tracking-widest text-gray-400 shrink-0 mr-6"
                       >
-                        Estilo
+                        Forma
                       </dt>
                       <dd
                         class="text-[15px] font-bold text-[#111827] text-right"

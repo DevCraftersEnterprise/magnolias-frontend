@@ -2251,7 +2251,7 @@ function next() {
                       <div class="flex items-center gap-2">
                         <span
                           class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                          >Estilo</span
+                          >Forma</span
                         >
                         <div class="relative">
                           <select
@@ -2712,7 +2712,7 @@ function next() {
                   <span
                     v-if="step2.orderType === 'VITRINA'"
                     class="ml-2 text-[11px] font-normal text-gray-400"
-                    >(no aplica en vitrina)</span
+                    >(no aplica en tienda)</span
                   >
                 </p>
                 <div
@@ -3004,7 +3004,7 @@ function next() {
                     v-if="detailRow.styleId"
                     class="flex justify-between py-2"
                   >
-                    <span class="text-[12px] text-gray-500">Estilo</span
+                    <span class="text-[12px] text-gray-500">Forma</span
                     ><span class="text-[12px] font-semibold text-[#111827]">{{
                       catalogLabel(styles, detailRow.styleId)
                     }}</span>

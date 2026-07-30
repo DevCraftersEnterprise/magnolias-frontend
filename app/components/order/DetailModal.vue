@@ -808,7 +808,7 @@ async function downloadFormat() {
                           </p>
                         </div>
                         <div v-if="detail.style">
-                          <p class="text-[10px] text-gray-400">Estilo</p>
+                          <p class="text-[10px] text-gray-400">Forma</p>
                           <p class="text-[12px] text-gray-700">
                             {{ detail.style.name }}
                           </p>
