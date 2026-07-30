@@ -3,6 +3,7 @@ defineProps<{ collapsed?: boolean }>();
 defineEmits<{ (e: "navigate"): void }>();
 
 const { user } = useAuthUser();
+const { effectiveRole } = useViewAs();
 
 const itemsBase = [
   {
@@ -34,7 +35,7 @@ const itemsBase = [
 ];
 
 const items = computed(() => {
-  const role = user.value?.role ?? "";
+  const role = effectiveRole.value;
   if (!role) return [];
 
   switch (role) {
@@ -53,7 +54,7 @@ const items = computed(() => {
 <template>
   <div class="sticky top-0 h-screen py-[18px] px-3 overflow-y-auto">
     <div class="grid place-items-center pt-[14px] pb-[26px]">
-      <NuxtLink :to="user?.role === 'BAKER' ? '/admin/pedidos' : '/admin'">
+      <NuxtLink :to="effectiveRole === 'BAKER' ? '/admin/pedidos' : '/admin'">
         <img
           src="/img/magnolias-logo.png"
           alt="Magnolias"

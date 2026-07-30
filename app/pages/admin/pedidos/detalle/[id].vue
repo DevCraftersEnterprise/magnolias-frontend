@@ -10,10 +10,17 @@ const route = useRoute();
 const id = route.params.id as string;
 
 // ─── Auth guard ─────────────────────────────────────────────────────────────
-const { user } = useAuthUser();
-if (user.value?.role !== "BAKER") {
+// effectiveRole puede cambiar sin cambio de ruta (toggle "ver como pastelero"
+// desactivado estando ya en esta página), por eso se observa reactivamente.
+const { effectiveRole } = useViewAs();
+if (effectiveRole.value !== "BAKER") {
   await navigateTo("/admin/pedidos", { replace: true });
 }
+watch(effectiveRole, () => {
+  if (effectiveRole.value !== "BAKER") {
+    navigateTo("/admin/pedidos", { replace: true });
+  }
+});
 
 const { locationLabel } = useOrderCatalogs();
 const toast = useToast();
