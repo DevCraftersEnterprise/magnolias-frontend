@@ -34,11 +34,11 @@ export const ordersService = {
     })
   },
 
-  markDelivered(id: string) {
+  markDelivered(id: string, employeeActionToken?: string) {
     return apiFetch<OrderItem>(`/api/orders/delivered`, {
       method: 'PATCH',
       auth: true,
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id, employeeActionToken }),
     })
   },
 
@@ -90,11 +90,11 @@ export const ordersService = {
     })
   },
 
-  cancelOrder(id: string, reason: string) {
+  cancelOrder(id: string, reason: string, employeeActionToken?: string) {
     return apiFetch<void>(`/api/orders/cancel`, {
       method: 'DELETE',
       auth: true,
-      body: JSON.stringify({ id, reason }),
+      body: JSON.stringify({ id, reason, employeeActionToken }),
     })
   },
 
