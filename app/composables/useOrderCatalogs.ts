@@ -5,7 +5,6 @@ import type {
     BreadTypeItem,
     ColorItem,
     FillingItem,
-    FlavorItem,
     FlowerItem,
     FrostingItem,
     StyleItem
@@ -14,7 +13,6 @@ import type {
 export function useOrderCatalogs() {
     const breadTypes = ref<BreadTypeItem[]>([]);
     const fillings = ref<FillingItem[]>([]);
-    const flavors = ref<FlavorItem[]>([]);
     const frostings = ref<FrostingItem[]>([]);
     const styles = ref<StyleItem[]>([]);
     const flowerCatalog = ref<FlowerItem[]>([]);
@@ -24,7 +22,6 @@ export function useOrderCatalogs() {
     Promise.all([
         catalogsService.getBreadTypes().then(r => { breadTypes.value = r.items; }),
         catalogsService.getFillings().then(r => { fillings.value = r.items; }),
-        catalogsService.getFlavors().then(r => { flavors.value = r.items; }),
         catalogsService.getFrostings().then(r => { frostings.value = r.items; }),
         catalogsService.getStyles().then(r => { styles.value = r.items; }),
         catalogsService.getFlowers().then(r => { flowerCatalog.value = r.items; }),
@@ -50,7 +47,7 @@ export function useOrderCatalogs() {
     }
 
     return {
-        breadTypes, fillings, flavors, frostings, styles, flowerCatalog, colorCatalog, commonAddresses,
+        breadTypes, fillings, frostings, styles, flowerCatalog, colorCatalog, commonAddresses,
         colorName, colorHex, catalogLabel, locationLabel
     };
 }

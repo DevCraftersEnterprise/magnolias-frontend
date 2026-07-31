@@ -1,5 +1,5 @@
 import { apiFetch } from '~/services/api.client'
-import type { BreadTypeItem, ColorItem, CreateCatalogPayload, CreateColorPayload, FillingItem, FlavorItem, FlowerItem, FrostingItem, StyleItem, UpdateCatalogPayload } from '~/types/catalog.types';
+import type { BreadTypeItem, ColorItem, CreateCatalogPayload, CreateColorPayload, FillingItem, FlowerItem, FrostingItem, StyleItem, UpdateCatalogPayload } from '~/types/catalog.types';
 
 
 export const catalogsService = {
@@ -18,13 +18,6 @@ export const catalogsService = {
   getFillings(limit: number = 10, offset: number = 0) {
     return apiFetch<{ items: FillingItem[]; total: number; pagination: { limit: number; offset: number; totalPages: number; currentPage: number } }>(
       withPagination('/api/fillings', limit, offset),
-      { method: 'GET', auth: true }
-    )
-  },
-
-  getFlavors(limit: number = 10, offset: number = 0) {
-    return apiFetch<{ items: FlavorItem[]; total: number; pagination: { limit: number; offset: number; totalPages: number; currentPage: number } }>(
-      withPagination('/api/flavors', limit, offset),
       { method: 'GET', auth: true }
     )
   },
@@ -57,9 +50,6 @@ export const catalogsService = {
   createFilling(payload: CreateCatalogPayload) {
     return apiFetch<FillingItem>('/api/fillings', { method: 'POST', auth: true, body: payload })
   },
-  createFlavor(payload: CreateCatalogPayload) {
-    return apiFetch<FlavorItem>('/api/flavors', { method: 'POST', auth: true, body: payload })
-  },
   createFrosting(payload: CreateCatalogPayload) {
     return apiFetch<FrostingItem>('/api/frostings', { method: 'POST', auth: true, body: payload })
   },
@@ -80,9 +70,6 @@ export const catalogsService = {
   patchFilling(id: string, payload: UpdateCatalogPayload) {
     return apiFetch<FillingItem>(`/api/fillings/${id}`, { method: 'PATCH', auth: true, body: payload })
   },
-  patchFlavor(id: string, payload: UpdateCatalogPayload) {
-    return apiFetch<FlavorItem>(`/api/flavors/${id}`, { method: 'PATCH', auth: true, body: payload })
-  },
   patchFrosting(id: string, payload: UpdateCatalogPayload) {
     return apiFetch<FrostingItem>(`/api/frostings/${id}`, { method: 'PATCH', auth: true, body: payload })
   },
@@ -99,9 +86,6 @@ export const catalogsService = {
   },
   deleteFilling(id: string) {
     return apiFetch<void>(`/api/fillings/${id}`, { method: 'DELETE', auth: true })
-  },
-  deleteFlavor(id: string) {
-    return apiFetch<void>(`/api/flavors/${id}`, { method: 'DELETE', auth: true })
   },
   deleteFrosting(id: string) {
     return apiFetch<void>(`/api/frostings/${id}`, { method: 'DELETE', auth: true })

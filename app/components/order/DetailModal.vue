@@ -777,12 +777,6 @@ async function downloadFormat() {
                             }}
                           </p>
                         </div>
-                        <div v-if="detail.flavor">
-                          <p class="text-[10px] text-gray-400">Sabor</p>
-                          <p class="text-[12px] text-gray-700">
-                            {{ detail.flavor.name }}
-                          </p>
-                        </div>
                         <div v-if="detail.filling">
                           <p class="text-[10px] text-gray-400">Relleno</p>
                           <p class="text-[12px] text-gray-700">

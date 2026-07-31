@@ -11,7 +11,6 @@ import type { BreadTypeItem, ColorItem } from "~/types/catalog.types";
 type BlockKey =
   | "pan"
   | "relleno"
-  | "sabor"
   | "flor"
   | "estilo"
   | "color"
@@ -19,10 +18,10 @@ type BlockKey =
 
 // La clave "estilo" (BlockKey) es el nombre interno del catálogo `styles`;
 // se muestra al usuario como "Forma", solo cambia la etiqueta visible.
+// El antiguo catálogo "sabor" se fusionó dentro de "pan" (cliente #2).
 const blockLabel: Record<BlockKey, string> = {
   pan: "tipo de pan",
   relleno: "relleno",
-  sabor: "sabor",
   flor: "flor",
   estilo: "forma",
   color: "color",
@@ -67,10 +66,6 @@ const fillingsBlock = useCatalogBlock(
   (limit, offset) => catalogsService.getFillings(limit, offset),
   { filterActive: true },
 );
-const flavorsBlock = useCatalogBlock(
-  (limit, offset) => catalogsService.getFlavors(limit, offset),
-  { filterActive: true },
-);
 const frostingsBlock = useCatalogBlock((limit, offset) =>
   catalogsService.getFrostings(limit, offset),
 );
@@ -86,7 +81,6 @@ onMounted(() => {
   loadColors();
   loadBreadTypes();
   fillingsBlock.load();
-  flavorsBlock.load();
   frostingsBlock.load();
   stylesBlock.load();
   flowersBlock.load();
@@ -96,7 +90,6 @@ onMounted(() => {
 const selected = ref<Record<BlockKey, string | null>>({
   pan: null,
   relleno: null,
-  sabor: null,
   flor: null,
   estilo: null,
   color: null,
@@ -174,12 +167,6 @@ function openDelete(block: BlockKey, item: AnyItem) {
         if (selected.value.relleno === item.name) selected.value.relleno = null;
       },
 
-      sabor: async () => {
-        await catalogsService.deleteFlavor(item.id);
-        await flavorsBlock.reset();
-        if (selected.value.sabor === item.name) selected.value.sabor = null;
-      },
-
       cubierta: async () => {
         await catalogsService.deleteFrosting(item.id);
         await frostingsBlock.reset();
@@ -251,15 +238,6 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       return;
     }
 
-    if (block === "sabor") {
-      await catalogsService.createFlavor({
-        name: payload.name,
-        description: payload.description ?? "",
-      });
-      await flavorsBlock.reset();
-      return;
-    }
-
     if (block === "cubierta") {
       await catalogsService.createFrosting({
         name: payload.name,
@@ -311,16 +289,6 @@ async function onSaveEdit(payload: CatalogEditPayload) {
     return;
   }
 
-  if (block === "sabor") {
-    await catalogsService.patchFlavor(payload.id!, {
-      name: payload.name,
-      description: payload.description ?? "",
-      isActive: true,
-    });
-    await flavorsBlock.reset();
-    return;
-  }
-
   if (block === "cubierta") {
     await catalogsService.patchFrosting(payload.id!, {
       name: payload.name,
@@ -368,12 +336,6 @@ const cards = [
     title: "Rellenos",
     items: fillingsBlock.items,
     lm: fillingsBlock.lm,
-  },
-  {
-    key: "sabor",
-    title: "Sabores",
-    items: flavorsBlock.items,
-    lm: flavorsBlock.lm,
   },
   {
     key: "flor",

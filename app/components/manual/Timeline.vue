@@ -28,7 +28,7 @@ const steps = [
       "Carga las opciones de personalización para que los empleados puedan crear pedidos completos.",
     items: [
       'Ve a la sección "Catálogos" en el menú lateral',
-      "Agrega opciones en: Tipo de pan, Rellenos, Sabores",
+      "Agrega opciones en: Tipo de pan, Rellenos",
       "Agrega opciones en: Cubiertas, Forma, Flores",
       "Agrega colores con su nombre y código hexadecimal",
       "Cuantas más opciones cargues, más completos serán los pedidos",
