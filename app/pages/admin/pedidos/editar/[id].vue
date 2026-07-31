@@ -93,6 +93,71 @@ async function removeExistingRefImage(rowIndex: number, imageId: string) {
 const { step4, serviceCost, subtotal, orderTotal, remaining, PAYMENT_TYPES } =
   useOrderPayment(orderProducts);
 
+// ─── Descuentos por producto (requiere autorización de admin/super) ───────────
+const {
+  modalOpen: discountModalOpen,
+  loading: discountAuthLoading,
+  error: discountAuthError,
+  discountAuthToken,
+  authorize: authorizeDiscount,
+  resetAuthorization: resetDiscountAuthorization,
+} = useDiscountAuth();
+
+const applyDiscount = ref(false);
+// true mientras existan descuentos ya aprobados que no han sido re-autorizados
+// en esta sesión de edición; bloquea los inputs hasta hacer click en "Modificar".
+const discountLocked = ref(false);
+const pendingDiscountAction = ref<(() => void) | null>(null);
+
+function requestDiscountAuth(action: () => void) {
+  pendingDiscountAction.value = action;
+  discountModalOpen.value = true;
+}
+
+const applyDiscountModel = computed<boolean>({
+  get: () => applyDiscount.value,
+  set: (checked: boolean) => {
+    if (checked) {
+      requestDiscountAuth(() => {
+        applyDiscount.value = true;
+        discountLocked.value = false;
+      });
+    } else if (discountLocked.value) {
+      // Quitar un descuento ya aprobado también requiere autorización
+      requestDiscountAuth(() => {
+        applyDiscount.value = false;
+        discountLocked.value = false;
+        orderProducts.value.forEach((r) => {
+          r.discountPercent = 0;
+        });
+      });
+    } else {
+      applyDiscount.value = false;
+      resetDiscountAuthorization();
+      orderProducts.value.forEach((r) => {
+        r.discountPercent = 0;
+      });
+    }
+  },
+});
+
+function onModificarDiscount() {
+  requestDiscountAuth(() => {
+    discountLocked.value = false;
+  });
+}
+
+async function onDiscountAuthSubmit(payload: {
+  username: string;
+  userkey: string;
+}) {
+  const ok = await authorizeDiscount(payload.username, payload.userkey);
+  if (ok && pendingDiscountAction.value) {
+    pendingDiscountAction.value();
+    pendingDiscountAction.value = null;
+  }
+}
+
 const {
   step2,
   florMode,
@@ -173,7 +238,9 @@ const canNext = computed(() => {
       (r) =>
         r.price > 0 &&
         (!r.withText || r.text.trim()) &&
-        (!r.withReference || r.referenceFiles.length > 0 || r.existingReferenceImages.length > 0),
+        (!r.withReference || r.referenceFiles.length > 0 || r.existingReferenceImages.length > 0) &&
+        (!applyDiscount.value ||
+          (r.discountPercent >= 0 && r.discountPercent <= 100)),
     );
   }
   return true;
@@ -343,8 +410,14 @@ function populateFromOrder(order: OrderDetail) {
         id: img.id,
         imageUrl: img.imageUrl,
       })),
+      discountPercent: Number(d.discountPercent) || 0,
     };
   });
+
+  applyDiscount.value = orderProducts.value.some(
+    (r) => r.discountPercent > 0,
+  );
+  discountLocked.value = applyDiscount.value;
 
   // Service cost
   const parseMoney = (v: string | undefined | null) =>
@@ -527,6 +600,7 @@ async function submitOrder() {
         frostingId: r.frostingId || undefined,
         styleId: r.styleId || undefined,
         referenceFiles: r.referenceFiles.length > 0 ? r.referenceFiles : undefined,
+        discountPercent: r.discountPercent || undefined,
       }),
     );
 
@@ -579,6 +653,7 @@ async function submitOrder() {
       deliveryAddress,
       details,
       flowers: flowersPayload,
+      discountAuthToken: discountAuthToken.value || undefined,
     };
 
     await ordersService.updateOrder(payload);
@@ -1935,11 +2010,35 @@ function next() {
 
             <!-- Lista productos -->
             <div v-if="orderProducts.length">
-              <p
-                class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-              >
-                Detalles del producto
-              </p>
+              <div class="flex items-center justify-between mb-3">
+                <p
+                  class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide"
+                >
+                  Detalles del producto
+                </p>
+                <div class="flex items-center gap-3">
+                  <button
+                    v-if="applyDiscount && discountLocked"
+                    type="button"
+                    class="text-[12px] font-semibold text-[#C9007C] hover:underline"
+                    @click="onModificarDiscount"
+                  >
+                    Modificar descuento
+                  </button>
+                  <label
+                    class="flex items-center gap-2 cursor-pointer select-none"
+                  >
+                    <input
+                      v-model="applyDiscountModel"
+                      type="checkbox"
+                      class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3] focus:ring-[#FC9AD3]/50"
+                    />
+                    <span class="text-[12px] font-semibold text-gray-600"
+                      >Aplicar descuento</span
+                    >
+                  </label>
+                </div>
+              </div>
               <div class="space-y-4">
                 <div
                   v-for="(row, i) in orderProducts"
@@ -2436,6 +2535,52 @@ function next() {
                         </button>
                       </template>
                     </div>
+
+                    <!-- Descuento -->
+                    <div
+                      v-if="applyDiscount"
+                      class="flex items-center gap-2 px-4 py-3 bg-pink-50/40"
+                    >
+                      <span
+                        class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                        >Descuento</span
+                      >
+                      <div
+                        v-if="discountLocked"
+                        class="flex items-center h-7 rounded-lg bg-gray-100 ring-1 ring-black/10 px-2.5 text-[12px] font-semibold text-gray-500"
+                      >
+                        {{ row.discountPercent }}%
+                      </div>
+                      <div
+                        v-else
+                        class="flex items-center h-7 rounded-lg bg-white ring-1 ring-black/10 overflow-hidden"
+                      >
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          max="100"
+                          v-model.number="row.discountPercent"
+                          placeholder="0"
+                          class="w-14 bg-transparent px-2 text-[12px] font-semibold text-[#111827] outline-none"
+                        />
+                        <span
+                          class="px-1.5 text-[12px] text-gray-400 font-medium border-l border-black/10 h-full flex items-center"
+                          >%</span
+                        >
+                      </div>
+                      <span
+                        v-if="row.discountPercent > 0"
+                        class="text-[11px] text-[#C9007C]"
+                      >
+                        Precio con descuento:
+                        {{
+                          formatMXN(
+                            row.price * row.qty * (1 - row.discountPercent / 100),
+                          )
+                        }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2821,9 +2966,23 @@ function next() {
                   <p class="text-[11px] text-gray-400 mt-0.5">
                     Cantidad: {{ row.qty }}
                   </p>
+                  <span
+                    v-if="applyDiscount && row.discountPercent > 0"
+                    class="text-[11px] text-gray-400 line-through mr-1"
+                    >{{ formatMXN(row.price * row.qty) }}</span
+                  >
                   <span class="text-[12px] font-semibold text-[#C9007C]">{{
-                    formatMXN(row.price * row.qty)
+                    formatMXN(
+                      applyDiscount && row.discountPercent > 0
+                        ? row.price * row.qty * (1 - row.discountPercent / 100)
+                        : row.price * row.qty,
+                    )
                   }}</span>
+                  <span
+                    v-if="applyDiscount && row.discountPercent > 0"
+                    class="text-[11px] font-semibold text-[#C9007C] ml-1"
+                    >(-{{ row.discountPercent }}%)</span
+                  >
                   <button
                     type="button"
                     @click="openDetailModal(i)"
@@ -3093,6 +3252,13 @@ function next() {
       </template>
     </div>
   </section>
+
+  <OrderDiscountAuthModal
+    v-model="discountModalOpen"
+    :loading="discountAuthLoading"
+    :error="discountAuthError"
+    @submit="onDiscountAuthSubmit"
+  />
 </template>
 
 <style scoped>

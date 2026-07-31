@@ -46,3 +46,12 @@ export type ValidateTokenResponse = {
     valid: boolean;
     user: AuthUser;
 }
+
+export type VerifyDiscountAuthorizationRequest = {
+    username: string;
+    userkey: string;
+}
+
+export type VerifyDiscountAuthorizationResponse = {
+    discountAuthToken: string;
+}

@@ -5,7 +5,7 @@ export const PAYMENT_TYPES = [
 ];
 
 export function useOrderPayment(
-    orderProducts: Ref<{ price: number; qty: number }[]>,
+    orderProducts: Ref<{ price: number; qty: number; discountPercent?: number }[]>,
 ) {
     const serviceCost = ref<number>(0);
 
@@ -16,7 +16,11 @@ export function useOrderPayment(
         requiresInvoice: false,
     });
 
-    const subtotal = computed(() => orderProducts.value.reduce((s, r) => s + r.price * r.qty, 0));
+    const subtotal = computed(() => orderProducts.value.reduce((s, r) => {
+        const lineTotal = r.price * r.qty;
+        const discountPercent = r.discountPercent || 0;
+        return s + (discountPercent > 0 ? lineTotal * (1 - discountPercent / 100) : lineTotal);
+    }, 0));
     const orderTotal = computed(() => subtotal.value + (serviceCost.value || 0));
     const remaining = computed(() => orderTotal.value - (step4.depositAmount || 0));
 

@@ -1,9 +1,17 @@
 import { apiFetch } from '~/services/api.client'
-import type { LoginRequest, LoginResponse, RefreshRequest, RefreshResponse, ValidateTokenResponse } from '~/types/auth.types'
+import type { LoginRequest, LoginResponse, RefreshRequest, RefreshResponse, ValidateTokenResponse, VerifyDiscountAuthorizationRequest, VerifyDiscountAuthorizationResponse } from '~/types/auth.types'
 
 export const authService = {
   login(payload: LoginRequest) {
     return apiFetch<LoginResponse>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      auth: false,
+    })
+  },
+
+  verifyDiscountAuthorization(payload: VerifyDiscountAuthorizationRequest) {
+    return apiFetch<VerifyDiscountAuthorizationResponse>('/api/auth/verify-discount-authorization', {
       method: 'POST',
       body: JSON.stringify(payload),
       auth: false,

@@ -14,6 +14,7 @@ export type OrderProductRow = {
     customSize: string; notes: string;
     withReference: boolean; referenceFiles: File[]; referencePreviews: string[];
     existingReferenceImages: ExistingReferenceImage[];
+    discountPercent: number;
 };
 
 export const MAX_REFERENCE_IMAGES_PER_ROW = 10;
@@ -76,6 +77,7 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
             mangaStyle: "", mangaNotes: "", customSize: "", notes: "",
             withReference: false, referenceFiles: [], referencePreviews: [],
             existingReferenceImages: [],
+            discountPercent: 0,
         };
     }
 

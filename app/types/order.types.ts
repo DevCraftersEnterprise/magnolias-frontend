@@ -130,6 +130,9 @@ export type OrderDetailItem = {
     filling?: OrderDetailCatalogItem;
     frosting?: OrderDetailCatalogItem;
     style?: OrderDetailCatalogItem;
+    discountPercent?: number | string | null;
+    discountAuthorizedBy?: { id: string; name: string; lastname: string } | null;
+    discountAuthorizedAt?: string | null;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -243,6 +246,7 @@ export type UpdateOrderDetailPayload = {
     frostingId?: string;
     styleId?: string;
     referenceFiles?: File[];
+    discountPercent?: number;
 }
 
 export type UpdateOrderPayload = {
@@ -274,6 +278,7 @@ export type UpdateOrderPayload = {
     deliveryAddress?: CreateOrderDeliveryAddress;
     details?: UpdateOrderDetailPayload[];
     flowers?: CreateOrderFlower[];
+    discountAuthToken?: string;
 }
 
 
@@ -295,6 +300,7 @@ export type CreateOrderDetail = {
     frostingId?: string;
     styleId?: string;
     referenceFiles?: File[];
+    discountPercent?: number;
 }
 
 export type CreateOrderFlower = {
@@ -358,4 +364,5 @@ export type CreateOrderPayload = {
     deliveryAddress?: CreateOrderDeliveryAddress;
     details: CreateOrderDetail[];
     flowers?: CreateOrderFlower[];
+    discountAuthToken?: string;
 }
