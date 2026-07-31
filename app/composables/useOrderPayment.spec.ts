@@ -34,6 +34,16 @@ describe('useOrderPayment', () => {
         expect(remaining.value).toBe(150)
     })
 
+    it('subtotal aplica el descuento por línea cuando discountPercent > 0', () => {
+        const orderProducts = ref([
+            { price: 100, qty: 2, discountPercent: 10 },
+            { price: 50, qty: 1 },
+        ])
+        const { subtotal } = useOrderPayment(orderProducts)
+
+        expect(subtotal.value).toBe(230)
+    })
+
     it('subtotal es 0 sin productos', () => {
         const orderProducts = ref([])
         const { subtotal, orderTotal, remaining } = useOrderPayment(orderProducts)
