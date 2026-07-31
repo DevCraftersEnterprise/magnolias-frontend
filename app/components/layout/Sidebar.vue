@@ -32,6 +32,12 @@ const itemsBase = [
     key: "usuarios",
     adminOnly: true,
   },
+  {
+    label: "Empleados",
+    to: "/admin/empleados",
+    key: "empleados",
+    adminOnly: true,
+  },
 ];
 
 const items = computed(() => {

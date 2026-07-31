@@ -279,6 +279,7 @@ export type UpdateOrderPayload = {
     details?: UpdateOrderDetailPayload[];
     flowers?: CreateOrderFlower[];
     discountAuthToken?: string;
+    employeeActionToken?: string;
 }
 
 
@@ -365,4 +366,5 @@ export type CreateOrderPayload = {
     details: CreateOrderDetail[];
     flowers?: CreateOrderFlower[];
     discountAuthToken?: string;
+    employeeActionToken?: string;
 }

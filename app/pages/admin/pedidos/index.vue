@@ -62,6 +62,33 @@ const deliverTarget = ref<OrderItem | null>(null);
 const deliverConfirm = ref(false);
 const delivering = ref(false);
 
+// ─── Autoría de empleado (cuenta compartida de sucursal) ──────────────────────
+const isEmployeeSession = computed(() => user.value?.role === "EMPLOYEE");
+const {
+  modalOpen: employeePinModalOpen,
+  loading: employeePinLoading,
+  error: employeePinError,
+  employeeActionToken,
+  openModal: openEmployeePinModal,
+  verifyPin: verifyEmployeePin,
+} = useEmployeePin();
+
+type PendingEmployeeAction = "deliver" | "cancel" | null;
+const pendingEmployeeAction = ref<PendingEmployeeAction>(null);
+const employeePinActionLabel = computed(() =>
+  pendingEmployeeAction.value === "cancel"
+    ? "cancelar el pedido"
+    : "marcar el pedido como entregado",
+);
+
+async function onEmployeePinSubmit(pin: string) {
+  const ok = await verifyEmployeePin(pin);
+  if (!ok) return;
+  if (pendingEmployeeAction.value === "deliver") await executeDeliver();
+  else if (pendingEmployeeAction.value === "cancel") await executeCancel();
+  pendingEmployeeAction.value = null;
+}
+
 function confirmDeliver(order: OrderItem) {
   deliverTarget.value = order;
   deliverConfirm.value = true;
@@ -69,9 +96,19 @@ function confirmDeliver(order: OrderItem) {
 
 async function executeDeliver() {
   if (!deliverTarget.value || delivering.value) return;
+
+  if (isEmployeeSession.value && !employeeActionToken.value) {
+    pendingEmployeeAction.value = "deliver";
+    openEmployeePinModal();
+    return;
+  }
+
   delivering.value = true;
   try {
-    await ordersService.markDelivered(deliverTarget.value.id);
+    await ordersService.markDelivered(
+      deliverTarget.value.id,
+      employeeActionToken.value || undefined,
+    );
     deliverConfirm.value = false;
     deliverTarget.value = null;
     await loadOrders(true);
@@ -183,9 +220,20 @@ function confirmCancel(order: OrderItem) {
 
 async function executeCancel() {
   if (!cancelTarget.value || canceling.value) return;
+
+  if (isEmployeeSession.value && !employeeActionToken.value) {
+    pendingEmployeeAction.value = "cancel";
+    openEmployeePinModal();
+    return;
+  }
+
   canceling.value = true;
   try {
-    await ordersService.cancelOrder(cancelTarget.value.id, cancelReason.value);
+    await ordersService.cancelOrder(
+      cancelTarget.value.id,
+      cancelReason.value,
+      employeeActionToken.value || undefined,
+    );
     cancelConfirm.value = false;
     cancelTarget.value = null;
     cancelReason.value = "";
@@ -2020,4 +2068,12 @@ function onOrderPaymentUpdated(payload: {
       </div>
     </Transition>
   </Teleport>
+
+  <OrderEmployeePinModal
+    v-model="employeePinModalOpen"
+    :loading="employeePinLoading"
+    :error="employeePinError"
+    :action-label="employeePinActionLabel"
+    @submit="onEmployeePinSubmit"
+  />
 </template>

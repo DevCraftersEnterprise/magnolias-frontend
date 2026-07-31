@@ -158,6 +158,24 @@ async function onDiscountAuthSubmit(payload: {
   }
 }
 
+// ─── Autoría de empleado (cuenta compartida de sucursal) ──────────────────────
+const { user: authUser } = useAuthUser();
+const isEmployeeSession = computed(() => authUser.value?.role === "EMPLOYEE");
+
+const {
+  modalOpen: employeePinModalOpen,
+  loading: employeePinLoading,
+  error: employeePinError,
+  employeeActionToken,
+  openModal: openEmployeePinModal,
+  verifyPin: verifyEmployeePin,
+} = useEmployeePin();
+
+async function onEmployeePinSubmit(pin: string) {
+  const ok = await verifyEmployeePin(pin);
+  if (ok) submitOrder();
+}
+
 const {
   step2,
   florMode,
@@ -498,6 +516,12 @@ const submitting = ref(false);
 
 async function submitOrder() {
   if (!canNext.value || submitting.value) return;
+
+  if (isEmployeeSession.value && !employeeActionToken.value) {
+    openEmployeePinModal();
+    return;
+  }
+
   submitting.value = true;
 
   try {
@@ -654,6 +678,7 @@ async function submitOrder() {
       details,
       flowers: flowersPayload,
       discountAuthToken: discountAuthToken.value || undefined,
+      employeeActionToken: employeeActionToken.value || undefined,
     };
 
     await ordersService.updateOrder(payload);
@@ -3258,6 +3283,14 @@ function next() {
     :loading="discountAuthLoading"
     :error="discountAuthError"
     @submit="onDiscountAuthSubmit"
+  />
+
+  <OrderEmployeePinModal
+    v-model="employeePinModalOpen"
+    :loading="employeePinLoading"
+    :error="employeePinError"
+    action-label="guardar los cambios del pedido"
+    @submit="onEmployeePinSubmit"
   />
 </template>
 
