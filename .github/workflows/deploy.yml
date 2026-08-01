@@ -3,7 +3,7 @@ name: Deploy Nuxt to Hostinger
 on:
   push:
     branches:
-      - dev
+      - prod
   workflow_dispatch:
 
 concurrency:
@@ -114,7 +114,7 @@ jobs:
                     { "name": "Ver ejecución", "value": ("[Abrir workflow](" + $run_url + ")"), "inline": false }
                   ],
                   "footer": {
-                    "text": "Magnolias Frontend · Dev"
+                    "text": "Magnolias Frontend"
                   },
                   "timestamp": (now | todateiso8601)
                 }
@@ -184,7 +184,7 @@ jobs:
                     { "name": "Revisar error", "value": ("[Abrir workflow](" + $run_url + ")"), "inline": false }
                   ],
                   "footer": {
-                    "text": "Magnolias Frontend · Dev"
+                    "text": "Magnolias Frontend"
                   },
                   "timestamp": (now | todateiso8601)
                 }
