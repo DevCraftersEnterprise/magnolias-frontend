@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@fontsource/inter": "^5.2.8",
-    "@iconify/vue": "^5.0.0",
+    "@iconify/vue": "^5.0.1",
     "@nuxt/test-utils": "^4.0.3",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@types/leaflet": "^1.9.21",
