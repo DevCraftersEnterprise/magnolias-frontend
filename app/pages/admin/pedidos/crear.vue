@@ -5,6 +5,11 @@ useHead({ title: "Crear Pedido · Magnolias" });
 import { ordersService } from "~/services/orders.service";
 import type { CreateOrderPayload } from "~/types/order.types";
 import { useToast } from "vue-toastification";
+import OrderModeSelector from "~/components/order/OrderModeSelector.vue";
+import OrderPickupLogistics from "~/components/order/OrderPickupLogistics.vue";
+import OrderDeliveryTimingDetails from "~/components/order/OrderDeliveryTimingDetails.vue";
+import OrderDeliveryAddressForm from "~/components/order/OrderDeliveryAddressForm.vue";
+import OrderEventServicesAndDetails from "~/components/order/OrderEventServicesAndDetails.vue";
 
 const router = useRouter();
 const toast = useToast();
@@ -127,8 +132,7 @@ async function onEmployeePinSubmit(pin: string) {
 
 const {
   step2,
-  florMode,
-  ORDER_TYPES,
+  setOrderMode,
   MINUTE_OPTIONS,
   pickupTimeParts,
   deliveryTimeParts,
@@ -169,19 +173,12 @@ if (typeof window !== "undefined") {
 }
 
 // ─── Step 4 summary helpers ────────────────────────────────────────────────────
-const TYPE_LABELS: Record<string, string> = {
-  DOMICILIO: "Domicilio",
-  VITRINA: "En tienda",
-  FLOR: "Flor",
-  EVENTO: "Evento",
-};
-
 const step4PickupBranchName = computed(
   () => branches.value.find((b) => b.id === step2.pickupBranchId)?.name ?? "",
 );
 
 const step4DeliveryAddr = computed(() => {
-  if (step2.orderType === "VITRINA") return "";
+  if (step2.isEnTienda) return "";
   const a = step2.useCustomerAddr
     ? selectedCustomer.value?.address
     : step2.newAddr;
@@ -200,33 +197,21 @@ const step4DeliveryAddr = computed(() => {
 const canNext = computed(() => {
   if (step.value === 1) return !!selectedCustomer.value;
   if (step.value === 2) {
-    if (!step2.orderType) return false;
-    if (step2.orderType === "VITRINA") {
+    if (!step2.orderMode) return false;
+    if (
+      step2.includesFlowers &&
+      !flowerRows.value.some(
+        (r) => r.flowerId && r.colorId && Number(r.quantity) > 0,
+      )
+    )
+      return false;
+    if (step2.isEnTienda) {
       if (pickupTimeOutOfHours.value) return false;
       return !!(step2.pickupBranchId && step2.pickupDate);
     }
-    if (step2.orderType === "FLOR" && florMode.value === "vitrina") {
-      if (pickupTimeOutOfHours.value) return false;
-      if (!step2.pickupBranchId || !step2.pickupDate) return false;
-      if (
-        !flowerRows.value.some(
-          (r) => r.flowerId && r.colorId && Number(r.quantity) > 0,
-        )
-      )
-        return false;
-      return true;
-    }
     if (!step2.deliveryDate) return false;
     if (!step2AddressValid.value) return false;
-    if (step2.orderType === "FLOR" && florMode.value === "domicilio") {
-      if (
-        !flowerRows.value.some(
-          (r) => r.flowerId && r.colorId && Number(r.quantity) > 0,
-        )
-      )
-        return false;
-    }
-    if (step2.orderType !== "EVENTO") {
+    if (!step2.isEvento) {
       if (deliveryTimeOutOfHours.value) return false;
     }
     return true;
@@ -260,9 +245,7 @@ async function submitOrder() {
 
   try {
     const cust = selectedCustomer.value!;
-    const isVitrina =
-      step2.orderType === "VITRINA" ||
-      (step2.orderType === "FLOR" && florMode.value === "vitrina");
+    const isVitrina = step2.isEnTienda;
     const branchId = isVitrina
       ? step2.pickupBranchId || (topbarBranch.value?.id ?? "")
       : (topbarBranch.value?.id ?? "");
@@ -275,7 +258,7 @@ async function submitOrder() {
       return;
     }
 
-    const isEvento = step2.orderType === "EVENTO";
+    const isEvento = step2.isEvento;
 
     const deliveryDateISO = isVitrina
       ? step2.pickupDate
@@ -386,17 +369,10 @@ async function submitOrder() {
           : undefined,
     }));
 
-    const flowersPayload =
-      step2.orderType === "FLOR" || isEvento
-        ? flowerRows.value
-            .filter((f) => f.flowerId)
-            .map((f) => ({
-              flowerId: f.flowerId,
-              colorId: f.colorId || undefined,
-              quantity: Number(f.quantity) || 1,
-              notes: f.note || undefined,
-            }))
-        : undefined;
+    const flowersPayload = buildFlowersPayload(
+      step2.includesFlowers,
+      flowerRows.value,
+    );
 
     const collectionDateTime =
       isVitrina && step2.pickupDate
@@ -404,7 +380,9 @@ async function submitOrder() {
         : undefined;
 
     const payload: CreateOrderPayload = {
-      orderType: step2.orderType!,
+      isEvento: step2.isEvento,
+      isEnTienda: step2.isEnTienda,
+      includesFlowers: step2.includesFlowers,
       customerId: cust.id,
       branchId,
       advancePayment,
@@ -430,10 +408,6 @@ async function submitOrder() {
       eventServices:
         isEvento && eventServicesList.length ? eventServicesList : undefined,
       setupServiceCost: serviceCost.value || undefined,
-      isCustomerPickup:
-        step2.orderType === "FLOR" && florMode.value === "vitrina"
-          ? true
-          : undefined,
       hasPhotoReference: orderProducts.value.some((r) => r.referenceFiles.length > 0),
       requiresInvoice: step4.requiresInvoice || undefined,
       deliveryAddress,
@@ -1114,970 +1088,48 @@ function next() {
 
         <div class="px-6 py-6 space-y-8">
           <!-- ── Tipo de pedido ──────────────────────────────────────────── -->
-          <fieldset>
-            <legend
-              class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-            >
-              Tipo de pedido
-            </legend>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <button
-                v-for="t in ORDER_TYPES"
-                :key="t.key"
-                type="button"
-                @click="step2.orderType = t.key"
-                :class="[
-                  'relative flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-4 transition-all',
-                  step2.orderType === t.key
-                    ? 'border-[#FC9AD3] bg-pink-50 shadow-sm'
-                    : 'border-black/10 hover:border-[#FC9AD3]/60 hover:bg-pink-50/40',
-                ]"
-              >
-                <!-- Checkmark badge -->
-                <span
-                  v-if="step2.orderType === t.key"
-                  class="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#FC9AD3]"
-                >
-                  <svg
-                    viewBox="0 0 12 12"
-                    class="h-2.5 w-2.5"
-                    fill="none"
-                    stroke="white"
-                    stroke-width="2"
-                  >
-                    <path
-                      d="M2 6l3 3 5-5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
+          <OrderModeSelector
+            :order-mode="step2.orderMode"
+            :includes-flowers="step2.includesFlowers"
+            @select-mode="setOrderMode"
+            @update:includes-flowers="step2.includesFlowers = $event"
+          />
 
-                <!-- Icon -->
-                <span class="text-2xl leading-none select-none">
-                  <template v-if="t.icon === 'delivery'">🛵</template>
-                  <template v-else-if="t.icon === 'shop'">🏪</template>
-                  <template v-else-if="t.icon === 'flower'">🌸</template>
-                  <template v-else-if="t.icon === 'event'">🎉</template>
-                  <template v-else>📦</template>
-                </span>
+          <!-- ── En tienda: Logística de Recolección ──────────────────────── -->
+          <OrderPickupLogistics
+            v-if="step2.isEnTienda"
+            :step2="step2"
+            :branches="branches"
+            :pickup-time-parts="pickupTimeParts"
+            :min-delivery-date="minDeliveryDate"
+            :pickup-time-out-of-hours="pickupTimeOutOfHours"
+            :minute-options="MINUTE_OPTIONS"
+          />
 
-                <span
-                  class="text-[13px] font-semibold text-[#111827] text-center"
-                  >{{ t.label }}</span
-                >
-                <span
-                  class="text-[11px] text-gray-400 text-center leading-tight"
-                  >{{ t.sub }}</span
-                >
-              </button>
-            </div>
-          </fieldset>
-
-          <!-- ── Vitrina: Logística de Recolección ──────────────────────── -->
-          <fieldset v-if="step2.orderType === 'VITRINA'" class="space-y-0">
-            <legend
-              class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-            >
-              Logística de Recolección
-            </legend>
-            <div
-              class="divide-y divide-black/8 rounded-xl border border-black/10 overflow-hidden"
-            >
-              <!-- Sucursal -->
-              <div class="flex items-center gap-3 px-4 py-3 bg-white">
-                <svg
-                  viewBox="0 0 24 24"
-                  class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                >
-                  <path
-                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                    stroke-linejoin="round"
-                  />
-                  <circle cx="12" cy="9" r="2.5" />
-                </svg>
-                <label
-                  class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
-                  >Sucursal</label
-                >
-                <div class="relative flex-1">
-                  <select
-                    v-model="step2.pickupBranchId"
-                    class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                  >
-                    <option value="" disabled>Selecciona sucursal</option>
-                    <option v-for="b in branches" :key="b.id" :value="b.id">
-                      {{ b.name }}
-                    </option>
-                  </select>
-                  <svg
-                    class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2.5"
-                  >
-                    <path
-                      d="M6 9l6 6 6-6"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <!-- Fecha + Hora -->
-              <div
-                class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 bg-white"
-              >
-                <div class="flex items-center gap-3">
-                  <svg
-                    viewBox="0 0 24 24"
-                    class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                  >
-                    <rect x="3" y="4" width="18" height="18" rx="2" />
-                    <path d="M16 2v4M8 2v4M3 10h18" />
-                  </svg>
-                  <label
-                    class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                    >Fecha de recolección</label
-                  >
-                  <input
-                    v-model="step2.pickupDate"
-                    type="date"
-                    :min="minDeliveryDate"
-                    class="rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                  />
-                </div>
-                <div class="flex items-center gap-3">
-                  <svg
-                    viewBox="0 0 24 24"
-                    class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                  >
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7v5l3 3" />
-                  </svg>
-                  <label
-                    class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                    >Hora de recolección</label
-                  >
-                  <div class="flex items-center gap-1">
-                    <select
-                      v-model.number="pickupTimeParts.h"
-                      class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                    >
-                      <option v-for="h in 12" :key="h" :value="h">
-                        {{ h }}
-                      </option>
-                    </select>
-                    <span class="text-gray-400 text-[13px] font-medium">:</span>
-                    <select
-                      v-model="pickupTimeParts.m"
-                      class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                    >
-                      <option v-for="m in MINUTE_OPTIONS" :key="m" :value="m">
-                        {{ m }}
-                      </option>
-                    </select>
-                    <select
-                      v-model="pickupTimeParts.p"
-                      class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                    >
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                  </div>
-                </div>
-                <div
-                  v-if="pickupTimeOutOfHours"
-                  class="w-full flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    class="h-4 w-4 shrink-0 mt-0.5 text-amber-500"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                  <span
-                    >La hora seleccionada está fuera del horario de atención
-                    <strong>(8:00 AM – 7:59 PM)</strong>. Por favor elige una
-                    hora dentro del rango para continuar.</span
-                  >
-                </div>
-              </div>
-            </div>
-          </fieldset>
-
-          <!-- ── FLOR: modo de entrega ──────────────────────────────────────── -->
-          <fieldset v-if="step2.orderType === 'FLOR'" class="space-y-3">
-            <legend
-              class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-            >
-              Modo de entrega
-            </legend>
-            <div class="flex gap-6">
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="radio"
-                  v-model="florMode"
-                  value="domicilio"
-                  class="accent-[#FC9AD3]"
-                />
-                <span class="text-[13px] font-medium text-gray-700"
-                  >🛵 Domicilio</span
-                >
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="radio"
-                  v-model="florMode"
-                  value="vitrina"
-                  class="accent-[#FC9AD3]"
-                />
-                <span class="text-[13px] font-medium text-gray-700"
-                  >🏪 Recolección en sucursal</span
-                >
-              </label>
-            </div>
-
-            <!-- FLOR vitrina: pickup form (same as VITRINA type) -->
-            <template v-if="florMode === 'vitrina'">
-              <div
-                class="divide-y divide-black/8 rounded-xl border border-black/10 overflow-hidden"
-              >
-                <!-- Sucursal -->
-                <div class="flex items-center gap-3 px-4 py-3 bg-white">
-                  <svg
-                    viewBox="0 0 24 24"
-                    class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                  >
-                    <path
-                      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                      stroke-linejoin="round"
-                    />
-                    <circle cx="12" cy="9" r="2.5" />
-                  </svg>
-                  <label
-                    class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
-                    >Sucursal</label
-                  >
-                  <div class="relative flex-1">
-                    <select
-                      v-model="step2.pickupBranchId"
-                      class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                    >
-                      <option value="" disabled>Selecciona sucursal</option>
-                      <option v-for="b in branches" :key="b.id" :value="b.id">
-                        {{ b.name }}
-                      </option>
-                    </select>
-                    <svg
-                      class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <path
-                        d="M6 9l6 6 6-6"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <!-- Fecha + Hora -->
-                <div
-                  class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 bg-white"
-                >
-                  <div class="flex items-center gap-3">
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                    >
-                      <rect x="3" y="4" width="18" height="18" rx="2" />
-                      <path d="M16 2v4M8 2v4M3 10h18" />
-                    </svg>
-                    <label
-                      class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                      >Fecha de recolección</label
-                    >
-                    <input
-                      v-model="step2.pickupDate"
-                      type="date"
-                      :min="minDeliveryDate"
-                      class="rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                    />
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                    >
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M12 7v5l3 3" />
-                    </svg>
-                    <label
-                      class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                      >Hora de recolección</label
-                    >
-                    <div class="flex items-center gap-1">
-                      <select
-                        v-model.number="pickupTimeParts.h"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option v-for="h in 12" :key="h" :value="h">
-                          {{ h }}
-                        </option>
-                      </select>
-                      <span class="text-gray-400 text-[13px] font-medium"
-                        >:</span
-                      >
-                      <select
-                        v-model="pickupTimeParts.m"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option v-for="m in MINUTE_OPTIONS" :key="m" :value="m">
-                          {{ m }}
-                        </option>
-                      </select>
-                      <select
-                        v-model="pickupTimeParts.p"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div
-                    v-if="pickupTimeOutOfHours"
-                    class="w-full flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-4 w-4 shrink-0 mt-0.5 text-amber-500"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span
-                      >La hora seleccionada está fuera del horario de atención
-                      <strong>(8:00 AM – 7:59 PM)</strong>. Por favor elige una
-                      hora dentro del rango para continuar.</span
-                    >
-                  </div>
-                </div>
-              </div>
-            </template>
-          </fieldset>
-
-          <!-- ── Detalles de la entrega (DOMICILIO / FLOR / EVENTO / PERSONALIZADO) ── -->
+          <!-- ── Detalles de la entrega (domicilio / evento) ── -->
           <template v-if="needsDelivery">
-            <!-- Logística / Detalles de la entrega -->
-            <fieldset class="space-y-0">
-              <legend
-                class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-              >
-                {{
-                  step2.orderType === "EVENTO"
-                    ? "Logística del evento"
-                    : "Detalles de la entrega"
-                }}
-              </legend>
-              <div
-                class="divide-y divide-black/8 rounded-xl border border-black/10 overflow-hidden"
-              >
-                <!-- Ronda de entrega -->
-                <div class="flex items-center gap-3 px-4 py-3 bg-white">
-                  <svg
-                    viewBox="0 0 24 24"
-                    class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                  >
-                    <rect x="1" y="3" width="15" height="13" rx="1" />
-                    <path d="M16 8h4l3 3v5h-7V8z" />
-                    <circle cx="5.5" cy="18.5" r="2.5" />
-                    <circle cx="18.5" cy="18.5" r="2.5" />
-                  </svg>
-                  <label
-                    class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
-                    >Ronda de entrega</label
-                  >
-                  <div class="relative flex-1">
-                    <select
-                      v-model="step2.deliveryRound"
-                      class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                    >
-                      <option value="" disabled>Selecciona ronda</option>
-                      <option value="1">Ronda 1</option>
-                      <option value="2">Ronda 2</option>
-                      <option value="3">Ronda 3</option>
-                    </select>
-                    <svg
-                      class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <path
-                        d="M6 9l6 6 6-6"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </div>
+            <OrderDeliveryTimingDetails
+              :step2="step2"
+              :delivery-time-parts="deliveryTimeParts"
+              :exit-time-parts="exitTimeParts"
+              :min-delivery-date="minDeliveryDate"
+              :delivery-time-out-of-hours="deliveryTimeOutOfHours"
+              :delivery-time-warning-msg="deliveryTimeWarningMsg"
+              :exit-time-out-of-hours="exitTimeOutOfHours"
+              :minute-options="MINUTE_OPTIONS"
+            />
 
-                <!-- Fecha + Hora -->
-                <div
-                  class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 bg-white"
-                >
-                  <div class="flex items-center gap-3">
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                    >
-                      <rect x="3" y="4" width="18" height="18" rx="2" />
-                      <path d="M16 2v4M8 2v4M3 10h18" />
-                    </svg>
-                    <label
-                      class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                    >
-                      {{
-                        step2.orderType === "EVENTO"
-                          ? "Fecha del evento"
-                          : "Fecha de entrega"
-                      }}
-                      <span class="text-red-400">*</span>
-                    </label>
-                    <input
-                      v-model="step2.deliveryDate"
-                      type="date"
-                      :min="minDeliveryDate"
-                      class="rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                    />
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                    >
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M12 7v5l3 3" />
-                    </svg>
-                    <label
-                      class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                    >
-                      {{
-                        step2.orderType === "EVENTO"
-                          ? "Hora del evento"
-                          : "Hora de entrega"
-                      }}
-                    </label>
-                    <div class="flex items-center gap-1">
-                      <select
-                        v-model.number="deliveryTimeParts.h"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option v-for="h in 12" :key="h" :value="h">
-                          {{ h }}
-                        </option>
-                      </select>
-                      <span class="text-gray-400 text-[13px] font-medium"
-                        >:</span
-                      >
-                      <select
-                        v-model="deliveryTimeParts.m"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option v-for="m in MINUTE_OPTIONS" :key="m" :value="m">
-                          {{ m }}
-                        </option>
-                      </select>
-                      <select
-                        v-model="deliveryTimeParts.p"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div
-                    v-if="deliveryTimeOutOfHours"
-                    class="w-full flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-4 w-4 shrink-0 mt-0.5 text-amber-500"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span>{{ deliveryTimeWarningMsg }}</span>
-                  </div>
-                </div>
-
-                <!-- Hora del montaje + Hora de salida (EVENTO) -->
-                <div
-                  v-if="step2.orderType === 'EVENTO'"
-                  class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 bg-white"
-                >
-                  <div class="flex items-center gap-3">
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                    >
-                      <rect x="3" y="4" width="18" height="18" rx="2" />
-                      <path d="M16 2v4M8 2v4M3 10h18" />
-                    </svg>
-                    <label
-                      class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                      >Fecha del montaje</label
-                    >
-                    <input
-                      v-model="step2.eventMontageDate"
-                      type="date"
-                      :min="minDeliveryDate"
-                      class="rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                    />
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                    >
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M12 7v5l3 3" />
-                    </svg>
-                    <label
-                      class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                      >Hora de salida</label
-                    >
-                    <div class="flex items-center gap-1">
-                      <select
-                        v-model.number="exitTimeParts.h"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option v-for="h in 12" :key="h" :value="h">
-                          {{ h }}
-                        </option>
-                      </select>
-                      <span class="text-gray-400 text-[13px] font-medium"
-                        >:</span
-                      >
-                      <select
-                        v-model="exitTimeParts.m"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option v-for="m in MINUTE_OPTIONS" :key="m" :value="m">
-                          {{ m }}
-                        </option>
-                      </select>
-                      <select
-                        v-model="exitTimeParts.p"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div
-                    v-if="exitTimeOutOfHours"
-                    class="w-full flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-4 w-4 shrink-0 mt-0.5 text-amber-500"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span
-                      >La hora de salida parece muy temprana (antes de las 7:00
-                      AM). ¿Estás seguro?</span
-                    >
-                  </div>
-                </div>
-              </div>
-            </fieldset>
-
-            <!-- Dirección de entrega -->
-            <fieldset class="space-y-3">
-              <legend
-                class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-              >
-                Dirección de entrega
-              </legend>
-
-              <!-- EVENTO: selector de dirección común (salón de fiestas) -->
-              <template v-if="step2.orderType === 'EVENTO'">
-                <label
-                  class="flex items-center gap-2.5 cursor-pointer select-none"
-                >
-                  <input
-                    v-model="step2.useCommonAddr"
-                    type="checkbox"
-                    class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                  />
-                  <span class="text-[13px] text-gray-700"
-                    >Usar dirección común (salón de fiestas)</span
-                  >
-                </label>
-                <div v-if="step2.useCommonAddr" class="flex flex-col gap-1">
-                  <div class="relative">
-                    <select
-                      v-model="step2.commonAddrId"
-                      class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                    >
-                      <option value="" disabled>Selecciona dirección</option>
-                      <option
-                        v-for="a in commonAddresses"
-                        :key="a.id"
-                        :value="a.id"
-                      >
-                        {{ a.name }} — {{ a.street }} {{ a.number }},
-                        {{ a.neighborhood }}
-                      </option>
-                    </select>
-                    <svg
-                      class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <path
-                        d="M6 9l6 6 6-6"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </template>
-
-              <!-- Checkbox: usar dirección del cliente (oculto para EVENTO con dirección común) -->
-              <template
-                v-if="!(step2.orderType === 'EVENTO' && step2.useCommonAddr)"
-              >
-                <label
-                  :class="[
-                    'flex items-center gap-2.5 cursor-pointer select-none',
-                    !customerHasAddress && 'opacity-40 pointer-events-none',
-                  ]"
-                >
-                  <input
-                    v-model="step2.useCustomerAddr"
-                    type="checkbox"
-                    :disabled="!customerHasAddress"
-                    class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                  />
-                  <span class="text-[13px] text-gray-700">
-                    Usar la dirección del cliente registrada
-                    <span v-if="!customerHasAddress" class="text-gray-400"
-                      >(el cliente no tiene dirección registrada)</span
-                    >
-                  </span>
-                </label>
-
-                <!-- Dirección pre-rellenada del cliente -->
-                <div
-                  v-if="step2.useCustomerAddr && customerHasAddress"
-                  class="rounded-lg bg-pink-50 border border-[#FC9AD3]/40 px-4 py-3 flex items-start gap-2"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    class="h-4 w-4 mt-0.5 flex-shrink-0 text-[#C9007C]"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                    />
-                    <circle cx="12" cy="9" r="2.5" />
-                  </svg>
-                  <span class="text-[13px] text-gray-700">{{
-                    customerAddressFormatted
-                  }}</span>
-                </div>
-
-                <!-- Manual address form -->
-                <template v-if="!step2.useCustomerAddr">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600">
-                        Calle <span class="text-red-400">*</span>
-                      </label>
-                      <input
-                        v-model="step2.newAddr.street"
-                        type="text"
-                        placeholder="Av. Principal"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600">
-                        Número exterior <span class="text-red-400">*</span>
-                      </label>
-                      <input
-                        v-model="step2.newAddr.number"
-                        type="text"
-                        placeholder="123"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600">
-                        Colonia <span class="text-red-400">*</span>
-                      </label>
-                      <input
-                        v-model="step2.newAddr.neighborhood"
-                        type="text"
-                        placeholder="Col. Centro"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Ciudad</label
-                      >
-                      <input
-                        v-model="step2.newAddr.city"
-                        type="text"
-                        placeholder="CDMX"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Código postal</label
-                      >
-                      <input
-                        v-model="step2.newAddr.postalCode"
-                        type="text"
-                        maxlength="5"
-                        placeholder="06600"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  <!-- Additional address fields (collapsible-style, always visible) -->
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Entre calles</label
-                      >
-                      <input
-                        v-model="step2.newAddr.betweenStreets"
-                        type="text"
-                        placeholder="Entre Av. A y Av. B"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Código de interfón</label
-                      >
-                      <input
-                        v-model="step2.newAddr.interphoneCode"
-                        type="text"
-                        placeholder="#1234"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1 sm:col-span-2">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Referencia</label
-                      >
-                      <input
-                        v-model="step2.newAddr.reference"
-                        type="text"
-                        placeholder="Casa color azul, junto a la tienda..."
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  <!-- EVENTO: guardar como dirección común -->
-                  <template v-if="step2.orderType === 'EVENTO'">
-                    <label
-                      class="flex items-center gap-2.5 cursor-pointer select-none mt-1"
-                    >
-                      <input
-                        v-model="step2.saveAsCommonAddr"
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                      />
-                      <span class="text-[13px] text-gray-700"
-                        >Guardar como dirección común</span
-                      >
-                    </label>
-                    <div
-                      v-if="step2.saveAsCommonAddr"
-                      class="flex flex-col gap-1"
-                    >
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Nombre del lugar</label
-                      >
-                      <input
-                        v-model="step2.commonAddrName"
-                        type="text"
-                        placeholder="Ej. Salón La Estancia"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                  </template>
-                </template>
-              </template>
-
-              <!-- Delivery overrides (always shown when address is set) -->
-              <div
-                v-if="
-                  step2.useCustomerAddr ||
-                  (step2.newAddr.street && step2.newAddr.number) ||
-                  (step2.orderType === 'EVENTO' &&
-                    step2.useCommonAddr &&
-                    step2.commonAddrId)
-                "
-                class="border-t border-dashed border-black/10 pt-4 space-y-3"
-              >
-                <p
-                  class="text-[12px] font-semibold text-gray-400 uppercase tracking-wide"
-                >
-                  Para esta entrega (opcional)
-                </p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div class="flex flex-col gap-1">
-                    <label class="text-[13px] font-medium text-gray-600"
-                      >Nombre de quien recibe</label
-                    >
-                    <input
-                      v-model="step2.receiverName"
-                      type="text"
-                      placeholder="Nombre del receptor"
-                      class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                    />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label class="text-[13px] font-medium text-gray-600"
-                      >Teléfono de quien recibe</label
-                    >
-                    <input
-                      :value="step2.receiverPhone"
-                      @input="
-                        onPhoneInput($event, (v) => (step2.receiverPhone = v))
-                      "
-                      @keydown="
-                        (e) => {
-                          if (
-                            e.key.length === 1 &&
-                            !/\d/.test(e.key) &&
-                            !e.ctrlKey &&
-                            !e.metaKey
-                          )
-                            e.preventDefault();
-                        }
-                      "
-                      type="tel"
-                      inputmode="numeric"
-                      maxlength="10"
-                      placeholder="5512345678"
-                      :class="[
-                        'rounded-lg border px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white',
-                        step2.receiverPhone && step2.receiverPhone.length !== 10
-                          ? 'border-red-300'
-                          : 'border-black/15',
-                      ]"
-                    />
-                    <p
-                      v-if="
-                        step2.receiverPhone && step2.receiverPhone.length !== 10
-                      "
-                      class="text-[11px] text-red-500"
-                    >
-                      Debe tener exactamente 10 dígitos
-                    </p>
-                  </div>
-                  <div class="flex flex-col gap-1 sm:col-span-2">
-                    <label class="text-[13px] font-medium text-gray-600"
-                      >Indicaciones para el repartidor</label
-                    >
-                    <textarea
-                      v-model="step2.deliveryNotes"
-                      rows="2"
-                      placeholder="Instrucciones especiales para la entrega..."
-                      class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white resize-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            </fieldset>
+            <OrderDeliveryAddressForm
+              :step2="step2"
+              :common-addresses="commonAddresses"
+              :customer-has-address="customerHasAddress"
+              :customer-address-formatted="customerAddressFormatted"
+              :on-phone-input="onPhoneInput"
+            />
           </template>
 
-          <!-- ── Flores del Pedido (sólo FLOR) ──────────────────────── -->
-          <fieldset v-if="step2.orderType === 'FLOR'">
+          <!-- ── Flores del Pedido (solo si includesFlowers) ──────────────────────── -->
+          <fieldset v-if="step2.includesFlowers">
             <div class="flex items-center gap-2 mb-3">
               <legend
                 class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide"
@@ -2252,110 +1304,8 @@ function next() {
             </div>
           </fieldset>
 
-          <!-- ── Servicios (EVENTO) ─────────────────────────────────────── -->
-          <fieldset v-if="step2.orderType === 'EVENTO'">
-            <div class="flex items-center gap-3 mb-3">
-              <legend
-                class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide"
-              >
-                Servicios
-              </legend>
-              <span
-                v-if="step2.deliveryDate"
-                class="text-[12px] text-gray-400"
-                >{{ step2.deliveryDate }}</span
-              >
-            </div>
-            <div
-              class="flex flex-wrap items-center gap-4 rounded-xl border border-black/10 bg-white px-5 py-4"
-            >
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  v-model="step2.eventServices.dessertTable"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                />
-                <span class="text-[13px] text-gray-700">Mesa de Postres</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  v-model="step2.eventServices.cake"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                />
-                <span class="text-[13px] text-gray-700">Pastel</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  v-model="step2.eventServices.cheeseTable"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                />
-                <span class="text-[13px] text-gray-700">Mesa de Quesos</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  v-model="step2.eventServices.plated"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                />
-                <span class="text-[13px] text-gray-700">Platillos</span>
-              </label>
-            </div>
-          </fieldset>
-
-          <!-- ── Detalles del Evento (EVENTO) ──────────────────────────── -->
-          <fieldset v-if="step2.orderType === 'EVENTO'">
-            <legend
-              class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-            >
-              Detalles del Evento
-            </legend>
-            <div class="rounded-xl border border-black/10 bg-white px-5 py-4">
-              <div class="flex flex-wrap items-center gap-4">
-                <!-- Número de invitados -->
-                <div class="flex items-center gap-2">
-                  <svg
-                    viewBox="0 0 24 24"
-                    class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                  >
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path
-                      d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
-                    />
-                  </svg>
-                  <label
-                    class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                    >Número de invitados</label
-                  >
-                  <input
-                    v-model.number="step2.eventGuestCount"
-                    type="number"
-                    min="1"
-                    placeholder="150"
-                    class="w-24 rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                  />
-                </div>
-                <!-- Responsable del montaje -->
-                <div class="flex items-center gap-2 flex-1 min-w-[220px]">
-                  <label
-                    class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                    >Responsable del montaje</label
-                  >
-                  <input
-                    v-model="step2.eventResponsibleName"
-                    type="text"
-                    placeholder="Nombre del responsable"
-                    class="flex-1 min-w-0 rounded-xl bg-white px-3 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60"
-                  />
-                </div>
-              </div>
-            </div>
-          </fieldset>
+          <!-- ── Servicios y Detalles del Evento ─────────────────────────── -->
+          <OrderEventServicesAndDetails v-if="step2.isEvento" :step2="step2" />
         </div>
       </div>
 
@@ -3356,7 +2306,7 @@ function next() {
             <!-- Costo por servicio -->
             <div
               :class="
-                step2.orderType === 'VITRINA'
+                step2.isEnTienda
                   ? 'opacity-40 pointer-events-none select-none'
                   : ''
               "
@@ -3364,7 +2314,7 @@ function next() {
               <p class="text-[14px] font-semibold text-[#111827] mb-2">
                 Costo por servicio
                 <span
-                  v-if="step2.orderType === 'VITRINA'"
+                  v-if="step2.isEnTienda"
                   class="ml-2 text-[11px] font-normal text-gray-400"
                   >(no aplica en tienda)</span
                 >
@@ -3382,7 +2332,7 @@ function next() {
                   min="0"
                   v-model.number="serviceCost"
                   placeholder="0.00"
-                  :disabled="step2.orderType === 'VITRINA'"
+                  :disabled="step2.isEnTienda"
                   class="flex-1 bg-transparent px-3 text-[13px] font-semibold text-[#111827] outline-none"
                 />
               </div>
@@ -3554,7 +2504,7 @@ function next() {
           <!-- Flowers list (FLOR orders) -->
           <div
             v-if="
-              step2.orderType === 'FLOR' && flowerRows.some((r) => r.flowerId)
+              step2.includesFlowers && flowerRows.some((r) => r.flowerId)
             "
             class="border-t border-black/5 px-5 py-3 space-y-1.5"
           >
@@ -3859,7 +2809,7 @@ function next() {
 
         <!-- Row 2 (step 4 only): logistics summary -->
         <div
-          v-if="step === 4 && step2.orderType"
+          v-if="step === 4 && step2.orderMode"
           class="border-t border-black/8 pt-2 flex flex-wrap gap-x-6 gap-y-1.5"
         >
           <!-- Order type badge -->
@@ -3867,17 +2817,18 @@ function next() {
             <span
               class="inline-block rounded-full bg-[#FC9AD3]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#C9007C]"
             >
-              {{ TYPE_LABELS[step2.orderType] ?? step2.orderType }}
+              {{ getOrderTypeLabel(step2) }}
+            </span>
+            <span
+              v-if="step2.includesFlowers"
+              class="inline-block rounded-full bg-[#FFBEE6]/40 px-2.5 py-0.5 text-[11px] font-semibold text-[#C9007C]"
+            >
+              🌸 Flores
             </span>
           </div>
 
-          <!-- VITRINA or FLOR-vitrina: pickup branch + date/time -->
-          <template
-            v-if="
-              step2.orderType === 'VITRINA' ||
-              (step2.orderType === 'FLOR' && florMode === 'vitrina')
-            "
-          >
+          <!-- En tienda: pickup branch + date/time -->
+          <template v-if="step2.isEnTienda">
             <div class="flex items-center gap-1.5">
               <svg
                 viewBox="0 0 24 24"

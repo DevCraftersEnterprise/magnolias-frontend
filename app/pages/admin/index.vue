@@ -82,7 +82,7 @@ async function loadOrderStatistics() {
       {
         key: "store",
         label: "En tienda",
-        value: data.order_type_counts.vitrina,
+        value: data.order_type_counts.enTienda,
         icon: "store",
         backgroundColor: "#ADADAD",
         textColor: "#000000",
@@ -105,8 +105,8 @@ async function loadOrderStatistics() {
       },
       {
         key: "custom",
-        label: "Flor",
-        value: data.order_type_counts.personalizado,
+        label: "Con flores",
+        value: data.order_type_counts.conFlores,
         icon: "flower",
         backgroundColor: "#FFBEE6",
         textColor: "#C9007C",

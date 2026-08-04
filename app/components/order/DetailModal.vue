@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ordersService } from "~/services/orders.service";
-import type { OrderDetail, OrderItem, OrderType } from "~/types/order.types";
+import type { OrderDetail, OrderItem } from "~/types/order.types";
 import { useToast } from "vue-toastification";
 
 const props = defineProps<{
@@ -143,14 +143,12 @@ function nameInitials(name: string) {
   return parts[0]?.slice(0, 2).toUpperCase() ?? "??";
 }
 
-function typeColor(t?: OrderType) {
-  return t
-    ? (TYPE_COLORS[t] ?? { bg: "#eee", text: "#333" })
-    : { bg: "#eee", text: "#333" };
+function typeColor(o: { isEvento?: boolean; isEnTienda?: boolean }) {
+  return getOrderTypeColor(o);
 }
 
-function typeLabel(t?: OrderType) {
-  return t ? (TYPE_LABELS[t] ?? t) : "—";
+function typeLabel(o: { isEvento?: boolean; isEnTienda?: boolean }) {
+  return getOrderTypeLabel(o);
 }
 
 function paymentLabel(pm?: string | null) {
@@ -164,11 +162,10 @@ function roundLabel(r?: string | null) {
 // ── Descargar formato ───────────────────────────────────────────────────────
 const downloading = ref(false);
 
-function formatEndpoint(orderType?: OrderType): string {
-  if (orderType === "DOMICILIO") return "domicilio";
-  if (orderType === "EVENTO") return "evento";
-  if (orderType === "VITRINA") return "vitrina";
-  return "personalizado"; // FLOR, PERSONALIZADO
+function formatEndpoint(o: { isEvento?: boolean; isEnTienda?: boolean }): string {
+  if (o.isEvento) return "evento";
+  if (o.isEnTienda) return "vitrina";
+  return "domicilio";
 }
 
 async function downloadFormat() {
@@ -178,8 +175,7 @@ async function downloadFormat() {
     const config = useRuntimeConfig();
     const base = String(config.public.apiBase || "").replace(/\/$/, "");
     const token = useCookie<string | null>("access_token").value;
-    const orderType = activeData.value?.orderType ?? props.order.orderType;
-    const endpoint = formatEndpoint(orderType);
+    const endpoint = formatEndpoint(activeData.value ?? props.order);
     const res = await fetch(
       `${base}/api/formats/${endpoint}/${props.order.id}`,
       {
@@ -353,7 +349,7 @@ async function downloadFormat() {
                       <p class="text-[11px] text-gray-400">Tipo</p>
                       <p class="mt-0.5 text-[13px] font-medium text-[#111827]">
                         {{
-                          typeLabel(activeData?.orderType ?? order.orderType) ||
+                          typeLabel(activeData ?? order) ||
                           "—"
                         }}
                       </p>

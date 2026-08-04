@@ -4,7 +4,7 @@ useHead({ title: "Pedidos · Magnolias" });
 
 import { ordersService } from "~/services/orders.service";
 import { usersService } from "~/services/users.service";
-import type { OrderItem, OrderStatus, OrderType } from "~/types/order.types";
+import type { OrderItem, OrderStatus } from "~/types/order.types";
 import type { UserItem } from "~/types/user.types";
 import { useToast } from "vue-toastification";
 
@@ -16,13 +16,11 @@ const isBaker = computed(() => effectiveRole.value === "BAKER");
 const toast = useToast();
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-function typeColor(t?: OrderType) {
-  return t
-    ? (TYPE_COLORS[t] ?? { bg: "#eee", text: "#333" })
-    : { bg: "#eee", text: "#333" };
+function typeColor(o: { isEvento?: boolean; isEnTienda?: boolean }) {
+  return getOrderTypeColor(o);
 }
-function typeLabel(t?: OrderType) {
-  return t ? (TYPE_LABELS[t] ?? t) : "—";
+function typeLabel(o: { isEvento?: boolean; isEnTienda?: boolean }) {
+  return getOrderTypeLabel(o);
 }
 
 // ─── TABLE STATE ─────────────────────────────────────────────────────────────
@@ -1314,8 +1312,8 @@ function onOrderPaymentUpdated(payload: {
                       >
                       <span
                         class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5"
-                        :style="{ ...typeColor(order.orderType) }"
-                        >{{ typeLabel(order.orderType) }}</span
+                        :style="{ ...typeColor(order) }"
+                        >{{ typeLabel(order) }}</span
                       >
                     </div>
                     <div
@@ -1434,8 +1432,8 @@ function onOrderPaymentUpdated(payload: {
                       >
                       <span
                         class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5"
-                        :style="{ ...typeColor(order.orderType) }"
-                        >{{ typeLabel(order.orderType) }}</span
+                        :style="{ ...typeColor(order) }"
+                        >{{ typeLabel(order) }}</span
                       >
                     </div>
                     <div
@@ -1554,8 +1552,8 @@ function onOrderPaymentUpdated(payload: {
                       >
                       <span
                         class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5"
-                        :style="{ ...typeColor(order.orderType) }"
-                        >{{ typeLabel(order.orderType) }}</span
+                        :style="{ ...typeColor(order) }"
+                        >{{ typeLabel(order) }}</span
                       >
                     </div>
                     <div

@@ -1,5 +1,5 @@
 import { apiFetch } from '~/services/api.client'
-import type { CreateOrderPayload, OrderDetail, OrderFilters, OrderItem, OrdersResponse, OrderStatus, OrderType, UpdateOrderPayload } from '~/types/order.types';
+import type { CreateOrderPayload, OrderDetail, OrderFilters, OrderItem, OrdersResponse, OrderStatus, UpdateOrderPayload } from '~/types/order.types';
 
 // ─── Service ───────────────────────────────────────────────────────────────
 export const ordersService = {

@@ -1,12 +1,11 @@
 import type { CustomerItem } from "~/types/customer.types";
 
-export type OrderTypeKey = "DOMICILIO" | "VITRINA" | "FLOR" | "EVENTO";
+export type OrderModeKey = "domicilio" | "enTienda" | "evento";
 
-export const ORDER_TYPES: { key: OrderTypeKey; label: string; sub: string; icon: string }[] = [
-    { key: "DOMICILIO", label: "Domicilio", sub: "Entrega a domicilio", icon: "delivery" },
-    { key: "VITRINA", label: "En tienda", sub: "Venta en mostrador", icon: "shop" },
-    { key: "FLOR", label: "Flor", sub: "Pedido con flores", icon: "flower" },
-    { key: "EVENTO", label: "Evento", sub: "Evento especial", icon: "event" },
+export const ORDER_MODES: { key: OrderModeKey; label: string; sub: string; icon: string }[] = [
+    { key: "domicilio", label: "Domicilio", sub: "Entrega a domicilio", icon: "delivery" },
+    { key: "enTienda", label: "En tienda", sub: "Venta en mostrador", icon: "shop" },
+    { key: "evento", label: "Evento", sub: "Evento especial", icon: "event" },
 ];
 
 export const MINUTE_OPTIONS = ["00", "15", "30", "45"] as const;
@@ -35,7 +34,10 @@ export function useOrderLogistics(
     serviceCost: Ref<number>,
 ) {
     const step2 = reactive({
-        orderType: null as OrderTypeKey | null,
+        orderMode: null as OrderModeKey | null,
+        isEvento: false,
+        isEnTienda: false,
+        includesFlowers: false,
         deliveryDate: "", deliveryTime: "", deliveryRound: "",
         useCustomerAddr: false,
         newAddr: {
@@ -54,14 +56,17 @@ export function useOrderLogistics(
         saveAsCommonAddr: false, commonAddrName: "",
     });
 
-    const florMode = ref<"domicilio" | "vitrina">("domicilio");
+    function setOrderMode(mode: OrderModeKey) {
+        step2.orderMode = mode;
+        step2.isEvento = mode === "evento";
+        step2.isEnTienda = mode === "enTienda";
+    }
 
-    watch(() => step2.orderType, (type) => {
-        if (type === "VITRINA") {
+    watch(() => step2.isEnTienda, (isEnTienda) => {
+        if (isEnTienda) {
             step2.pickupBranchId = topbarBranchId.value ?? "";
             serviceCost.value = 0;
         }
-        if (type !== "FLOR") florMode.value = "domicilio";
     });
 
     watch(selectedCustomer, (c) => {
@@ -74,9 +79,7 @@ export function useOrderLogistics(
     );
 
     const needsDelivery = computed(() =>
-        step2.orderType !== null &&
-        step2.orderType !== "VITRINA" &&
-        !(step2.orderType === "FLOR" && florMode.value === "vitrina"),
+        step2.orderMode !== null && !step2.isEnTienda,
     );
 
     const pickupTimeParts = reactive({ h: 8, m: "00", p: "AM" as "AM" | "PM" });
@@ -100,13 +103,13 @@ export function useOrderLogistics(
     const deliveryTimeOutOfHours = computed(() => {
         const m = timeToMinutes(step2.deliveryTime);
         if (m < 0) return false;
-        if (step2.orderType === "EVENTO") return m < 420;
+        if (step2.isEvento) return m < 420;
         return m < 480 || m >= 1200;
     });
     const deliveryTimeWarningMsg = computed(() =>
-        step2.orderType === "EVENTO"
+        step2.isEvento
             ? "La hora del evento parece muy temprana (antes de las 7:00 AM). ¿Estás seguro?"
-            : "La hora seleccionada está fuera del horario de atención (8:00 AM\u2013\u200B7:59 PM). Por favor elige una hora dentro del rango para continuar.",
+            : "La hora seleccionada está fuera del horario de atención (8:00 AM–​7:59 PM). Por favor elige una hora dentro del rango para continuar.",
     );
     const exitTimeOutOfHours = computed(() => {
         const m = timeToMinutes(step2.eventExitTime);
@@ -129,12 +132,12 @@ export function useOrderLogistics(
     const step2AddressValid = computed(() => {
         if (!needsDelivery.value) return true;
         if (step2.useCustomerAddr) return true;
-        if (step2.orderType === "EVENTO" && step2.useCommonAddr && step2.commonAddrId) return true;
+        if (step2.isEvento && step2.useCommonAddr && step2.commonAddrId) return true;
         return !!(step2.newAddr.street.trim() && step2.newAddr.number.trim() && step2.newAddr.neighborhood.trim());
     });
 
     return {
-        step2, florMode, ORDER_TYPES, MINUTE_OPTIONS,
+        step2, ORDER_MODES, MINUTE_OPTIONS, setOrderMode,
         pickupTimeParts, deliveryTimeParts, exitTimeParts,
         customerHasAddress, customerAddressFormatted, needsDelivery,
         pickupTimeOutOfHours, deliveryTimeOutOfHours, deliveryTimeWarningMsg, exitTimeOutOfHours,
