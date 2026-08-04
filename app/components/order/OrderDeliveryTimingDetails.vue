@@ -40,11 +40,14 @@ defineProps<{
           <circle cx="5.5" cy="18.5" r="2.5" />
           <circle cx="18.5" cy="18.5" r="2.5" />
         </svg>
-        <label class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
+        <label
+          for="delivery-round"
+          class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
           >Ronda de entrega</label
         >
         <div class="relative flex-1">
           <select
+            id="delivery-round"
             v-model="step2.deliveryRound"
             class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
           >
@@ -84,11 +87,15 @@ defineProps<{
             <rect x="3" y="4" width="18" height="18" rx="2" />
             <path d="M16 2v4M8 2v4M3 10h18" />
           </svg>
-          <label class="text-[13px] font-medium text-gray-700 flex-shrink-0">
+          <label
+            for="delivery-date"
+            class="text-[13px] font-medium text-gray-700 flex-shrink-0"
+          >
             {{ step2.isEvento ? "Fecha del evento" : "Fecha de entrega" }}
             <span class="text-red-400">*</span>
           </label>
           <input
+            id="delivery-date"
             v-model="step2.deliveryDate"
             type="date"
             :min="minDeliveryDate"
@@ -106,12 +113,17 @@ defineProps<{
             <circle cx="12" cy="12" r="9" />
             <path d="M12 7v5l3 3" />
           </svg>
-          <label class="text-[13px] font-medium text-gray-700 flex-shrink-0">
+          <label
+            id="delivery-time-label"
+            class="text-[13px] font-medium text-gray-700 flex-shrink-0"
+          >
             {{ step2.isEvento ? "Hora del evento" : "Hora de entrega" }}
           </label>
           <div class="flex items-center gap-1">
             <select
               v-model.number="deliveryTimeParts.h"
+              aria-label="Hora"
+              aria-labelledby="delivery-time-label"
               class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
             >
               <option v-for="h in 12" :key="h" :value="h">
@@ -121,6 +133,8 @@ defineProps<{
             <span class="text-gray-400 text-[13px] font-medium">:</span>
             <select
               v-model="deliveryTimeParts.m"
+              aria-label="Minutos"
+              aria-labelledby="delivery-time-label"
               class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
             >
               <option v-for="m in minuteOptions" :key="m" :value="m">
@@ -129,6 +143,8 @@ defineProps<{
             </select>
             <select
               v-model="deliveryTimeParts.p"
+              aria-label="AM o PM"
+              aria-labelledby="delivery-time-label"
               class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
             >
               <option value="AM">AM</option>
@@ -173,10 +189,13 @@ defineProps<{
             <rect x="3" y="4" width="18" height="18" rx="2" />
             <path d="M16 2v4M8 2v4M3 10h18" />
           </svg>
-          <label class="text-[13px] font-medium text-gray-700 flex-shrink-0"
+          <label
+            for="event-montage-date"
+            class="text-[13px] font-medium text-gray-700 flex-shrink-0"
             >Fecha del montaje</label
           >
           <input
+            id="event-montage-date"
             v-model="step2.eventMontageDate"
             type="date"
             :min="minDeliveryDate"
@@ -194,12 +213,16 @@ defineProps<{
             <circle cx="12" cy="12" r="9" />
             <path d="M12 7v5l3 3" />
           </svg>
-          <label class="text-[13px] font-medium text-gray-700 flex-shrink-0"
+          <label
+            id="exit-time-label"
+            class="text-[13px] font-medium text-gray-700 flex-shrink-0"
             >Hora de salida</label
           >
           <div class="flex items-center gap-1">
             <select
               v-model.number="exitTimeParts.h"
+              aria-label="Hora"
+              aria-labelledby="exit-time-label"
               class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
             >
               <option v-for="h in 12" :key="h" :value="h">
@@ -209,6 +232,8 @@ defineProps<{
             <span class="text-gray-400 text-[13px] font-medium">:</span>
             <select
               v-model="exitTimeParts.m"
+              aria-label="Minutos"
+              aria-labelledby="exit-time-label"
               class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
             >
               <option v-for="m in minuteOptions" :key="m" :value="m">
@@ -217,6 +242,8 @@ defineProps<{
             </select>
             <select
               v-model="exitTimeParts.p"
+              aria-label="AM o PM"
+              aria-labelledby="exit-time-label"
               class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
             >
               <option value="AM">AM</option>

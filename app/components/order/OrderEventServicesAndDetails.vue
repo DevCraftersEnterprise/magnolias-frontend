@@ -16,16 +16,14 @@ defineProps<{
 
 <template>
   <fieldset>
-    <div class="flex items-center gap-3 mb-3">
-      <legend
-        class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide"
-      >
-        Servicios
-      </legend>
-      <span v-if="step2.deliveryDate" class="text-[12px] text-gray-400">{{
+    <legend
+      class="flex items-center gap-3 text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
+    >
+      Servicios
+      <span v-if="step2.deliveryDate" class="text-[12px] normal-case text-gray-400">{{
         step2.deliveryDate
       }}</span>
-    </div>
+    </legend>
     <div
       class="flex flex-wrap items-center gap-4 rounded-xl border border-black/10 bg-white px-5 py-4"
     >
@@ -85,10 +83,13 @@ defineProps<{
             <circle cx="9" cy="7" r="4" />
             <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
-          <label class="text-[13px] font-medium text-gray-700 flex-shrink-0"
+          <label
+            for="event-guest-count"
+            class="text-[13px] font-medium text-gray-700 flex-shrink-0"
             >Número de invitados</label
           >
           <input
+            id="event-guest-count"
             v-model.number="step2.eventGuestCount"
             type="number"
             min="1"
@@ -98,10 +99,13 @@ defineProps<{
         </div>
         <!-- Responsable del montaje -->
         <div class="flex items-center gap-2 flex-1 min-w-[220px]">
-          <label class="text-[13px] font-medium text-gray-700 flex-shrink-0"
+          <label
+            for="event-responsible-name"
+            class="text-[13px] font-medium text-gray-700 flex-shrink-0"
             >Responsable del montaje</label
           >
           <input
+            id="event-responsible-name"
             v-model="step2.eventResponsibleName"
             type="text"
             placeholder="Nombre del responsable"

@@ -36,11 +36,14 @@ defineProps<{
           />
           <circle cx="12" cy="9" r="2.5" />
         </svg>
-        <label class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
+        <label
+          for="pickup-branch"
+          class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
           >Sucursal</label
         >
         <div class="relative flex-1">
           <select
+            id="pickup-branch"
             v-model="step2.pickupBranchId"
             class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
           >
@@ -79,10 +82,13 @@ defineProps<{
             <rect x="3" y="4" width="18" height="18" rx="2" />
             <path d="M16 2v4M8 2v4M3 10h18" />
           </svg>
-          <label class="text-[13px] font-medium text-gray-700 flex-shrink-0"
+          <label
+            for="pickup-date"
+            class="text-[13px] font-medium text-gray-700 flex-shrink-0"
             >Fecha de recolección</label
           >
           <input
+            id="pickup-date"
             v-model="step2.pickupDate"
             type="date"
             :min="minDeliveryDate"
@@ -100,12 +106,16 @@ defineProps<{
             <circle cx="12" cy="12" r="9" />
             <path d="M12 7v5l3 3" />
           </svg>
-          <label class="text-[13px] font-medium text-gray-700 flex-shrink-0"
+          <label
+            id="pickup-time-label"
+            class="text-[13px] font-medium text-gray-700 flex-shrink-0"
             >Hora de recolección</label
           >
           <div class="flex items-center gap-1">
             <select
               v-model.number="pickupTimeParts.h"
+              aria-label="Hora"
+              aria-labelledby="pickup-time-label"
               class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
             >
               <option v-for="h in 12" :key="h" :value="h">
@@ -115,6 +125,8 @@ defineProps<{
             <span class="text-gray-400 text-[13px] font-medium">:</span>
             <select
               v-model="pickupTimeParts.m"
+              aria-label="Minutos"
+              aria-labelledby="pickup-time-label"
               class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
             >
               <option v-for="m in minuteOptions" :key="m" :value="m">
@@ -123,6 +135,8 @@ defineProps<{
             </select>
             <select
               v-model="pickupTimeParts.p"
+              aria-label="AM o PM"
+              aria-labelledby="pickup-time-label"
               class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
             >
               <option value="AM">AM</option>

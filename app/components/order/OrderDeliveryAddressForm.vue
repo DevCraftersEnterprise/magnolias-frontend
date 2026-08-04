@@ -60,6 +60,7 @@ defineProps<{
         <div class="relative">
           <select
             v-model="step2.commonAddrId"
+            aria-label="Dirección común"
             class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
           >
             <option value="" disabled>Selecciona dirección</option>
@@ -133,10 +134,11 @@ defineProps<{
       <template v-if="!step2.useCustomerAddr">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-[13px] font-medium text-gray-600">
+            <label for="addr-street" class="text-[13px] font-medium text-gray-600">
               Calle <span class="text-red-400">*</span>
             </label>
             <input
+              id="addr-street"
               v-model="step2.newAddr.street"
               type="text"
               placeholder="Av. Principal"
@@ -144,10 +146,11 @@ defineProps<{
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-[13px] font-medium text-gray-600">
+            <label for="addr-number" class="text-[13px] font-medium text-gray-600">
               Número exterior <span class="text-red-400">*</span>
             </label>
             <input
+              id="addr-number"
               v-model="step2.newAddr.number"
               type="text"
               placeholder="123"
@@ -155,10 +158,11 @@ defineProps<{
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-[13px] font-medium text-gray-600">
+            <label for="addr-neighborhood" class="text-[13px] font-medium text-gray-600">
               Colonia <span class="text-red-400">*</span>
             </label>
             <input
+              id="addr-neighborhood"
               v-model="step2.newAddr.neighborhood"
               type="text"
               placeholder="Col. Centro"
@@ -166,10 +170,11 @@ defineProps<{
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-[13px] font-medium text-gray-600"
+            <label for="addr-city" class="text-[13px] font-medium text-gray-600"
               >Ciudad</label
             >
             <input
+              id="addr-city"
               v-model="step2.newAddr.city"
               type="text"
               placeholder="CDMX"
@@ -177,10 +182,11 @@ defineProps<{
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-[13px] font-medium text-gray-600"
+            <label for="addr-postal-code" class="text-[13px] font-medium text-gray-600"
               >Código postal</label
             >
             <input
+              id="addr-postal-code"
               v-model="step2.newAddr.postalCode"
               type="text"
               maxlength="5"
@@ -193,10 +199,11 @@ defineProps<{
         <!-- Additional address fields -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           <div class="flex flex-col gap-1">
-            <label class="text-[13px] font-medium text-gray-600"
+            <label for="addr-between-streets" class="text-[13px] font-medium text-gray-600"
               >Entre calles</label
             >
             <input
+              id="addr-between-streets"
               v-model="step2.newAddr.betweenStreets"
               type="text"
               placeholder="Entre Av. A y Av. B"
@@ -204,10 +211,11 @@ defineProps<{
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-[13px] font-medium text-gray-600"
+            <label for="addr-interphone-code" class="text-[13px] font-medium text-gray-600"
               >Código de interfón</label
             >
             <input
+              id="addr-interphone-code"
               v-model="step2.newAddr.interphoneCode"
               type="text"
               placeholder="#1234"
@@ -215,10 +223,11 @@ defineProps<{
             />
           </div>
           <div class="flex flex-col gap-1 sm:col-span-2">
-            <label class="text-[13px] font-medium text-gray-600"
+            <label for="addr-reference" class="text-[13px] font-medium text-gray-600"
               >Referencia</label
             >
             <input
+              id="addr-reference"
               v-model="step2.newAddr.reference"
               type="text"
               placeholder="Casa color azul, junto a la tienda..."
@@ -242,10 +251,11 @@ defineProps<{
             >
           </label>
           <div v-if="step2.saveAsCommonAddr" class="flex flex-col gap-1">
-            <label class="text-[13px] font-medium text-gray-600"
+            <label for="addr-common-name" class="text-[13px] font-medium text-gray-600"
               >Nombre del lugar</label
             >
             <input
+              id="addr-common-name"
               v-model="step2.commonAddrName"
               type="text"
               placeholder="Ej. Salón La Estancia"
@@ -272,10 +282,11 @@ defineProps<{
       </p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="flex flex-col gap-1">
-          <label class="text-[13px] font-medium text-gray-600"
+          <label for="addr-receiver-name" class="text-[13px] font-medium text-gray-600"
             >Nombre de quien recibe</label
           >
           <input
+            id="addr-receiver-name"
             v-model="step2.receiverName"
             type="text"
             placeholder="Nombre del receptor"
@@ -283,10 +294,11 @@ defineProps<{
           />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-[13px] font-medium text-gray-600"
+          <label for="addr-receiver-phone" class="text-[13px] font-medium text-gray-600"
             >Teléfono de quien recibe</label
           >
           <input
+            id="addr-receiver-phone"
             :value="step2.receiverPhone"
             @input="onPhoneInput($event, (v) => (step2.receiverPhone = v))"
             @keydown="
@@ -319,10 +331,11 @@ defineProps<{
           </p>
         </div>
         <div class="flex flex-col gap-1 sm:col-span-2">
-          <label class="text-[13px] font-medium text-gray-600"
+          <label for="addr-delivery-notes" class="text-[13px] font-medium text-gray-600"
             >Indicaciones para el repartidor</label
           >
           <textarea
+            id="addr-delivery-notes"
             v-model="step2.deliveryNotes"
             rows="2"
             placeholder="Instrucciones especiales para la entrega..."
