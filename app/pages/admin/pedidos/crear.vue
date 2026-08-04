@@ -127,8 +127,8 @@ async function onEmployeePinSubmit(pin: string) {
 
 const {
   step2,
-  florMode,
-  ORDER_TYPES,
+  setOrderMode,
+  ORDER_MODES,
   MINUTE_OPTIONS,
   pickupTimeParts,
   deliveryTimeParts,
@@ -169,19 +169,12 @@ if (typeof window !== "undefined") {
 }
 
 // ─── Step 4 summary helpers ────────────────────────────────────────────────────
-const TYPE_LABELS: Record<string, string> = {
-  DOMICILIO: "Domicilio",
-  VITRINA: "En tienda",
-  FLOR: "Flor",
-  EVENTO: "Evento",
-};
-
 const step4PickupBranchName = computed(
   () => branches.value.find((b) => b.id === step2.pickupBranchId)?.name ?? "",
 );
 
 const step4DeliveryAddr = computed(() => {
-  if (step2.orderType === "VITRINA") return "";
+  if (step2.isEnTienda) return "";
   const a = step2.useCustomerAddr
     ? selectedCustomer.value?.address
     : step2.newAddr;
@@ -200,33 +193,21 @@ const step4DeliveryAddr = computed(() => {
 const canNext = computed(() => {
   if (step.value === 1) return !!selectedCustomer.value;
   if (step.value === 2) {
-    if (!step2.orderType) return false;
-    if (step2.orderType === "VITRINA") {
+    if (!step2.orderMode) return false;
+    if (
+      step2.includesFlowers &&
+      !flowerRows.value.some(
+        (r) => r.flowerId && r.colorId && Number(r.quantity) > 0,
+      )
+    )
+      return false;
+    if (step2.isEnTienda) {
       if (pickupTimeOutOfHours.value) return false;
       return !!(step2.pickupBranchId && step2.pickupDate);
     }
-    if (step2.orderType === "FLOR" && florMode.value === "vitrina") {
-      if (pickupTimeOutOfHours.value) return false;
-      if (!step2.pickupBranchId || !step2.pickupDate) return false;
-      if (
-        !flowerRows.value.some(
-          (r) => r.flowerId && r.colorId && Number(r.quantity) > 0,
-        )
-      )
-        return false;
-      return true;
-    }
     if (!step2.deliveryDate) return false;
     if (!step2AddressValid.value) return false;
-    if (step2.orderType === "FLOR" && florMode.value === "domicilio") {
-      if (
-        !flowerRows.value.some(
-          (r) => r.flowerId && r.colorId && Number(r.quantity) > 0,
-        )
-      )
-        return false;
-    }
-    if (step2.orderType !== "EVENTO") {
+    if (!step2.isEvento) {
       if (deliveryTimeOutOfHours.value) return false;
     }
     return true;
@@ -260,9 +241,7 @@ async function submitOrder() {
 
   try {
     const cust = selectedCustomer.value!;
-    const isVitrina =
-      step2.orderType === "VITRINA" ||
-      (step2.orderType === "FLOR" && florMode.value === "vitrina");
+    const isVitrina = step2.isEnTienda;
     const branchId = isVitrina
       ? step2.pickupBranchId || (topbarBranch.value?.id ?? "")
       : (topbarBranch.value?.id ?? "");
@@ -275,7 +254,7 @@ async function submitOrder() {
       return;
     }
 
-    const isEvento = step2.orderType === "EVENTO";
+    const isEvento = step2.isEvento;
 
     const deliveryDateISO = isVitrina
       ? step2.pickupDate
@@ -386,17 +365,16 @@ async function submitOrder() {
           : undefined,
     }));
 
-    const flowersPayload =
-      step2.orderType === "FLOR" || isEvento
-        ? flowerRows.value
-            .filter((f) => f.flowerId)
-            .map((f) => ({
-              flowerId: f.flowerId,
-              colorId: f.colorId || undefined,
-              quantity: Number(f.quantity) || 1,
-              notes: f.note || undefined,
-            }))
-        : undefined;
+    const flowersPayload = step2.includesFlowers
+      ? flowerRows.value
+          .filter((f) => f.flowerId)
+          .map((f) => ({
+            flowerId: f.flowerId,
+            colorId: f.colorId || undefined,
+            quantity: Number(f.quantity) || 1,
+            notes: f.note || undefined,
+          }))
+      : undefined;
 
     const collectionDateTime =
       isVitrina && step2.pickupDate
@@ -404,7 +382,9 @@ async function submitOrder() {
         : undefined;
 
     const payload: CreateOrderPayload = {
-      orderType: step2.orderType!,
+      isEvento: step2.isEvento,
+      isEnTienda: step2.isEnTienda,
+      includesFlowers: step2.includesFlowers,
       customerId: cust.id,
       branchId,
       advancePayment,
@@ -430,10 +410,6 @@ async function submitOrder() {
       eventServices:
         isEvento && eventServicesList.length ? eventServicesList : undefined,
       setupServiceCost: serviceCost.value || undefined,
-      isCustomerPickup:
-        step2.orderType === "FLOR" && florMode.value === "vitrina"
-          ? true
-          : undefined,
       hasPhotoReference: orderProducts.value.some((r) => r.referenceFiles.length > 0),
       requiresInvoice: step4.requiresInvoice || undefined,
       deliveryAddress,
@@ -1120,22 +1096,22 @@ function next() {
             >
               Tipo de pedido
             </legend>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="grid grid-cols-3 gap-3">
               <button
-                v-for="t in ORDER_TYPES"
+                v-for="t in ORDER_MODES"
                 :key="t.key"
                 type="button"
-                @click="step2.orderType = t.key"
+                @click="setOrderMode(t.key)"
                 :class="[
                   'relative flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-4 transition-all',
-                  step2.orderType === t.key
+                  step2.orderMode === t.key
                     ? 'border-[#FC9AD3] bg-pink-50 shadow-sm'
                     : 'border-black/10 hover:border-[#FC9AD3]/60 hover:bg-pink-50/40',
                 ]"
               >
                 <!-- Checkmark badge -->
                 <span
-                  v-if="step2.orderType === t.key"
+                  v-if="step2.orderMode === t.key"
                   class="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#FC9AD3]"
                 >
                   <svg
@@ -1157,7 +1133,6 @@ function next() {
                 <span class="text-2xl leading-none select-none">
                   <template v-if="t.icon === 'delivery'">🛵</template>
                   <template v-else-if="t.icon === 'shop'">🏪</template>
-                  <template v-else-if="t.icon === 'flower'">🌸</template>
                   <template v-else-if="t.icon === 'event'">🎉</template>
                   <template v-else>📦</template>
                 </span>
@@ -1172,10 +1147,24 @@ function next() {
                 >
               </button>
             </div>
+
+            <!-- Incluye flores: check independiente, combinable con cualquier modo -->
+            <label
+              class="mt-4 flex items-center gap-2 cursor-pointer select-none w-fit"
+            >
+              <input
+                type="checkbox"
+                v-model="step2.includesFlowers"
+                class="h-4 w-4 rounded accent-[#FC9AD3]"
+              />
+              <span class="text-[13px] font-medium text-gray-700"
+                >🌸 Incluye flores</span
+              >
+            </label>
           </fieldset>
 
-          <!-- ── Vitrina: Logística de Recolección ──────────────────────── -->
-          <fieldset v-if="step2.orderType === 'VITRINA'" class="space-y-0">
+          <!-- ── En tienda: Logística de Recolección ──────────────────────── -->
+          <fieldset v-if="step2.isEnTienda" class="space-y-0">
             <legend
               class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
             >
@@ -1323,186 +1312,7 @@ function next() {
             </div>
           </fieldset>
 
-          <!-- ── FLOR: modo de entrega ──────────────────────────────────────── -->
-          <fieldset v-if="step2.orderType === 'FLOR'" class="space-y-3">
-            <legend
-              class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-            >
-              Modo de entrega
-            </legend>
-            <div class="flex gap-6">
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="radio"
-                  v-model="florMode"
-                  value="domicilio"
-                  class="accent-[#FC9AD3]"
-                />
-                <span class="text-[13px] font-medium text-gray-700"
-                  >🛵 Domicilio</span
-                >
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="radio"
-                  v-model="florMode"
-                  value="vitrina"
-                  class="accent-[#FC9AD3]"
-                />
-                <span class="text-[13px] font-medium text-gray-700"
-                  >🏪 Recolección en sucursal</span
-                >
-              </label>
-            </div>
-
-            <!-- FLOR vitrina: pickup form (same as VITRINA type) -->
-            <template v-if="florMode === 'vitrina'">
-              <div
-                class="divide-y divide-black/8 rounded-xl border border-black/10 overflow-hidden"
-              >
-                <!-- Sucursal -->
-                <div class="flex items-center gap-3 px-4 py-3 bg-white">
-                  <svg
-                    viewBox="0 0 24 24"
-                    class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                  >
-                    <path
-                      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                      stroke-linejoin="round"
-                    />
-                    <circle cx="12" cy="9" r="2.5" />
-                  </svg>
-                  <label
-                    class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
-                    >Sucursal</label
-                  >
-                  <div class="relative flex-1">
-                    <select
-                      v-model="step2.pickupBranchId"
-                      class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                    >
-                      <option value="" disabled>Selecciona sucursal</option>
-                      <option v-for="b in branches" :key="b.id" :value="b.id">
-                        {{ b.name }}
-                      </option>
-                    </select>
-                    <svg
-                      class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <path
-                        d="M6 9l6 6 6-6"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <!-- Fecha + Hora -->
-                <div
-                  class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 bg-white"
-                >
-                  <div class="flex items-center gap-3">
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                    >
-                      <rect x="3" y="4" width="18" height="18" rx="2" />
-                      <path d="M16 2v4M8 2v4M3 10h18" />
-                    </svg>
-                    <label
-                      class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                      >Fecha de recolección</label
-                    >
-                    <input
-                      v-model="step2.pickupDate"
-                      type="date"
-                      :min="minDeliveryDate"
-                      class="rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                    />
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                    >
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M12 7v5l3 3" />
-                    </svg>
-                    <label
-                      class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                      >Hora de recolección</label
-                    >
-                    <div class="flex items-center gap-1">
-                      <select
-                        v-model.number="pickupTimeParts.h"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option v-for="h in 12" :key="h" :value="h">
-                          {{ h }}
-                        </option>
-                      </select>
-                      <span class="text-gray-400 text-[13px] font-medium"
-                        >:</span
-                      >
-                      <select
-                        v-model="pickupTimeParts.m"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option v-for="m in MINUTE_OPTIONS" :key="m" :value="m">
-                          {{ m }}
-                        </option>
-                      </select>
-                      <select
-                        v-model="pickupTimeParts.p"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div
-                    v-if="pickupTimeOutOfHours"
-                    class="w-full flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="h-4 w-4 shrink-0 mt-0.5 text-amber-500"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span
-                      >La hora seleccionada está fuera del horario de atención
-                      <strong>(8:00 AM – 7:59 PM)</strong>. Por favor elige una
-                      hora dentro del rango para continuar.</span
-                    >
-                  </div>
-                </div>
-              </div>
-            </template>
-          </fieldset>
-
-          <!-- ── Detalles de la entrega (DOMICILIO / FLOR / EVENTO / PERSONALIZADO) ── -->
+          <!-- ── Detalles de la entrega (domicilio / evento) ── -->
           <template v-if="needsDelivery">
             <!-- Logística / Detalles de la entrega -->
             <fieldset class="space-y-0">
@@ -1510,7 +1320,7 @@ function next() {
                 class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
               >
                 {{
-                  step2.orderType === "EVENTO"
+                  step2.isEvento
                     ? "Logística del evento"
                     : "Detalles de la entrega"
                 }}
@@ -1581,7 +1391,7 @@ function next() {
                       class="text-[13px] font-medium text-gray-700 flex-shrink-0"
                     >
                       {{
-                        step2.orderType === "EVENTO"
+                        step2.isEvento
                           ? "Fecha del evento"
                           : "Fecha de entrega"
                       }}
@@ -1609,7 +1419,7 @@ function next() {
                       class="text-[13px] font-medium text-gray-700 flex-shrink-0"
                     >
                       {{
-                        step2.orderType === "EVENTO"
+                        step2.isEvento
                           ? "Hora del evento"
                           : "Hora de entrega"
                       }}
@@ -1666,7 +1476,7 @@ function next() {
 
                 <!-- Hora del montaje + Hora de salida (EVENTO) -->
                 <div
-                  v-if="step2.orderType === 'EVENTO'"
+                  v-if="step2.isEvento"
                   class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 bg-white"
                 >
                   <div class="flex items-center gap-3">
@@ -1770,7 +1580,7 @@ function next() {
               </legend>
 
               <!-- EVENTO: selector de dirección común (salón de fiestas) -->
-              <template v-if="step2.orderType === 'EVENTO'">
+              <template v-if="step2.isEvento">
                 <label
                   class="flex items-center gap-2.5 cursor-pointer select-none"
                 >
@@ -1818,7 +1628,7 @@ function next() {
 
               <!-- Checkbox: usar dirección del cliente (oculto para EVENTO con dirección común) -->
               <template
-                v-if="!(step2.orderType === 'EVENTO' && step2.useCommonAddr)"
+                v-if="!(step2.isEvento && step2.useCommonAddr)"
               >
                 <label
                   :class="[
@@ -1961,7 +1771,7 @@ function next() {
                   </div>
 
                   <!-- EVENTO: guardar como dirección común -->
-                  <template v-if="step2.orderType === 'EVENTO'">
+                  <template v-if="step2.isEvento">
                     <label
                       class="flex items-center gap-2.5 cursor-pointer select-none mt-1"
                     >
@@ -1997,7 +1807,7 @@ function next() {
                 v-if="
                   step2.useCustomerAddr ||
                   (step2.newAddr.street && step2.newAddr.number) ||
-                  (step2.orderType === 'EVENTO' &&
+                  (step2.isEvento &&
                     step2.useCommonAddr &&
                     step2.commonAddrId)
                 "
@@ -2076,8 +1886,8 @@ function next() {
             </fieldset>
           </template>
 
-          <!-- ── Flores del Pedido (sólo FLOR) ──────────────────────── -->
-          <fieldset v-if="step2.orderType === 'FLOR'">
+          <!-- ── Flores del Pedido (solo si includesFlowers) ──────────────────────── -->
+          <fieldset v-if="step2.includesFlowers">
             <div class="flex items-center gap-2 mb-3">
               <legend
                 class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide"
@@ -2253,7 +2063,7 @@ function next() {
           </fieldset>
 
           <!-- ── Servicios (EVENTO) ─────────────────────────────────────── -->
-          <fieldset v-if="step2.orderType === 'EVENTO'">
+          <fieldset v-if="step2.isEvento">
             <div class="flex items-center gap-3 mb-3">
               <legend
                 class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide"
@@ -2305,7 +2115,7 @@ function next() {
           </fieldset>
 
           <!-- ── Detalles del Evento (EVENTO) ──────────────────────────── -->
-          <fieldset v-if="step2.orderType === 'EVENTO'">
+          <fieldset v-if="step2.isEvento">
             <legend
               class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
             >
@@ -3356,7 +3166,7 @@ function next() {
             <!-- Costo por servicio -->
             <div
               :class="
-                step2.orderType === 'VITRINA'
+                step2.isEnTienda
                   ? 'opacity-40 pointer-events-none select-none'
                   : ''
               "
@@ -3364,7 +3174,7 @@ function next() {
               <p class="text-[14px] font-semibold text-[#111827] mb-2">
                 Costo por servicio
                 <span
-                  v-if="step2.orderType === 'VITRINA'"
+                  v-if="step2.isEnTienda"
                   class="ml-2 text-[11px] font-normal text-gray-400"
                   >(no aplica en tienda)</span
                 >
@@ -3382,7 +3192,7 @@ function next() {
                   min="0"
                   v-model.number="serviceCost"
                   placeholder="0.00"
-                  :disabled="step2.orderType === 'VITRINA'"
+                  :disabled="step2.isEnTienda"
                   class="flex-1 bg-transparent px-3 text-[13px] font-semibold text-[#111827] outline-none"
                 />
               </div>
@@ -3554,7 +3364,7 @@ function next() {
           <!-- Flowers list (FLOR orders) -->
           <div
             v-if="
-              step2.orderType === 'FLOR' && flowerRows.some((r) => r.flowerId)
+              step2.includesFlowers && flowerRows.some((r) => r.flowerId)
             "
             class="border-t border-black/5 px-5 py-3 space-y-1.5"
           >
@@ -3859,7 +3669,7 @@ function next() {
 
         <!-- Row 2 (step 4 only): logistics summary -->
         <div
-          v-if="step === 4 && step2.orderType"
+          v-if="step === 4 && step2.orderMode"
           class="border-t border-black/8 pt-2 flex flex-wrap gap-x-6 gap-y-1.5"
         >
           <!-- Order type badge -->
@@ -3867,17 +3677,18 @@ function next() {
             <span
               class="inline-block rounded-full bg-[#FC9AD3]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#C9007C]"
             >
-              {{ TYPE_LABELS[step2.orderType] ?? step2.orderType }}
+              {{ getOrderTypeLabel(step2) }}
+            </span>
+            <span
+              v-if="step2.includesFlowers"
+              class="inline-block rounded-full bg-[#FFBEE6]/40 px-2.5 py-0.5 text-[11px] font-semibold text-[#C9007C]"
+            >
+              🌸 Flores
             </span>
           </div>
 
-          <!-- VITRINA or FLOR-vitrina: pickup branch + date/time -->
-          <template
-            v-if="
-              step2.orderType === 'VITRINA' ||
-              (step2.orderType === 'FLOR' && florMode === 'vitrina')
-            "
-          >
+          <!-- En tienda: pickup branch + date/time -->
+          <template v-if="step2.isEnTienda">
             <div class="flex items-center gap-1.5">
               <svg
                 viewBox="0 0 24 24"

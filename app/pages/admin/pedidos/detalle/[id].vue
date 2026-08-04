@@ -3,7 +3,7 @@ definePageMeta({ layout: "admin", pageTitle: "Detalle de pedido" });
 useHead({ title: "Detalle de pedido · Magnolias" });
 
 import { ordersService } from "~/services/orders.service";
-import type { OrderDetail, OrderStatus, OrderType } from "~/types/order.types";
+import type { OrderDetail, OrderStatus } from "~/types/order.types";
 import { useToast } from "vue-toastification";
 
 const route = useRoute();
@@ -129,13 +129,11 @@ function resetZoom() {
 watch(lightboxSrc, () => resetZoom());
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-function typeColor(t?: OrderType) {
-  return t
-    ? (TYPE_COLORS[t] ?? { bg: "#eee", text: "#333" })
-    : { bg: "#eee", text: "#333" };
+function typeColor(o: { isEvento?: boolean; isEnTienda?: boolean }) {
+  return getOrderTypeColor(o);
 }
-function typeLabel(t?: OrderType) {
-  return t ? (TYPE_LABELS[t] ?? t) : "—";
+function typeLabel(o: { isEvento?: boolean; isEnTienda?: boolean }) {
+  return getOrderTypeLabel(o);
 }
 function roundLabel(r?: string | null) {
   return r ? (DELIVERY_ROUND_LABELS[r] ?? r) : "—";
@@ -208,8 +206,8 @@ function roundLabel(r?: string | null) {
               >
               <span
                 class="inline-flex rounded-full px-3 py-1 text-[12px] font-semibold ring-1 ring-black/5"
-                :style="{ ...typeColor(order.orderType) }"
-                >{{ typeLabel(order.orderType) }}</span
+                :style="{ ...typeColor(order) }"
+                >{{ typeLabel(order) }}</span
               >
               <span
                 v-if="order.isCustomerPickup"

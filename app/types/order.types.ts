@@ -1,5 +1,4 @@
 export type OrderStatus = 'CREATED' | 'IN PROCESS' | 'DONE' | 'DELIVERED' | 'CANCELED';
-export type OrderType = 'DOMICILIO' | 'EVENTO' | 'VITRINA' | 'PERSONALIZADO' | 'FLOR';
 export type ProductSize = '10P' | '15P' | '20P' | '25P' | '30P' | '40P' | '50P' | 'CUSTOM';
 
 export type OrderDeliveryAddress = {
@@ -56,7 +55,9 @@ export type OrderAssignment = {
 export type OrderItem = {
     id: string;
     orderCode: string;
-    orderType?: OrderType;
+    isEvento?: boolean;
+    isEnTienda?: boolean;
+    includesFlowers?: boolean;
     deliveryDate: string;
     deliveryTime?: string;
     totalAmount: string;
@@ -187,7 +188,9 @@ export type OrderPayment = {
 
 export type OrderDetail = {
     id: string;
-    orderType: OrderType;
+    isEvento: boolean;
+    isEnTienda: boolean;
+    includesFlowers: boolean;
     orderCode: string;
     deliveryRound?: string | null;
     deliveryDate: string;
@@ -251,7 +254,9 @@ export type UpdateOrderDetailPayload = {
 
 export type UpdateOrderPayload = {
     id: string;
-    orderType?: OrderType;
+    isEvento?: boolean;
+    isEnTienda?: boolean;
+    includesFlowers?: boolean;
     customerId?: string;
     branchId?: string;
     advancePayment?: number;
@@ -336,7 +341,9 @@ export type CreateOrderDeliveryAddress = {
 }
 
 export type CreateOrderPayload = {
-    orderType: OrderType;
+    isEvento?: boolean;
+    isEnTienda?: boolean;
+    includesFlowers?: boolean;
     customerId: string;
     branchId: string;
     advancePayment: number;
@@ -346,9 +353,9 @@ export type CreateOrderPayload = {
     deliveryTime?: string;
     readyTime?: string;
     deliveryRound?: string;
-    // VITRINA / FLOR-vitrina pickup
+    // isEnTienda pickup
     collectionDateTime?: string;
-    // EVENTO
+    // isEvento
     eventTime?: string;
     setupTime?: string;
     branchDepartureTime?: string;

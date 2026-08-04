@@ -1,4 +1,4 @@
-import type { OrderType, OrderStatus, ProductSize } from '~/types/order.types'
+import type { OrderStatus, ProductSize } from '~/types/order.types'
 
 export const PRODUCT_SIZE_LABELS: Record<ProductSize, string> = {
     '10P': '10 P',
@@ -11,15 +11,21 @@ export const PRODUCT_SIZE_LABELS: Record<ProductSize, string> = {
     CUSTOM: 'Personalizado',
 }
 
-// VITRINA se muestra al usuario como "En tienda" — el valor interno del
-// enum OrderType no cambia, solo su etiqueta visible.
-export const TYPE_LABELS: Record<OrderType, string> = {
-    DOMICILIO: 'Domicilio',
-    EVENTO: 'Evento',
-    VITRINA: 'En tienda',
-    PERSONALIZADO: 'Personalizado',
-    FLOR: 'Flor',
+type OrderTypeFlags = { isEvento?: boolean; isEnTienda?: boolean };
+
+export function getOrderTypeLabel(order: OrderTypeFlags): string {
+    if (order.isEvento) return 'Evento';
+    if (order.isEnTienda) return 'En tienda';
+    return 'Domicilio';
 }
+
+export function getOrderTypeColor(order: OrderTypeFlags): { bg: string; text: string } {
+    if (order.isEvento) return { bg: '#AAE9FA', text: '#007C8A' };
+    if (order.isEnTienda) return { bg: '#D9D9D9', text: '#555555' };
+    return { bg: '#E6ABFA', text: '#7C00C9' };
+}
+
+export const FLOWERS_BADGE_COLOR = { bg: '#FFBEE6', text: '#C9007C' };
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
     'CREATED': 'Creado',
@@ -27,14 +33,6 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
     'DONE': 'Finalizado',
     'DELIVERED': 'Entregado',
     'CANCELED': 'Cancelado',
-}
-
-export const TYPE_COLORS: Record<OrderType, { bg: string; text: string }> = {
-    DOMICILIO: { bg: '#E6ABFA', text: '#7C00C9' },
-    EVENTO: { bg: '#AAE9FA', text: '#007C8A' },
-    VITRINA: { bg: '#D9D9D9', text: '#555555' },
-    PERSONALIZADO: { bg: '#FFD9B9', text: '#C94A00' },
-    FLOR: { bg: '#FFBEE6', text: '#C9007C' },
 }
 
 export const STATUS_COLORS: Record<OrderStatus, { bg: string; text: string }> = {
