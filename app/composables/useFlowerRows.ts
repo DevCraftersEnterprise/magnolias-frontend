@@ -5,6 +5,19 @@ export type FlowerRow = {
     note: string;
 };
 
+export function buildFlowersPayload(includesFlowers: boolean, flowerRows: FlowerRow[]) {
+    if (!includesFlowers) return undefined;
+
+    return flowerRows
+        .filter((f) => f.flowerId)
+        .map((f) => ({
+            flowerId: f.flowerId,
+            colorId: f.colorId || undefined,
+            quantity: Number(f.quantity) || 1,
+            notes: f.note || undefined,
+        }));
+}
+
 export function useFlowerRows() {
     const flowerRows = ref<FlowerRow[]>([
         { flowerId: "", colorId: "", quantity: "", note: "" },

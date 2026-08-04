@@ -365,16 +365,10 @@ async function submitOrder() {
           : undefined,
     }));
 
-    const flowersPayload = step2.includesFlowers
-      ? flowerRows.value
-          .filter((f) => f.flowerId)
-          .map((f) => ({
-            flowerId: f.flowerId,
-            colorId: f.colorId || undefined,
-            quantity: Number(f.quantity) || 1,
-            notes: f.note || undefined,
-          }))
-      : undefined;
+    const flowersPayload = buildFlowersPayload(
+      step2.includesFlowers,
+      flowerRows.value,
+    );
 
     const collectionDateTime =
       isVitrina && step2.pickupDate
