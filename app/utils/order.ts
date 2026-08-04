@@ -25,6 +25,12 @@ export function getOrderTypeColor(order: OrderTypeFlags): { bg: string; text: st
     return { bg: '#E6ABFA', text: '#7C00C9' };
 }
 
+export function getOrderMode(order: OrderTypeFlags): 'evento' | 'enTienda' | 'domicilio' {
+    if (order.isEvento) return 'evento';
+    if (order.isEnTienda) return 'enTienda';
+    return 'domicilio';
+}
+
 export const FLOWERS_BADGE_COLOR = { bg: '#FFBEE6', text: '#C9007C' };
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {

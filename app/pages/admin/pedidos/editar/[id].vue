@@ -11,6 +11,7 @@ import type {
   UpdateOrderPayload,
 } from "~/types/order.types";
 import { useToast } from "vue-toastification";
+import OrderModeSelector from "~/components/order/OrderModeSelector.vue";
 
 const router = useRouter();
 const routeP = useRoute();
@@ -179,7 +180,6 @@ async function onEmployeePinSubmit(pin: string) {
 const {
   step2,
   setOrderMode,
-  ORDER_MODES,
   MINUTE_OPTIONS,
   pickupTimeParts,
   deliveryTimeParts,
@@ -298,7 +298,7 @@ function populateFromOrder(order: OrderDetail) {
   }
 
   // Order type
-  setOrderMode(order.isEvento ? "evento" : order.isEnTienda ? "enTienda" : "domicilio");
+  setOrderMode(getOrderMode(order));
   step2.includesFlowers = order.includesFlowers;
 
   // Branch
@@ -1076,73 +1076,12 @@ function next() {
           </div>
           <div class="px-6 py-6 space-y-8">
             <!-- Tipo de pedido -->
-            <fieldset>
-              <legend
-                class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-              >
-                Tipo de pedido
-              </legend>
-              <div class="grid grid-cols-3 gap-3">
-                <button
-                  v-for="t in ORDER_MODES"
-                  :key="t.key"
-                  type="button"
-                  @click="setOrderMode(t.key)"
-                  :class="[
-                    'relative flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-4 transition-all',
-                    step2.orderMode === t.key
-                      ? 'border-[#FC9AD3] bg-pink-50 shadow-sm'
-                      : 'border-black/10 hover:border-[#FC9AD3]/60 hover:bg-pink-50/40',
-                  ]"
-                >
-                  <span
-                    v-if="step2.orderMode === t.key"
-                    class="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#FC9AD3]"
-                  >
-                    <svg
-                      viewBox="0 0 12 12"
-                      class="h-2.5 w-2.5"
-                      fill="none"
-                      stroke="white"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M2 6l3 3 5-5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </span>
-                  <span class="text-2xl leading-none select-none">
-                    <template v-if="t.icon === 'delivery'">🛵</template>
-                    <template v-else-if="t.icon === 'shop'">🏪</template>
-                    <template v-else-if="t.icon === 'event'">🎉</template>
-                  </span>
-                  <span
-                    class="text-[13px] font-semibold text-[#111827] text-center"
-                    >{{ t.label }}</span
-                  >
-                  <span
-                    class="text-[11px] text-gray-400 text-center leading-tight"
-                    >{{ t.sub }}</span
-                  >
-                </button>
-              </div>
-
-              <!-- Incluye flores: check independiente, combinable con cualquier modo -->
-              <label
-                class="mt-4 flex items-center gap-2 cursor-pointer select-none w-fit"
-              >
-                <input
-                  type="checkbox"
-                  v-model="step2.includesFlowers"
-                  class="h-4 w-4 rounded accent-[#FC9AD3]"
-                />
-                <span class="text-[13px] font-medium text-gray-700"
-                  >🌸 Incluye flores</span
-                >
-              </label>
-            </fieldset>
+            <OrderModeSelector
+              :order-mode="step2.orderMode"
+              :includes-flowers="step2.includesFlowers"
+              @select-mode="setOrderMode"
+              @update:includes-flowers="step2.includesFlowers = $event"
+            />
 
             <!-- En tienda: Recolección -->
             <fieldset v-if="step2.isEnTienda">
