@@ -28,6 +28,59 @@ export type OrderProductRow = {
 
 export const MIN_TIERS = 2;
 
+/**
+ * Mapea un TierRow (estado del formulario) al payload de un piso que espera
+ * el backend. Compartido entre crear.vue y editar.vue para no duplicar esta
+ * lógica en ambas páginas del wizard.
+ */
+export function mapTierToPayload(tier: TierRow, index: number) {
+    return {
+        position: index + 1,
+        productSize: tier.sizeId || undefined,
+        customSize:
+            tier.sizeId === "CUSTOM" ? tier.customSize || undefined : undefined,
+        breadTypeId: tier.breadId || undefined,
+        fillingId: tier.fillingId || undefined,
+        frostingId: tier.frostingId || undefined,
+        colorId: tier.colorId || undefined,
+    };
+}
+
+/**
+ * Mapea un OrderProductRow (estado del formulario) al payload de un detalle
+ * de pedido que espera el backend, sin incluir `discountPercent` (su regla
+ * difiere entre crear.vue y editar.vue - cada página lo agrega aparte).
+ * Compartido entre ambas páginas del wizard.
+ */
+export function buildOrderDetailPayload(row: OrderProductRow) {
+    return {
+        productId: row.product.id,
+        price: row.price,
+        quantity: row.qty,
+        productSize: row.hasTiers ? undefined : row.sizeId || undefined,
+        customSize:
+            !row.hasTiers && row.sizeId === "CUSTOM"
+                ? row.customSize || undefined
+                : undefined,
+        hasWriting: row.withText,
+        writingText: row.withText && row.text ? row.text : undefined,
+        writingLocation:
+            row.withText && row.textLocation ? row.textLocation : undefined,
+        pipingLocation:
+            row.mangaStyle && row.mangaStyle !== "NONE" ? row.mangaStyle : undefined,
+        decorationNotes: row.mangaNotes || undefined,
+        notes: row.notes || undefined,
+        breadTypeId: row.hasTiers ? undefined : row.breadId || undefined,
+        colorId: row.hasTiers ? undefined : row.colorId || undefined,
+        fillingId: row.hasTiers ? undefined : row.fillingId || undefined,
+        frostingId: row.hasTiers ? undefined : row.frostingId || undefined,
+        styleId: row.styleId || undefined,
+        referenceFiles:
+            row.referenceFiles.length > 0 ? row.referenceFiles : undefined,
+        tiers: row.hasTiers ? row.tiers.map(mapTierToPayload) : undefined,
+    };
+}
+
 export const MAX_REFERENCE_IMAGES_PER_ROW = 10;
 
 export const UBICACION_OPTIONS = [

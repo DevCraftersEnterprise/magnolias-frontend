@@ -10,7 +10,13 @@ vi.mock('~/services/products.service', () => ({
     getProductImageUrl: vi.fn(),
 }))
 
-import { useProductBuilder } from './useProductBuilder'
+import {
+    buildOrderDetailPayload,
+    mapTierToPayload,
+    useProductBuilder,
+    type OrderProductRow,
+    type TierRow,
+} from './useProductBuilder'
 
 function setup() {
     const colorCatalog = ref<{ id: string; name: string; value: string }[]>([])
@@ -423,5 +429,130 @@ describe('useProductBuilder', () => {
 
             expect(productResults.value).toEqual([])
         })
+    })
+})
+
+function baseTier(overrides: Partial<TierRow> = {}): TierRow {
+    return {
+        localId: 'tier-1',
+        position: 1,
+        sizeId: '',
+        customSize: '',
+        colorId: '',
+        breadId: '',
+        fillingId: '',
+        frostingId: '',
+        ...overrides,
+    }
+}
+
+function baseRow(overrides: Partial<OrderProductRow> = {}): OrderProductRow {
+    return {
+        product: product() as never,
+        qty: 1,
+        price: 100,
+        sizeId: '',
+        colorId: '',
+        breadId: '',
+        fillingId: '',
+        frostingId: '',
+        styleId: '',
+        withText: false,
+        text: '',
+        textLocation: 'TOP',
+        mangaStyle: '',
+        mangaNotes: '',
+        customSize: '',
+        notes: '',
+        withReference: false,
+        referenceFiles: [],
+        referencePreviews: [],
+        existingReferenceImages: [],
+        discountPercent: 0,
+        hasTiers: false,
+        tiers: [],
+        ...overrides,
+    }
+}
+
+describe('mapTierToPayload', () => {
+    it('mapea un tier a su payload, numerando la posición desde 1', () => {
+        const result = mapTierToPayload(
+            baseTier({ sizeId: '30P', breadId: 'bread-1', colorId: 'color-1' }),
+            0,
+        )
+
+        expect(result).toEqual({
+            position: 1,
+            productSize: '30P',
+            customSize: undefined,
+            breadTypeId: 'bread-1',
+            fillingId: undefined,
+            frostingId: undefined,
+            colorId: 'color-1',
+        })
+    })
+
+    it('incluye customSize solo cuando sizeId es CUSTOM', () => {
+        const result = mapTierToPayload(
+            baseTier({ sizeId: 'CUSTOM', customSize: '100 personas' }),
+            1,
+        )
+
+        expect(result.productSize).toBe('CUSTOM')
+        expect(result.customSize).toBe('100 personas')
+    })
+})
+
+describe('buildOrderDetailPayload', () => {
+    it('mapea los campos base de un pastel simple (sin pisos)', () => {
+        const result = buildOrderDetailPayload(
+            baseRow({ sizeId: '20P', breadId: 'bread-1', styleId: 'style-1' }),
+        )
+
+        expect(result).toMatchObject({
+            productId: 'product-1',
+            price: 100,
+            quantity: 1,
+            productSize: '20P',
+            breadTypeId: 'bread-1',
+            styleId: 'style-1',
+            tiers: undefined,
+        })
+    })
+
+    it('omite tamaño/color/pan/relleno/cubierta a nivel de fila cuando hasTiers es true', () => {
+        const result = buildOrderDetailPayload(
+            baseRow({
+                hasTiers: true,
+                sizeId: '20P',
+                breadId: 'bread-1',
+                colorId: 'color-1',
+                fillingId: 'filling-1',
+                frostingId: 'frosting-1',
+                tiers: [baseTier(), baseTier({ localId: 'tier-2', position: 2 })],
+            }),
+        )
+
+        expect(result.productSize).toBeUndefined()
+        expect(result.breadTypeId).toBeUndefined()
+        expect(result.colorId).toBeUndefined()
+        expect(result.fillingId).toBeUndefined()
+        expect(result.frostingId).toBeUndefined()
+        expect(result.tiers).toHaveLength(2)
+    })
+
+    it('conserva la forma (styleId) aunque hasTiers sea true', () => {
+        const result = buildOrderDetailPayload(
+            baseRow({ hasTiers: true, styleId: 'style-1' }),
+        )
+
+        expect(result.styleId).toBe('style-1');
+    })
+
+    it('no incluye discountPercent (cada página lo agrega con su propia regla)', () => {
+        const result = buildOrderDetailPayload(baseRow());
+
+        expect(result).not.toHaveProperty('discountPercent')
     })
 })

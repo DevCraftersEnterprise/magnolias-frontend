@@ -17,6 +17,7 @@ import OrderDeliveryTimingDetails from "~/components/order/OrderDeliveryTimingDe
 import OrderDeliveryAddressForm from "~/components/order/OrderDeliveryAddressForm.vue";
 import OrderEventServicesAndDetails from "~/components/order/OrderEventServicesAndDetails.vue";
 import OrderProductTiersEditor from "~/components/order/OrderProductTiersEditor.vue";
+import OrderDetailTiersSummary from "~/components/order/OrderDetailTiersSummary.vue";
 
 const router = useRouter();
 const routeP = useRoute();
@@ -631,41 +632,8 @@ async function submitOrder() {
 
     const details: UpdateOrderDetailPayload[] = orderProducts.value.map(
       (r) => ({
-        productId: r.product.id,
-        price: r.price,
-        quantity: r.qty,
-        productSize: r.hasTiers ? undefined : r.sizeId || undefined,
-        customSize:
-          !r.hasTiers && r.sizeId === "CUSTOM"
-            ? r.customSize || undefined
-            : undefined,
-        hasWriting: r.withText,
-        writingText: r.withText && r.text ? r.text : undefined,
-        writingLocation:
-          r.withText && r.textLocation ? r.textLocation : undefined,
-        pipingLocation:
-          r.mangaStyle && r.mangaStyle !== "NONE" ? r.mangaStyle : undefined,
-        decorationNotes: r.mangaNotes || undefined,
-        notes: r.notes || undefined,
-        breadTypeId: r.hasTiers ? undefined : r.breadId || undefined,
-        colorId: r.hasTiers ? undefined : r.colorId || undefined,
-        fillingId: r.hasTiers ? undefined : r.fillingId || undefined,
-        frostingId: r.hasTiers ? undefined : r.frostingId || undefined,
-        styleId: r.styleId || undefined,
-        referenceFiles: r.referenceFiles.length > 0 ? r.referenceFiles : undefined,
+        ...buildOrderDetailPayload(r),
         discountPercent: r.discountPercent || undefined,
-        tiers: r.hasTiers
-          ? r.tiers.map((t, tIdx) => ({
-              position: tIdx + 1,
-              productSize: t.sizeId || undefined,
-              customSize:
-                t.sizeId === "CUSTOM" ? t.customSize || undefined : undefined,
-              breadTypeId: t.breadId || undefined,
-              fillingId: t.fillingId || undefined,
-              frostingId: t.frostingId || undefined,
-              colorId: t.colorId || undefined,
-            }))
-          : undefined,
       }),
     );
 
@@ -1583,24 +1551,19 @@ function next() {
                   </div>
                   <!-- Atributos -->
                   <div class="divide-y divide-black/5 bg-white">
-                    <!-- ¿Pastel de varios pisos? -->
-                    <div
-                      class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
-                    >
-                      <label
-                        class="flex items-center gap-2 cursor-pointer select-none flex-shrink-0"
-                      >
-                        <input
-                          :checked="row.hasTiers"
-                          type="checkbox"
-                          class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                          @change="setHasTiers(i, ($event.target as HTMLInputElement).checked)"
-                        />
-                        <span class="text-[12px] font-medium text-gray-500"
-                          >¿Pastel de varios pisos?</span
-                        >
-                      </label>
-                    </div>
+                    <!-- Pisos (toggle + editor de pastel de 2+ pisos) -->
+                    <OrderProductTiersEditor
+                      :has-tiers="row.hasTiers"
+                      :tiers="row.tiers"
+                      :color-catalog="colorCatalog"
+                      :bread-types="breadTypes"
+                      :fillings="fillings"
+                      :frostings="frostings"
+                      :min-tiers="MIN_TIERS"
+                      @update:has-tiers="(v) => setHasTiers(i, v)"
+                      @add-tier="addTier(i)"
+                      @remove-tier="(tIdx) => removeTier(i, tIdx)"
+                    />
 
                     <div
                       v-if="!row.hasTiers"
@@ -1683,19 +1646,6 @@ function next() {
                         </div>
                       </div>
                     </div>
-                    <!-- Pisos (pastel de 2+ pisos) -->
-                    <OrderProductTiersEditor
-                      v-if="row.hasTiers"
-                      :tiers="row.tiers"
-                      :color-catalog="colorCatalog"
-                      :bread-types="breadTypes"
-                      :fillings="fillings"
-                      :frostings="frostings"
-                      :min-tiers="MIN_TIERS"
-                      @add-tier="addTier(i)"
-                      @remove-tier="(tIdx) => removeTier(i, tIdx)"
-                    />
-
                     <div
                       class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
                     >
@@ -2531,40 +2481,15 @@ function next() {
                       Sin detalles adicionales
                     </p>
                   </div>
-                  <div v-if="detailRow.hasTiers" class="py-2 space-y-2">
-                    <div
-                      v-for="(t, tIdx) in detailRow.tiers"
-                      :key="t.localId"
-                      class="rounded-lg bg-[#F8F8F9] px-3 py-2"
-                    >
-                      <p
-                        class="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1"
-                      >
-                        Piso {{ tIdx + 1 }}
-                      </p>
-                      <p class="text-[12px] text-[#111827]">
-                        {{
-                          [
-                            t.sizeId === "CUSTOM"
-                              ? t.customSize
-                              : t.sizeId || null,
-                            t.colorId ? colorName(t.colorId) : null,
-                            t.breadId
-                              ? catalogLabel(breadTypes, t.breadId)
-                              : null,
-                            t.fillingId
-                              ? catalogLabel(fillings, t.fillingId)
-                              : null,
-                            t.frostingId
-                              ? catalogLabel(frostings, t.frostingId)
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ") || "—"
-                        }}
-                      </p>
-                    </div>
-                  </div>
+                  <OrderDetailTiersSummary
+                    v-if="detailRow.hasTiers"
+                    :tiers="detailRow.tiers"
+                    :color-name="colorName"
+                    :catalog-label="catalogLabel"
+                    :bread-types="breadTypes"
+                    :fillings="fillings"
+                    :frostings="frostings"
+                  />
                   <template v-else>
                     <div
                       v-if="detailRow.sizeId"
