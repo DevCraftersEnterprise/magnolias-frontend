@@ -2,6 +2,7 @@
 import { ordersService } from "~/services/orders.service";
 import type { OrderDetail, OrderItem } from "~/types/order.types";
 import { useToast } from "vue-toastification";
+import { useOrderDetailAssignment } from "~/composables/useOrderDetailAssignment";
 
 const props = defineProps<{
   open: boolean;
@@ -20,6 +21,10 @@ const { locationLabel } = useOrderCatalogs();
 const activeData = ref<OrderDetail | null>(null);
 const loadingDetail = ref(false);
 
+// ── Asignación de repostero por línea (Cliente #11) ─────────────────────────
+const { bakers, bakersLoading, assigningDetailId, loadBakers, assignBaker } =
+  useOrderDetailAssignment();
+
 watch(
   () => props.open,
   async (v) => {
@@ -30,6 +35,9 @@ watch(
     loadingDetail.value = true;
     try {
       activeData.value = await ordersService.getOrder(props.order.id);
+      if (activeData.value?.branch?.id) {
+        loadBakers(activeData.value.branch.id);
+      }
     } catch {
       activeData.value = null; // fall back to list data
     } finally {
@@ -37,6 +45,18 @@ watch(
     }
   },
 );
+
+async function onAssignBaker(detailId: string, bakerId: string) {
+  try {
+    const assignment = await assignBaker(detailId, bakerId);
+    if (!activeData.value) return;
+    const detail = activeData.value.details.find((d) => d.id === detailId);
+    if (detail) detail.assignments = [assignment];
+    toast.success("Repostero asignado correctamente.");
+  } catch (e: any) {
+    toast.error(e?.message || "No se pudo asignar el repostero.");
+  }
+}
 
 // ── Escape key ───────────────────────────────────────────────────────────────
 function onKey(e: KeyboardEvent) {
@@ -759,6 +779,14 @@ async function downloadFormat() {
                           </p>
                         </div>
                       </div>
+                      <!-- Repostero asignado a esta línea (Cliente #11) -->
+                      <OrderDetailAssignmentRow
+                        :detail-id="detail.id"
+                        :assignment="detail.assignments?.[0]"
+                        :bakers="bakers"
+                        :loading="bakersLoading || assigningDetailId === detail.id"
+                        @assign="(bakerId) => onAssignBaker(detail.id, bakerId)"
+                      />
                       <!-- Pisos (pastel de 2+ pisos) -->
                       <div
                         v-if="detail.tiers && detail.tiers.length > 0"

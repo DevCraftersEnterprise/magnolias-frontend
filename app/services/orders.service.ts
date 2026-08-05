@@ -1,5 +1,5 @@
 import { apiFetch } from '~/services/api.client'
-import type { CreateOrderPayload, OrderDetail, OrderFilters, OrderItem, OrdersResponse, OrderStatus, UpdateOrderPayload } from '~/types/order.types';
+import type { CreateOrderPayload, OrderDetail, OrderDetailAssignmentCard, OrderDetailItem, OrderDetailProductionStatus, OrderFilters, OrderItem, OrderLineAssignment, OrdersResponse, OrderStatus, UpdateOrderPayload } from '~/types/order.types';
 
 // ─── Service ───────────────────────────────────────────────────────────────
 export const ordersService = {
@@ -18,6 +18,9 @@ export const ordersService = {
     })
   },
 
+  /** Override manual (solo SUPER/ADMIN) - el estado normalmente se deriva
+   *  automáticamente del avance de producción de cada línea (ver
+   *  updateDetailProductionStatus). */
   markInProcess(id: string) {
     return apiFetch<OrderItem>(`/api/orders/in-process`, {
       method: 'PATCH',
@@ -26,6 +29,7 @@ export const ordersService = {
     })
   },
 
+  /** Override manual (solo SUPER/ADMIN) - ver nota en markInProcess. */
   markDone(id: string) {
     return apiFetch<OrderItem>(`/api/orders/done`, {
       method: 'PATCH',
@@ -98,17 +102,27 @@ export const ordersService = {
     })
   },
 
-  assignOrder(bakerId: string, orderId: string, notes?: string) {
-    return apiFetch<{ id: string; assignedDate: string; notes: string | null; createdAt: string; updatedAt: string }>(
-      `/api/orders/${bakerId}/assign-order`,
-      { method: 'POST', auth: true, body: JSON.stringify({ orderId, ...(notes ? { notes } : {}) }) },
+  /** Asigna (o reasigna, si ya tenía) un repostero a una línea de producto. */
+  assignOrderDetail(orderDetailId: string, bakerId: string, notes?: string) {
+    return apiFetch<OrderLineAssignment>(
+      `/api/orders/details/${orderDetailId}/assign`,
+      { method: 'POST', auth: true, body: JSON.stringify({ bakerId, ...(notes ? { notes } : {}) }) },
     )
   },
 
-  reassignOrder(newBakerId: string, orderId: string, notes?: string) {
-    return apiFetch<{ id: string; assignedDate: string; notes: string | null; createdAt: string; updatedAt: string }>(
-      `/api/orders/${newBakerId}/reassign-order`,
-      { method: 'PATCH', auth: true, body: JSON.stringify({ orderId, ...(notes ? { notes } : {}) }) },
+  /** Líneas de producto asignadas a un repostero (para su kanban). */
+  getBakerDetailAssignments(bakerId: string) {
+    return apiFetch<OrderDetailAssignmentCard[]>(
+      `/api/orders/details/assignments/${bakerId}`,
+      { method: 'GET', auth: true },
+    )
+  },
+
+  /** Avanza el estado de producción de una línea de producto puntual. */
+  updateDetailProductionStatus(orderDetailId: string, status: OrderDetailProductionStatus) {
+    return apiFetch<OrderDetailItem & { order: { id: string; status: OrderStatus } }>(
+      `/api/orders/details/${orderDetailId}/production-status`,
+      { method: 'PATCH', auth: true, body: JSON.stringify({ status }) },
     )
   },
 

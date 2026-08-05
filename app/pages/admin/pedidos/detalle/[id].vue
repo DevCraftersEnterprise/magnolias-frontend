@@ -3,7 +3,12 @@ definePageMeta({ layout: "admin", pageTitle: "Detalle de pedido" });
 useHead({ title: "Detalle de pedido · Magnolias" });
 
 import { ordersService } from "~/services/orders.service";
-import type { OrderDetail, OrderStatus } from "~/types/order.types";
+import type {
+  OrderDetail,
+  OrderDetailItem,
+  OrderDetailProductionStatus,
+  OrderStatus,
+} from "~/types/order.types";
 import { useToast } from "vue-toastification";
 
 const route = useRoute();
@@ -40,48 +45,73 @@ onMounted(async () => {
   }
 });
 
-// ─── Status advance ──────────────────────────────────────────────────────────
-const advancing = ref(false);
-const confirmOpen = ref(false);
+// ─── Status advance por línea de producto (Cliente #11) ────────────────────
+// El estado general del pedido (order.status) ahora se deriva automáticamente
+// en el backend a partir del productionStatus de cada línea - esta página ya
+// no lo mueve directamente, solo avanza la línea puntual que corresponde.
+const advancingDetailId = ref<string | null>(null);
+const confirmDetailId = ref<string | null>(null);
 
-const canAdvance = computed(
-  () =>
-    order.value?.status === "CREATED" || order.value?.status === "IN PROCESS",
-);
-const advanceLabel = computed(() => {
-  if (order.value?.status === "CREATED") return "Iniciar producción";
-  if (order.value?.status === "IN PROCESS") return "Marcar como listo";
-  return "";
-});
-const advanceNextLabel = computed(() => {
-  if (order.value?.status === "CREATED") return "En producción";
-  if (order.value?.status === "IN PROCESS") return "Listo";
-  return "";
-});
+const PRODUCTION_STATUS_LABELS: Record<OrderDetailProductionStatus, string> = {
+  PENDING: "Pendiente",
+  IN_PROCESS: "En proceso",
+  DONE: "Listo",
+};
 
-function requestAdvance() {
-  if (!order.value || !canAdvance.value) return;
-  confirmOpen.value = true;
+function detailProductionStatus(
+  detail: OrderDetailItem,
+): OrderDetailProductionStatus {
+  return detail.productionStatus ?? "PENDING";
 }
 
-async function advance() {
-  if (!order.value || advancing.value) return;
-  confirmOpen.value = false;
-  advancing.value = true;
+function canAdvanceLine(detail: OrderDetailItem): boolean {
+  return detailProductionStatus(detail) !== "DONE";
+}
+
+function advanceLineLabel(detail: OrderDetailItem): string {
+  const status = detailProductionStatus(detail);
+  if (status === "PENDING") return "Iniciar producción";
+  if (status === "IN_PROCESS") return "Marcar como listo";
+  return "";
+}
+
+function nextProductionStatus(
+  status: OrderDetailProductionStatus,
+): OrderDetailProductionStatus {
+  return status === "PENDING" ? "IN_PROCESS" : "DONE";
+}
+
+const confirmDetail = computed(() =>
+  order.value?.details.find((d) => d.id === confirmDetailId.value),
+);
+
+function requestAdvanceLine(detail: OrderDetailItem) {
+  if (!canAdvanceLine(detail)) return;
+  confirmDetailId.value = detail.id;
+}
+
+async function advanceLine() {
+  const detail = confirmDetail.value;
+  if (!detail || !order.value || advancingDetailId.value) return;
+  confirmDetailId.value = null;
+  advancingDetailId.value = detail.id;
   try {
-    if (order.value.status === "CREATED") {
-      await ordersService.markInProcess(order.value.id);
-      order.value.status = "IN PROCESS";
-      toast.success("Producción iniciada.");
-    } else if (order.value.status === "IN PROCESS") {
-      await ordersService.markDone(order.value.id);
-      order.value.status = "DONE";
-      toast.success("Pedido marcado como listo.");
-    }
+    const nextStatus = nextProductionStatus(detailProductionStatus(detail));
+    const updated = await ordersService.updateDetailProductionStatus(
+      detail.id,
+      nextStatus,
+    );
+    detail.productionStatus = updated.productionStatus ?? nextStatus;
+    if (updated.order?.status) order.value.status = updated.order.status;
+    toast.success(
+      nextStatus === "DONE"
+        ? "Línea marcada como lista."
+        : "Producción iniciada para esta línea.",
+    );
   } catch (e: any) {
     toast.error(e?.message || "No se pudo actualizar el estado.");
   } finally {
-    advancing.value = false;
+    advancingDetailId.value = null;
   }
 }
 
@@ -234,28 +264,10 @@ function roundLabel(r?: string | null) {
             </div>
           </div>
 
-          <!-- CTA -->
-          <button
-            v-if="canAdvance"
-            type="button"
-            :disabled="advancing"
-            class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-[#C9007C] px-5 py-2.5 text-[14px] font-bold text-white shadow-sm hover:bg-[#a5006a] transition disabled:opacity-50"
-            @click="requestAdvance"
-          >
-            <svg
-              v-if="advancing"
-              class="h-4 w-4 animate-spin"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-            </svg>
-            {{ advancing ? "Actualizando…" : advanceLabel }}
-          </button>
+          <!-- El estado del pedido ahora se deriva automáticamente del avance
+               de cada línea de producto (ver botón "Avanzar" por línea abajo). -->
           <span
-            v-else-if="order.status === 'DONE'"
+            v-if="order.status === 'DONE'"
             class="inline-flex items-center gap-1.5 rounded-xl bg-[#B9D9FF] px-4 py-2.5 text-[13px] font-bold text-[#0047C9]"
           >
             <svg
@@ -565,6 +577,48 @@ function roundLabel(r?: string | null) {
                         </p>
                       </div>
                     </div>
+                  </div>
+
+                  <!-- Estado de producción + avance de esta línea (Cliente #11) -->
+                  <div
+                    class="flex items-center justify-between gap-3 border-t border-black/[0.06] px-6 py-4"
+                  >
+                    <span
+                      class="inline-flex rounded-full px-3 py-1 text-[12px] font-bold"
+                      :class="{
+                        'bg-gray-100 text-gray-500':
+                          detailProductionStatus(detail) === 'PENDING',
+                        'bg-[#FFBEE6] text-[#C9007C]':
+                          detailProductionStatus(detail) === 'IN_PROCESS',
+                        'bg-[#B9D9FF] text-[#0047C9]':
+                          detailProductionStatus(detail) === 'DONE',
+                      }"
+                    >
+                      {{ PRODUCTION_STATUS_LABELS[detailProductionStatus(detail)] }}
+                    </span>
+                    <button
+                      v-if="canAdvanceLine(detail)"
+                      type="button"
+                      :disabled="advancingDetailId === detail.id"
+                      class="shrink-0 inline-flex items-center gap-2 rounded-xl bg-[#C9007C] px-4 py-2 text-[13px] font-bold text-white shadow-sm hover:bg-[#a5006a] transition disabled:opacity-50"
+                      @click="requestAdvanceLine(detail)"
+                    >
+                      <svg
+                        v-if="advancingDetailId === detail.id"
+                        class="h-4 w-4 animate-spin"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                      {{
+                        advancingDetailId === detail.id
+                          ? "Actualizando…"
+                          : advanceLineLabel(detail)
+                      }}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -883,13 +937,13 @@ function roundLabel(r?: string | null) {
       leave-to-class="opacity-0"
     >
       <div
-        v-if="confirmOpen"
+        v-if="confirmDetail"
         class="fixed inset-0 z-50 flex items-center justify-center px-4"
       >
         <!-- Backdrop -->
         <div
           class="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          @click="confirmOpen = false"
+          @click="confirmDetailId = null"
         />
 
         <!-- Panel -->
@@ -917,11 +971,11 @@ function roundLabel(r?: string | null) {
               </svg>
             </div>
             <h3 class="text-[17px] font-bold text-[#111827] leading-snug">
-              Cambiar estado del pedido
+              Cambiar estado de la línea
             </h3>
             <p class="mt-1.5 text-[13px] text-gray-500 leading-relaxed">
               <span class="font-semibold text-[#111827]">{{
-                order?.orderCode
+                confirmDetail.product?.name ?? "Este producto"
               }}</span>
               pasará de
             </p>
@@ -929,12 +983,15 @@ function roundLabel(r?: string | null) {
             <div class="mt-3 flex items-center justify-center gap-2.5">
               <span
                 class="inline-flex rounded-full px-3 py-1 text-[12px] font-bold"
-                :style="{
-                  backgroundColor:
-                    STATUS_COLORS[order!.status as OrderStatus]?.bg,
-                  color: STATUS_COLORS[order!.status as OrderStatus]?.text,
+                :class="{
+                  'bg-gray-100 text-gray-500':
+                    detailProductionStatus(confirmDetail) === 'PENDING',
+                  'bg-[#FFBEE6] text-[#C9007C]':
+                    detailProductionStatus(confirmDetail) === 'IN_PROCESS',
                 }"
-                >{{ STATUS_LABELS[order!.status as OrderStatus] }}</span
+                >{{
+                  PRODUCTION_STATUS_LABELS[detailProductionStatus(confirmDetail)]
+                }}</span
               >
               <svg
                 class="h-4 w-4 text-gray-300 shrink-0"
@@ -948,7 +1005,11 @@ function roundLabel(r?: string | null) {
               </svg>
               <span
                 class="inline-flex rounded-full px-3 py-1 text-[12px] font-bold bg-[#FFBEE6] text-[#C9007C]"
-                >{{ advanceNextLabel }}</span
+                >{{
+                  PRODUCTION_STATUS_LABELS[
+                    nextProductionStatus(detailProductionStatus(confirmDetail))
+                  ]
+                }}</span
               >
             </div>
           </div>
@@ -961,14 +1022,14 @@ function roundLabel(r?: string | null) {
             <button
               type="button"
               class="flex-1 rounded-2xl border border-black/10 py-3 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
-              @click="confirmOpen = false"
+              @click="confirmDetailId = null"
             >
               Cancelar
             </button>
             <button
               type="button"
               class="flex-1 rounded-2xl py-3 text-[13px] font-bold bg-[#C9007C] text-white hover:bg-[#a5006a] transition shadow-sm"
-              @click="advance"
+              @click="advanceLine"
             >
               Confirmar
             </button>
