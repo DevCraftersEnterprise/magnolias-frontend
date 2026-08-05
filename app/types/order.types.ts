@@ -111,6 +111,17 @@ export type OrderDetailCatalogItem = {
     name: string;
 } | null
 
+export type OrderDetailTier = {
+    id?: string;
+    position: number;
+    productSize?: ProductSize | null;
+    customSize?: string | null;
+    breadType?: OrderDetailCatalogItem;
+    filling?: OrderDetailCatalogItem;
+    frosting?: OrderDetailCatalogItem;
+    color?: OrderDetailCatalogItem;
+}
+
 export type OrderDetailItem = {
     id: string;
     price: string;
@@ -131,6 +142,7 @@ export type OrderDetailItem = {
     filling?: OrderDetailCatalogItem;
     frosting?: OrderDetailCatalogItem;
     style?: OrderDetailCatalogItem;
+    tiers?: OrderDetailTier[];
     discountPercent?: number | string | null;
     discountAuthorizedBy?: { id: string; name: string; lastname: string } | null;
     discountAuthorizedAt?: string | null;
@@ -231,6 +243,16 @@ export type OrderDetail = {
     payments?: OrderPayment[];
 }
 
+export type OrderDetailTierPayload = {
+    position: number;
+    productSize?: ProductSize;
+    customSize?: string;
+    breadTypeId?: string;
+    fillingId?: string;
+    frostingId?: string;
+    colorId?: string;
+}
+
 export type UpdateOrderDetailPayload = {
     productId: string;
     price: number;
@@ -250,6 +272,7 @@ export type UpdateOrderDetailPayload = {
     styleId?: string;
     referenceFiles?: File[];
     discountPercent?: number;
+    tiers?: OrderDetailTierPayload[];
 }
 
 export type UpdateOrderPayload = {
@@ -307,6 +330,7 @@ export type CreateOrderDetail = {
     styleId?: string;
     referenceFiles?: File[];
     discountPercent?: number;
+    tiers?: OrderDetailTierPayload[];
 }
 
 export type CreateOrderFlower = {

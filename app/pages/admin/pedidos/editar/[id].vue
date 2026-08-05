@@ -16,6 +16,8 @@ import OrderPickupLogistics from "~/components/order/OrderPickupLogistics.vue";
 import OrderDeliveryTimingDetails from "~/components/order/OrderDeliveryTimingDetails.vue";
 import OrderDeliveryAddressForm from "~/components/order/OrderDeliveryAddressForm.vue";
 import OrderEventServicesAndDetails from "~/components/order/OrderEventServicesAndDetails.vue";
+import OrderProductTiersEditor from "~/components/order/OrderProductTiersEditor.vue";
+import OrderDetailTiersSummary from "~/components/order/OrderDetailTiersSummary.vue";
 
 const router = useRouter();
 const routeP = useRoute();
@@ -81,6 +83,11 @@ const {
   getProductImageUrl,
   UBICACION_OPTIONS,
   MANGA_OPTIONS,
+  addTier,
+  removeTier,
+  setHasTiers,
+  MIN_TIERS,
+  makeTierRow,
 } = useProductBuilder(colorCatalog);
 
 const removingRefImage = ref<string | null>(null);
@@ -411,6 +418,19 @@ function populateFromOrder(order: OrderDetail) {
       fillingId: d.filling?.id ?? "",
       frostingId: d.frosting?.id ?? "",
       styleId: d.style?.id ?? "",
+      hasTiers: (d.tiers ?? []).length > 0,
+      tiers: (d.tiers ?? [])
+        .slice()
+        .sort((a, b) => a.position - b.position)
+        .map((t, tIdx) => ({
+          ...makeTierRow(t.position ?? tIdx + 1),
+          sizeId: t.productSize ?? "",
+          customSize: t.customSize ?? "",
+          colorId: t.color?.id ?? "",
+          breadId: t.breadType?.id ?? "",
+          fillingId: t.filling?.id ?? "",
+          frostingId: t.frosting?.id ?? "",
+        })),
       withText: d.hasWriting ?? false,
       text: d.writingText ?? "",
       textLocation: d.writingLocation ?? "TOP",
@@ -612,26 +632,7 @@ async function submitOrder() {
 
     const details: UpdateOrderDetailPayload[] = orderProducts.value.map(
       (r) => ({
-        productId: r.product.id,
-        price: r.price,
-        quantity: r.qty,
-        productSize: r.sizeId || undefined,
-        customSize:
-          r.sizeId === "CUSTOM" ? r.customSize || undefined : undefined,
-        hasWriting: r.withText,
-        writingText: r.withText && r.text ? r.text : undefined,
-        writingLocation:
-          r.withText && r.textLocation ? r.textLocation : undefined,
-        pipingLocation:
-          r.mangaStyle && r.mangaStyle !== "NONE" ? r.mangaStyle : undefined,
-        decorationNotes: r.mangaNotes || undefined,
-        notes: r.notes || undefined,
-        breadTypeId: r.breadId || undefined,
-        colorId: r.colorId || undefined,
-        fillingId: r.fillingId || undefined,
-        frostingId: r.frostingId || undefined,
-        styleId: r.styleId || undefined,
-        referenceFiles: r.referenceFiles.length > 0 ? r.referenceFiles : undefined,
+        ...buildOrderDetailPayload(r),
         discountPercent: r.discountPercent || undefined,
       }),
     );
@@ -1550,7 +1551,22 @@ function next() {
                   </div>
                   <!-- Atributos -->
                   <div class="divide-y divide-black/5 bg-white">
+                    <!-- Pisos (toggle + editor de pastel de 2+ pisos) -->
+                    <OrderProductTiersEditor
+                      :has-tiers="row.hasTiers"
+                      :tiers="row.tiers"
+                      :color-catalog="colorCatalog"
+                      :bread-types="breadTypes"
+                      :fillings="fillings"
+                      :frostings="frostings"
+                      :min-tiers="MIN_TIERS"
+                      @update:has-tiers="(v) => setHasTiers(i, v)"
+                      @add-tier="addTier(i)"
+                      @remove-tier="(tIdx) => removeTier(i, tIdx)"
+                    />
+
                     <div
+                      v-if="!row.hasTiers"
                       class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
                     >
                       <div class="flex items-center gap-2">
@@ -1633,72 +1649,74 @@ function next() {
                     <div
                       class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
                     >
-                      <div class="flex items-center gap-2">
-                        <span
-                          class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                          >Relleno</span
-                        >
-                        <div class="relative">
-                          <select
-                            v-model="row.fillingId"
-                            class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                      <template v-if="!row.hasTiers">
+                        <div class="flex items-center gap-2">
+                          <span
+                            class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                            >Relleno</span
                           >
-                            <option value="">—</option>
-                            <option
-                              v-for="f in fillings"
-                              :key="f.id"
-                              :value="f.id"
+                          <div class="relative">
+                            <select
+                              v-model="row.fillingId"
+                              class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
                             >
-                              {{ f.name }}
-                            </option></select
-                          ><svg
-                            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                          >
-                            <path
-                              d="M6 9l6 6 6-6"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <span
-                          class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                          >Frosting</span
-                        >
-                        <div class="relative">
-                          <select
-                            v-model="row.frostingId"
-                            class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                          >
-                            <option value="">—</option>
-                            <option
-                              v-for="f in frostings"
-                              :key="f.id"
-                              :value="f.id"
+                              <option value="">—</option>
+                              <option
+                                v-for="f in fillings"
+                                :key="f.id"
+                                :value="f.id"
+                              >
+                                {{ f.name }}
+                              </option></select
+                            ><svg
+                              class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              stroke-width="2.5"
                             >
-                              {{ f.name }}
-                            </option></select
-                          ><svg
-                            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                          >
-                            <path
-                              d="M6 9l6 6 6-6"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
+                              <path
+                                d="M6 9l6 6 6-6"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
+                        <div class="flex items-center gap-2">
+                          <span
+                            class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                            >Frosting</span
+                          >
+                          <div class="relative">
+                            <select
+                              v-model="row.frostingId"
+                              class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                            >
+                              <option value="">—</option>
+                              <option
+                                v-for="f in frostings"
+                                :key="f.id"
+                                :value="f.id"
+                              >
+                                {{ f.name }}
+                              </option></select
+                            ><svg
+                              class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              stroke-width="2.5"
+                            >
+                              <path
+                                d="M6 9l6 6 6-6"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      </template>
                       <div class="flex items-center gap-2">
                         <span
                           class="text-[12px] font-medium text-gray-500 flex-shrink-0"
@@ -2463,45 +2481,56 @@ function next() {
                       Sin detalles adicionales
                     </p>
                   </div>
-                  <div
-                    v-if="detailRow.sizeId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Tamaño</span>
+                  <OrderDetailTiersSummary
+                    v-if="detailRow.hasTiers"
+                    :tiers="detailRow.tiers"
+                    :color-name="colorName"
+                    :catalog-label="catalogLabel"
+                    :bread-types="breadTypes"
+                    :fillings="fillings"
+                    :frostings="frostings"
+                  />
+                  <template v-else>
+                    <div
+                      v-if="detailRow.sizeId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Tamaño</span>
 
-                    <span class="text-[12px] font-semibold text-[#111827]">{{
-                      detailRow.sizeId === "CUSTOM"
-                        ? detailRow.customSize.toUpperCase()
-                        : detailRow.sizeId
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="detailRow.breadId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Tipo de Pan</span
-                    ><span class="text-[12px] font-semibold text-[#111827]">{{
-                      catalogLabel(breadTypes, detailRow.breadId)
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="detailRow.fillingId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Relleno</span
-                    ><span class="text-[12px] font-semibold text-[#111827]">{{
-                      catalogLabel(fillings, detailRow.fillingId)
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="detailRow.frostingId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Frosting</span
-                    ><span class="text-[12px] font-semibold text-[#111827]">{{
-                      catalogLabel(frostings, detailRow.frostingId)
-                    }}</span>
-                  </div>
+                      <span class="text-[12px] font-semibold text-[#111827]">{{
+                        detailRow.sizeId === "CUSTOM"
+                          ? detailRow.customSize.toUpperCase()
+                          : detailRow.sizeId
+                      }}</span>
+                    </div>
+                    <div
+                      v-if="detailRow.breadId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Tipo de Pan</span
+                      ><span class="text-[12px] font-semibold text-[#111827]">{{
+                        catalogLabel(breadTypes, detailRow.breadId)
+                      }}</span>
+                    </div>
+                    <div
+                      v-if="detailRow.fillingId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Relleno</span
+                      ><span class="text-[12px] font-semibold text-[#111827]">{{
+                        catalogLabel(fillings, detailRow.fillingId)
+                      }}</span>
+                    </div>
+                    <div
+                      v-if="detailRow.frostingId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Frosting</span
+                      ><span class="text-[12px] font-semibold text-[#111827]">{{
+                        catalogLabel(frostings, detailRow.frostingId)
+                      }}</span>
+                    </div>
+                  </template>
                   <div
                     v-if="detailRow.styleId"
                     class="flex justify-between py-2"
