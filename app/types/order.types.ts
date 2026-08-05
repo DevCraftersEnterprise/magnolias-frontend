@@ -37,7 +37,11 @@ export type OrderCustomer = {
     address?: OrderCustomerAddress;
 }
 
-export type OrderAssignedBaker = {
+// Asignación de repostero por línea de producto (Cliente #11) - reemplaza
+// la asignación a nivel de pedido completo que existía antes.
+export type OrderDetailProductionStatus = 'PENDING' | 'IN_PROCESS' | 'DONE';
+
+export type OrderLineAssignedBaker = {
     id: string;
     name: string;
     lastname: string;
@@ -45,9 +49,9 @@ export type OrderAssignedBaker = {
     area?: string;
 }
 
-export type OrderAssignment = {
+export type OrderLineAssignment = {
     id: string;
-    baker: OrderAssignedBaker;
+    baker: OrderLineAssignedBaker;
     assignedDate: string;
     notes?: string | null;
 }
@@ -69,7 +73,10 @@ export type OrderItem = {
     createdBy?: OrderAuditUser;
     updatedBy?: OrderAuditUser;
     reference?: string | string[];
-    assignments?: OrderAssignment[];
+    // Resumen liviano de asignación por línea (ver detalle completo para los
+    // reposteros reales de cada línea).
+    assignedBakersCount?: number;
+    totalLinesCount?: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -143,11 +150,35 @@ export type OrderDetailItem = {
     frosting?: OrderDetailCatalogItem;
     style?: OrderDetailCatalogItem;
     tiers?: OrderDetailTier[];
+    assignments?: OrderLineAssignment[];
+    productionStatus?: OrderDetailProductionStatus;
     discountPercent?: number | string | null;
     discountAuthorizedBy?: { id: string; name: string; lastname: string } | null;
     discountAuthorizedAt?: string | null;
     createdAt?: string;
     updatedAt?: string;
+}
+
+// Tarjeta del kanban de repostero (GET /api/orders/details/assignments/:bakerId)
+// - una línea de producto con el contexto mínimo de su pedido padre.
+export type OrderDetailAssignmentCard = {
+    id: string;
+    assignedDate: string;
+    notes?: string | null;
+    orderDetail: OrderDetailItem & {
+        order: {
+            id: string;
+            orderCode: string;
+            deliveryDate: string;
+            deliveryTime?: string | null;
+            status: OrderStatus;
+            isEvento?: boolean;
+            isEnTienda?: boolean;
+            remainingBalance?: string;
+            branch?: { id: string; name: string };
+            customer?: { fullName: string };
+        };
+    };
 }
 
 export type OrderDetailCustomer = {
