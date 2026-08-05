@@ -77,7 +77,9 @@ export function buildOrderDetailPayload(row: OrderProductRow) {
         styleId: row.styleId || undefined,
         referenceFiles:
             row.referenceFiles.length > 0 ? row.referenceFiles : undefined,
-        tiers: row.hasTiers ? row.tiers.map(mapTierToPayload) : undefined,
+        tiers: row.hasTiers
+            ? row.tiers.map((tier, index) => mapTierToPayload(tier, index))
+            : undefined,
     };
 }
 
