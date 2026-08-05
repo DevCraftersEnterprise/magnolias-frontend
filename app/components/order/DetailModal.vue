@@ -759,8 +759,41 @@ async function downloadFormat() {
                           </p>
                         </div>
                       </div>
+                      <!-- Pisos (pastel de 2+ pisos) -->
+                      <div
+                        v-if="detail.tiers && detail.tiers.length > 0"
+                        class="space-y-1.5 pt-1"
+                      >
+                        <div
+                          v-for="tier in detail.tiers"
+                          :key="tier.id ?? tier.position"
+                          class="rounded-lg bg-white px-2.5 py-1.5 ring-1 ring-black/5"
+                        >
+                          <p
+                            class="text-[9px] font-bold uppercase tracking-wide text-gray-400"
+                          >
+                            Piso {{ tier.position }}
+                          </p>
+                          <p class="text-[12px] text-gray-700">
+                            {{
+                              [
+                                tier.productSize?.toUpperCase() === "CUSTOM"
+                                  ? tier.customSize
+                                  : (tier.productSize ?? tier.customSize),
+                                tier.color?.name,
+                                tier.breadType?.name,
+                                tier.filling?.name,
+                                tier.frosting?.name,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ") || "—"
+                            }}
+                          </p>
+                        </div>
+                      </div>
                       <!-- Attributes grid -->
                       <div
+                        v-else
                         class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 pt-1"
                       >
                         <div v-if="detail.productSize || detail.customSize">
@@ -797,12 +830,13 @@ async function downloadFormat() {
                             {{ detail.color.name }}
                           </p>
                         </div>
-                        <div v-if="detail.style">
-                          <p class="text-[10px] text-gray-400">Forma</p>
-                          <p class="text-[12px] text-gray-700">
-                            {{ detail.style.name }}
-                          </p>
-                        </div>
+                      </div>
+                      <!-- Forma: siempre aparece, con o sin pisos -->
+                      <div v-if="detail.style" class="pt-1">
+                        <p class="text-[10px] text-gray-400">Forma</p>
+                        <p class="text-[12px] text-gray-700">
+                          {{ detail.style.name }}
+                        </p>
                       </div>
                       <!-- Writing -->
                       <div

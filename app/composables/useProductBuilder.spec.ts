@@ -296,6 +296,78 @@ describe('useProductBuilder', () => {
         })
     })
 
+    describe('manejo de pisos (pasteles de 2+ pisos)', () => {
+        it('un producto nuevo empieza sin pisos', () => {
+            const { orderProducts, addProduct } = setup()
+            addProduct(product())
+
+            expect(orderProducts.value[0]).toMatchObject({
+                hasTiers: false,
+                tiers: [],
+            })
+        })
+
+        it('setHasTiers(true) inicializa con el mínimo de 2 pisos', () => {
+            const { orderProducts, addProduct, setHasTiers, MIN_TIERS } = setup()
+            addProduct(product())
+
+            setHasTiers(0, true)
+
+            expect(orderProducts.value[0]!.hasTiers).toBe(true)
+            expect(orderProducts.value[0]!.tiers).toHaveLength(MIN_TIERS)
+            expect(orderProducts.value[0]!.tiers.map((t) => t.position)).toEqual([
+                1, 2,
+            ])
+        })
+
+        it('setHasTiers(false) limpia los pisos', () => {
+            const { orderProducts, addProduct, setHasTiers } = setup()
+            addProduct(product())
+            setHasTiers(0, true)
+
+            setHasTiers(0, false)
+
+            expect(orderProducts.value[0]!.hasTiers).toBe(false)
+            expect(orderProducts.value[0]!.tiers).toEqual([])
+        })
+
+        it('addTier agrega un piso adicional con la siguiente posición', () => {
+            const { orderProducts, addProduct, setHasTiers, addTier } = setup()
+            addProduct(product())
+            setHasTiers(0, true)
+
+            addTier(0)
+
+            expect(orderProducts.value[0]!.tiers).toHaveLength(3)
+            expect(orderProducts.value[0]!.tiers[2]!.position).toBe(3)
+        })
+
+        it('removeTier quita el piso indicado y renumera las posiciones', () => {
+            const { orderProducts, addProduct, setHasTiers, addTier, removeTier } =
+                setup()
+            addProduct(product())
+            setHasTiers(0, true)
+            addTier(0)
+
+            removeTier(0, 0)
+
+            expect(orderProducts.value[0]!.tiers).toHaveLength(2)
+            expect(orderProducts.value[0]!.tiers.map((t) => t.position)).toEqual([
+                1, 2,
+            ])
+        })
+
+        it('cada piso tiene un localId único para usarlo como :key', () => {
+            const { orderProducts, addProduct, setHasTiers } = setup()
+            addProduct(product())
+
+            setHasTiers(0, true)
+
+            const ids = orderProducts.value[0]!.tiers.map((t) => t.localId)
+            expect(new Set(ids).size).toBe(ids.length)
+        })
+    })
+
     it('optionLabel resuelve la etiqueta o retorna "—"', () => {
         const { optionLabel, UBICACION_OPTIONS } = setup()
 

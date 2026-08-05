@@ -16,6 +16,7 @@ import OrderPickupLogistics from "~/components/order/OrderPickupLogistics.vue";
 import OrderDeliveryTimingDetails from "~/components/order/OrderDeliveryTimingDetails.vue";
 import OrderDeliveryAddressForm from "~/components/order/OrderDeliveryAddressForm.vue";
 import OrderEventServicesAndDetails from "~/components/order/OrderEventServicesAndDetails.vue";
+import OrderProductTiersEditor from "~/components/order/OrderProductTiersEditor.vue";
 
 const router = useRouter();
 const routeP = useRoute();
@@ -81,6 +82,11 @@ const {
   getProductImageUrl,
   UBICACION_OPTIONS,
   MANGA_OPTIONS,
+  addTier,
+  removeTier,
+  setHasTiers,
+  MIN_TIERS,
+  makeTierRow,
 } = useProductBuilder(colorCatalog);
 
 const removingRefImage = ref<string | null>(null);
@@ -411,6 +417,19 @@ function populateFromOrder(order: OrderDetail) {
       fillingId: d.filling?.id ?? "",
       frostingId: d.frosting?.id ?? "",
       styleId: d.style?.id ?? "",
+      hasTiers: (d.tiers ?? []).length > 0,
+      tiers: (d.tiers ?? [])
+        .slice()
+        .sort((a, b) => a.position - b.position)
+        .map((t, tIdx) => ({
+          ...makeTierRow(t.position ?? tIdx + 1),
+          sizeId: t.productSize ?? "",
+          customSize: t.customSize ?? "",
+          colorId: t.color?.id ?? "",
+          breadId: t.breadType?.id ?? "",
+          fillingId: t.filling?.id ?? "",
+          frostingId: t.frosting?.id ?? "",
+        })),
       withText: d.hasWriting ?? false,
       text: d.writingText ?? "",
       textLocation: d.writingLocation ?? "TOP",
@@ -615,9 +634,11 @@ async function submitOrder() {
         productId: r.product.id,
         price: r.price,
         quantity: r.qty,
-        productSize: r.sizeId || undefined,
+        productSize: r.hasTiers ? undefined : r.sizeId || undefined,
         customSize:
-          r.sizeId === "CUSTOM" ? r.customSize || undefined : undefined,
+          !r.hasTiers && r.sizeId === "CUSTOM"
+            ? r.customSize || undefined
+            : undefined,
         hasWriting: r.withText,
         writingText: r.withText && r.text ? r.text : undefined,
         writingLocation:
@@ -626,13 +647,25 @@ async function submitOrder() {
           r.mangaStyle && r.mangaStyle !== "NONE" ? r.mangaStyle : undefined,
         decorationNotes: r.mangaNotes || undefined,
         notes: r.notes || undefined,
-        breadTypeId: r.breadId || undefined,
-        colorId: r.colorId || undefined,
-        fillingId: r.fillingId || undefined,
-        frostingId: r.frostingId || undefined,
+        breadTypeId: r.hasTiers ? undefined : r.breadId || undefined,
+        colorId: r.hasTiers ? undefined : r.colorId || undefined,
+        fillingId: r.hasTiers ? undefined : r.fillingId || undefined,
+        frostingId: r.hasTiers ? undefined : r.frostingId || undefined,
         styleId: r.styleId || undefined,
         referenceFiles: r.referenceFiles.length > 0 ? r.referenceFiles : undefined,
         discountPercent: r.discountPercent || undefined,
+        tiers: r.hasTiers
+          ? r.tiers.map((t, tIdx) => ({
+              position: tIdx + 1,
+              productSize: t.sizeId || undefined,
+              customSize:
+                t.sizeId === "CUSTOM" ? t.customSize || undefined : undefined,
+              breadTypeId: t.breadId || undefined,
+              fillingId: t.fillingId || undefined,
+              frostingId: t.frostingId || undefined,
+              colorId: t.colorId || undefined,
+            }))
+          : undefined,
       }),
     );
 
@@ -1550,7 +1583,27 @@ function next() {
                   </div>
                   <!-- Atributos -->
                   <div class="divide-y divide-black/5 bg-white">
+                    <!-- ¿Pastel de varios pisos? -->
                     <div
+                      class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
+                    >
+                      <label
+                        class="flex items-center gap-2 cursor-pointer select-none flex-shrink-0"
+                      >
+                        <input
+                          :checked="row.hasTiers"
+                          type="checkbox"
+                          class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3] focus:ring-[#FC9AD3]/50"
+                          @change="setHasTiers(i, ($event.target as HTMLInputElement).checked)"
+                        />
+                        <span class="text-[12px] font-medium text-gray-500"
+                          >¿Pastel de varios pisos?</span
+                        >
+                      </label>
+                    </div>
+
+                    <div
+                      v-if="!row.hasTiers"
                       class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
                     >
                       <div class="flex items-center gap-2">
@@ -1630,75 +1683,90 @@ function next() {
                         </div>
                       </div>
                     </div>
+                    <!-- Pisos (pastel de 2+ pisos) -->
+                    <OrderProductTiersEditor
+                      v-if="row.hasTiers"
+                      :tiers="row.tiers"
+                      :color-catalog="colorCatalog"
+                      :bread-types="breadTypes"
+                      :fillings="fillings"
+                      :frostings="frostings"
+                      :min-tiers="MIN_TIERS"
+                      @add-tier="addTier(i)"
+                      @remove-tier="(tIdx) => removeTier(i, tIdx)"
+                    />
+
                     <div
                       class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
                     >
-                      <div class="flex items-center gap-2">
-                        <span
-                          class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                          >Relleno</span
-                        >
-                        <div class="relative">
-                          <select
-                            v-model="row.fillingId"
-                            class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                      <template v-if="!row.hasTiers">
+                        <div class="flex items-center gap-2">
+                          <span
+                            class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                            >Relleno</span
                           >
-                            <option value="">—</option>
-                            <option
-                              v-for="f in fillings"
-                              :key="f.id"
-                              :value="f.id"
+                          <div class="relative">
+                            <select
+                              v-model="row.fillingId"
+                              class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
                             >
-                              {{ f.name }}
-                            </option></select
-                          ><svg
-                            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                          >
-                            <path
-                              d="M6 9l6 6 6-6"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <span
-                          class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                          >Frosting</span
-                        >
-                        <div class="relative">
-                          <select
-                            v-model="row.frostingId"
-                            class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                          >
-                            <option value="">—</option>
-                            <option
-                              v-for="f in frostings"
-                              :key="f.id"
-                              :value="f.id"
+                              <option value="">—</option>
+                              <option
+                                v-for="f in fillings"
+                                :key="f.id"
+                                :value="f.id"
+                              >
+                                {{ f.name }}
+                              </option></select
+                            ><svg
+                              class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              stroke-width="2.5"
                             >
-                              {{ f.name }}
-                            </option></select
-                          ><svg
-                            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                          >
-                            <path
-                              d="M6 9l6 6 6-6"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
+                              <path
+                                d="M6 9l6 6 6-6"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
+                        <div class="flex items-center gap-2">
+                          <span
+                            class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                            >Frosting</span
+                          >
+                          <div class="relative">
+                            <select
+                              v-model="row.frostingId"
+                              class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                            >
+                              <option value="">—</option>
+                              <option
+                                v-for="f in frostings"
+                                :key="f.id"
+                                :value="f.id"
+                              >
+                                {{ f.name }}
+                              </option></select
+                            ><svg
+                              class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              stroke-width="2.5"
+                            >
+                              <path
+                                d="M6 9l6 6 6-6"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      </template>
                       <div class="flex items-center gap-2">
                         <span
                           class="text-[12px] font-medium text-gray-500 flex-shrink-0"
@@ -2463,45 +2531,81 @@ function next() {
                       Sin detalles adicionales
                     </p>
                   </div>
-                  <div
-                    v-if="detailRow.sizeId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Tamaño</span>
+                  <div v-if="detailRow.hasTiers" class="py-2 space-y-2">
+                    <div
+                      v-for="(t, tIdx) in detailRow.tiers"
+                      :key="t.localId"
+                      class="rounded-lg bg-[#F8F8F9] px-3 py-2"
+                    >
+                      <p
+                        class="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1"
+                      >
+                        Piso {{ tIdx + 1 }}
+                      </p>
+                      <p class="text-[12px] text-[#111827]">
+                        {{
+                          [
+                            t.sizeId === "CUSTOM"
+                              ? t.customSize
+                              : t.sizeId || null,
+                            t.colorId ? colorName(t.colorId) : null,
+                            t.breadId
+                              ? catalogLabel(breadTypes, t.breadId)
+                              : null,
+                            t.fillingId
+                              ? catalogLabel(fillings, t.fillingId)
+                              : null,
+                            t.frostingId
+                              ? catalogLabel(frostings, t.frostingId)
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || "—"
+                        }}
+                      </p>
+                    </div>
+                  </div>
+                  <template v-else>
+                    <div
+                      v-if="detailRow.sizeId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Tamaño</span>
 
-                    <span class="text-[12px] font-semibold text-[#111827]">{{
-                      detailRow.sizeId === "CUSTOM"
-                        ? detailRow.customSize.toUpperCase()
-                        : detailRow.sizeId
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="detailRow.breadId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Tipo de Pan</span
-                    ><span class="text-[12px] font-semibold text-[#111827]">{{
-                      catalogLabel(breadTypes, detailRow.breadId)
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="detailRow.fillingId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Relleno</span
-                    ><span class="text-[12px] font-semibold text-[#111827]">{{
-                      catalogLabel(fillings, detailRow.fillingId)
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="detailRow.frostingId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Frosting</span
-                    ><span class="text-[12px] font-semibold text-[#111827]">{{
-                      catalogLabel(frostings, detailRow.frostingId)
-                    }}</span>
-                  </div>
+                      <span class="text-[12px] font-semibold text-[#111827]">{{
+                        detailRow.sizeId === "CUSTOM"
+                          ? detailRow.customSize.toUpperCase()
+                          : detailRow.sizeId
+                      }}</span>
+                    </div>
+                    <div
+                      v-if="detailRow.breadId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Tipo de Pan</span
+                      ><span class="text-[12px] font-semibold text-[#111827]">{{
+                        catalogLabel(breadTypes, detailRow.breadId)
+                      }}</span>
+                    </div>
+                    <div
+                      v-if="detailRow.fillingId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Relleno</span
+                      ><span class="text-[12px] font-semibold text-[#111827]">{{
+                        catalogLabel(fillings, detailRow.fillingId)
+                      }}</span>
+                    </div>
+                    <div
+                      v-if="detailRow.frostingId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Frosting</span
+                      ><span class="text-[12px] font-semibold text-[#111827]">{{
+                        catalogLabel(frostings, detailRow.frostingId)
+                      }}</span>
+                    </div>
+                  </template>
                   <div
                     v-if="detailRow.styleId"
                     class="flex justify-between py-2"
