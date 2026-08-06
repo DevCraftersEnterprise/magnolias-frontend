@@ -43,6 +43,7 @@ const {
 const {
   selectedCustomer,
   phoneQuery,
+  phoneSearchMode,
   searching,
   results,
   hasSearched,
@@ -54,6 +55,22 @@ const {
   canRegister,
   registerAndSelect,
 } = useCustomerLookup();
+
+function onCustomerSearchPhoneInput(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const maxLen = phoneSearchMode.value === "last4" ? 4 : 10;
+  const clean = input.value.replace(/\D/g, "").slice(0, maxLen);
+  input.value = clean;
+  phoneQuery.value = clean;
+}
+
+function setCustomerSearchMode(mode: "prefix" | "last4") {
+  if (phoneSearchMode.value === mode) return;
+  phoneSearchMode.value = mode;
+  phoneQuery.value = "";
+  results.value = [];
+  hasSearched.value = false;
+}
 
 const {
   orderProducts,
@@ -807,14 +824,37 @@ function next() {
             <!-- Left: search + register -->
             <div class="space-y-5 lg:pr-8">
               <div>
-                <label
-                  class="block text-[13px] font-semibold text-gray-600 mb-2"
-                  >Teléfono:</label
-                >
+                <div class="mb-2 flex items-center justify-between">
+                  <label
+                    for="customerSearchPhone"
+                    class="block text-[13px] font-semibold text-gray-600"
+                    >Teléfono:</label
+                  >
+                  <fieldset class="flex items-center rounded-lg bg-[#F3F3F4] p-0.5 text-[12px] border-0 m-0">
+                    <legend class="sr-only">Modo de búsqueda por teléfono</legend>
+                    <button
+                      type="button"
+                      class="rounded-md px-2.5 py-1 transition"
+                      :class="phoneSearchMode === 'prefix' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-500'"
+                      @click="setCustomerSearchMode('prefix')"
+                    >
+                      Teléfono
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-md px-2.5 py-1 transition"
+                      :class="phoneSearchMode === 'last4' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-500'"
+                      @click="setCustomerSearchMode('last4')"
+                    >
+                      Últimos 4
+                    </button>
+                  </fieldset>
+                </div>
                 <div class="relative">
                   <input
+                    id="customerSearchPhone"
                     :value="phoneQuery"
-                    @input="onPhoneInput($event, (v) => (phoneQuery = v))"
+                    @input="onCustomerSearchPhoneInput"
                     @keydown="
                       (e) => {
                         if (e.key === 'Enter') {
@@ -832,9 +872,9 @@ function next() {
                     "
                     type="tel"
                     inputmode="numeric"
-                    maxlength="10"
+                    :maxlength="phoneSearchMode === 'last4' ? 4 : 10"
                     class="w-full h-12 rounded-xl px-4 pr-12 text-[14px] ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/50 placeholder:text-gray-400 transition"
-                    placeholder="Ingresa número de teléfono"
+                    :placeholder="phoneSearchMode === 'last4' ? 'Últimos 4 dígitos' : 'Ingresa número de teléfono'"
                   />
                   <button
                     type="button"

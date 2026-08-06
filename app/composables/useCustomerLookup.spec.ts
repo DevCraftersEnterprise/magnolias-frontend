@@ -74,6 +74,39 @@ describe('useCustomerLookup', () => {
             expect(toastMock.error).toHaveBeenCalledWith('Sin conexión')
             expect(results.value).toEqual([])
         })
+
+        it('en modo last4 busca por last4 en vez de phone', async () => {
+            customersServiceMock.getCustomers.mockResolvedValue({
+                items: [{ id: 'c1', fullName: 'Ana' }],
+            })
+            const { phoneQuery, phoneSearchMode, searchByPhone } =
+                useCustomerLookup()
+            phoneSearchMode.value = 'last4'
+            phoneQuery.value = '4567'
+
+            await searchByPhone()
+
+            expect(customersServiceMock.getCustomers).toHaveBeenCalledWith({
+                last4: '4567',
+                isActive: true,
+                limit: 10,
+            })
+        })
+
+        it('en modo last4 no busca y muestra error si no son exactamente 4 dígitos', async () => {
+            const { phoneQuery, phoneSearchMode, searchByPhone, hasSearched } =
+                useCustomerLookup()
+            phoneSearchMode.value = 'last4'
+            phoneQuery.value = '456'
+
+            await searchByPhone()
+
+            expect(customersServiceMock.getCustomers).not.toHaveBeenCalled()
+            expect(toastMock.error).toHaveBeenCalledWith(
+                'Ingresa exactamente 4 dígitos.',
+            )
+            expect(hasSearched.value).toBe(false)
+        })
     })
 
     describe('registro inline', () => {
