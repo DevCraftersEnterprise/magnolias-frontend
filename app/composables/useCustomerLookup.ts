@@ -42,6 +42,29 @@ export function useCustomerLookup() {
         selectedCustomer.value = c;
     }
 
+    /**
+     * Cleans the raw input to digits-only, truncated to the current search
+     * mode's expected length (4 for last4, 10 for a full-ish prefix).
+     * Shared by every page embedding the phone search field so the
+     * behavior (and its markup, see `OrderCustomerPhoneSearch.vue`) isn't
+     * copy-pasted per page.
+     */
+    function onPhoneQueryInput(e: Event) {
+        const input = e.target as HTMLInputElement;
+        const maxLen = phoneSearchMode.value === "last4" ? 4 : 10;
+        const clean = input.value.replace(/\D/g, "").slice(0, maxLen);
+        input.value = clean;
+        phoneQuery.value = clean;
+    }
+
+    function setPhoneSearchMode(mode: PhoneSearchMode) {
+        if (phoneSearchMode.value === mode) return;
+        phoneSearchMode.value = mode;
+        phoneQuery.value = "";
+        results.value = [];
+        hasSearched.value = false;
+    }
+
     // ── Inline registration ──────────────────────────────────────────────────
     const showRegister = ref(false);
     const registering = ref(false);
@@ -130,6 +153,7 @@ export function useCustomerLookup() {
     return {
         selectedCustomer, phoneQuery, phoneSearchMode, searching,
         results, hasSearched, searchByPhone, selectCustomer,
+        onPhoneQueryInput, setPhoneSearchMode,
         showRegister, registering, regForm, canRegister, registerAndSelect,
     };
 }

@@ -49,28 +49,14 @@ const {
   hasSearched,
   searchByPhone,
   selectCustomer,
+  onPhoneQueryInput,
+  setPhoneSearchMode,
   showRegister,
   registering,
   regForm,
   canRegister,
   registerAndSelect,
 } = useCustomerLookup();
-
-function onCustomerSearchPhoneInput(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const maxLen = phoneSearchMode.value === "last4" ? 4 : 10;
-  const clean = input.value.replace(/\D/g, "").slice(0, maxLen);
-  input.value = clean;
-  phoneQuery.value = clean;
-}
-
-function setCustomerSearchMode(mode: "prefix" | "last4") {
-  if (phoneSearchMode.value === mode) return;
-  phoneSearchMode.value = mode;
-  phoneQuery.value = "";
-  results.value = [];
-  hasSearched.value = false;
-}
 
 const {
   orderProducts,
@@ -823,86 +809,14 @@ function next() {
           >
             <!-- Left: search + register -->
             <div class="space-y-5 lg:pr-8">
-              <div>
-                <div class="mb-2 flex items-center justify-between">
-                  <label
-                    for="customerSearchPhone"
-                    class="block text-[13px] font-semibold text-gray-600"
-                    >Teléfono:</label
-                  >
-                  <fieldset class="flex items-center rounded-lg bg-[#F3F3F4] p-0.5 text-[12px] border-0 m-0">
-                    <legend class="sr-only">Modo de búsqueda por teléfono</legend>
-                    <button
-                      type="button"
-                      class="rounded-md px-2.5 py-1 transition"
-                      :class="phoneSearchMode === 'prefix' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-500'"
-                      @click="setCustomerSearchMode('prefix')"
-                    >
-                      Teléfono
-                    </button>
-                    <button
-                      type="button"
-                      class="rounded-md px-2.5 py-1 transition"
-                      :class="phoneSearchMode === 'last4' ? 'bg-white shadow-sm text-[#111827]' : 'text-gray-500'"
-                      @click="setCustomerSearchMode('last4')"
-                    >
-                      Últimos 4
-                    </button>
-                  </fieldset>
-                </div>
-                <div class="relative">
-                  <input
-                    id="customerSearchPhone"
-                    :value="phoneQuery"
-                    @input="onCustomerSearchPhoneInput"
-                    @keydown="
-                      (e) => {
-                        if (e.key === 'Enter') {
-                          searchByPhone();
-                          return;
-                        }
-                        if (
-                          e.key.length === 1 &&
-                          !/\d/.test(e.key) &&
-                          !e.ctrlKey &&
-                          !e.metaKey
-                        )
-                          e.preventDefault();
-                      }
-                    "
-                    type="tel"
-                    inputmode="numeric"
-                    :maxlength="phoneSearchMode === 'last4' ? 4 : 10"
-                    class="w-full h-12 rounded-xl px-4 pr-12 text-[14px] ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/50 placeholder:text-gray-400 transition"
-                    :placeholder="phoneSearchMode === 'last4' ? 'Últimos 4 dígitos' : 'Ingresa número de teléfono'"
-                  />
-                  <button
-                    type="button"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 grid h-8 w-8 place-items-center rounded-lg hover:bg-black/5 transition"
-                    :class="searching ? 'text-[#FC9AD3]' : 'text-gray-400'"
-                    @click="searchByPhone"
-                  >
-                    <div
-                      v-if="searching"
-                      class="h-4 w-4 rounded-full border-2 border-black/10 border-t-[#FC9AD3] animate-spin"
-                    />
-                    <svg
-                      v-else
-                      viewBox="0 0 24 24"
-                      class="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="M21 21l-4.3-4.3" />
-                    </svg>
-                  </button>
-                </div>
-                <p class="mt-1.5 text-[12px] text-gray-400">
-                  Presiona Enter o el ícono para buscar.
-                </p>
-              </div>
+              <OrderCustomerPhoneSearch
+                :phone-query="phoneQuery"
+                :phone-search-mode="phoneSearchMode"
+                :searching="searching"
+                @input="onPhoneQueryInput"
+                @search="searchByPhone"
+                @set-mode="setPhoneSearchMode"
+              />
 
               <button
                 type="button"
