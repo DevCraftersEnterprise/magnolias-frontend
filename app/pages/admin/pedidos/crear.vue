@@ -34,11 +34,14 @@ const {
 const {
   selectedCustomer,
   phoneQuery,
+  phoneSearchMode,
   searching,
   results,
   hasSearched,
   searchByPhone,
   selectCustomer,
+  onPhoneQueryInput,
+  setPhoneSearchMode,
   showRegister,
   registering,
   regForm,
@@ -525,62 +528,14 @@ function next() {
           <!-- ── Left: search + optional register form ────────────────────── -->
           <div class="space-y-5 lg:pr-8">
             <!-- Phone input -->
-            <div>
-              <label class="block text-[13px] font-semibold text-gray-600 mb-2"
-                >Teléfono:</label
-              >
-              <div class="relative">
-                <input
-                  :value="phoneQuery"
-                  @input="onPhoneInput($event, (v) => (phoneQuery = v))"
-                  @keydown="
-                    (e) => {
-                      if (e.key === 'Enter') {
-                        searchByPhone();
-                        return;
-                      }
-                      if (
-                        e.key.length === 1 &&
-                        !/\d/.test(e.key) &&
-                        !e.ctrlKey &&
-                        !e.metaKey
-                      )
-                        e.preventDefault();
-                    }
-                  "
-                  type="tel"
-                  inputmode="numeric"
-                  maxlength="10"
-                  class="w-full h-12 rounded-xl px-4 pr-12 text-[14px] ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/50 placeholder:text-gray-400 transition"
-                  placeholder="Ingresa número de teléfono"
-                />
-                <button
-                  type="button"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 grid h-8 w-8 place-items-center rounded-lg hover:bg-black/5 transition"
-                  :class="searching ? 'text-[#FC9AD3]' : 'text-gray-400'"
-                  @click="searchByPhone"
-                >
-                  <div
-                    v-if="searching"
-                    class="h-4 w-4 rounded-full border-2 border-black/10 border-t-[#FC9AD3] animate-spin"
-                  />
-                  <svg
-                    v-else
-                    viewBox="0 0 24 24"
-                    class="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="M21 21l-4.3-4.3" />
-                  </svg>
-                </button>
-              </div>
-              <p class="mt-1.5 text-[12px] text-gray-400">
-                Presiona Enter o el ícono para buscar.
-              </p>
-            </div>
+            <OrderCustomerPhoneSearch
+              :phone-query="phoneQuery"
+              :phone-search-mode="phoneSearchMode"
+              :searching="searching"
+              @input="onPhoneQueryInput"
+              @search="searchByPhone"
+              @set-mode="setPhoneSearchMode"
+            />
 
             <!-- Not-registered toggle -->
             <button

@@ -4,6 +4,7 @@ import type { CreateCustomerRequest, CustomerItem, CustomersResponse, UpdateCust
 export const customersService = {
   getCustomers(params: {
     phone?: string
+    last4?: string
     name?: string
     isActive?: boolean
     limit?: number
@@ -12,6 +13,7 @@ export const customersService = {
     const q = new URLSearchParams()
     if (params.name) q.set('name', params.name)
     if (params.phone) q.set('phone', params.phone)
+    if (params.last4) q.set('last4', params.last4)
     if (params.isActive !== undefined) q.set('isActive', String(params.isActive))
     q.set('limit', String(params.limit ?? 10))
     q.set('offset', String(params.offset ?? 0))
