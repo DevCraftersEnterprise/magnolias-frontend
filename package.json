@@ -15,7 +15,7 @@
   "dependencies": {
     "leaflet": "^1.9.4",
     "nuxt": "^4.5.1",
-    "three": "^0.184.0",
+    "three": "^0.185.1",
     "typescript": "^7.0.2",
     "vue": "^3.5.28",
     "vue-router": "^4.6.4",
