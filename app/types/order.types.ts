@@ -257,6 +257,7 @@ export type OrderDetail = {
     settlementTicketNumber?: string | null;
     paymentMethod?: string | null;
     transferAccount?: string | null;
+    orderSource?: string | null;
     requiresInvoice?: boolean;
     isCustomerPickup?: boolean;
     settlementDate?: string | null;
@@ -317,6 +318,7 @@ export type UpdateOrderPayload = {
     payment?: number;
     paymentMethod?: string;
     transferAccount?: string;
+    orderSource?: string;
     ticketNumber?: string;
     deliveryDate?: string;
     deliveryTime?: string;
@@ -403,6 +405,7 @@ export type CreateOrderPayload = {
     branchId: string;
     advancePayment: number;
     paymentMethod?: string;
+    orderSource: string;
     ticketNumber?: string;
     deliveryDate?: string;
     deliveryTime?: string;

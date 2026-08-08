@@ -8,6 +8,17 @@ export const ORDER_MODES: { key: OrderModeKey; label: string; sub: string; icon:
     { key: "evento", label: "Evento", sub: "Evento especial", icon: "event" },
 ];
 
+export type OrderSourceValue = "WHATSAPP" | "INSTAGRAM" | "FACEBOOK" | "PHONE_CALL" | "IN_PERSON";
+
+/** Canal por el que se tomó el pedido — se usará para reportes de ventas por canal. */
+export const ORDER_SOURCES: { value: OrderSourceValue; label: string }[] = [
+    { value: "WHATSAPP", label: "WhatsApp" },
+    { value: "INSTAGRAM", label: "Instagram" },
+    { value: "FACEBOOK", label: "Facebook" },
+    { value: "PHONE_CALL", label: "Llamada telefónica" },
+    { value: "IN_PERSON", label: "En persona / Mostrador" },
+];
+
 export const MINUTE_OPTIONS = ["00", "15", "30", "45"] as const;
 
 export function buildTime24(h12: number, minute: string, period: "AM" | "PM"): string {
@@ -38,6 +49,7 @@ export function useOrderLogistics(
         isEvento: false,
         isEnTienda: false,
         includesFlowers: false,
+        orderSource: "" as OrderSourceValue | "",
         deliveryDate: "", deliveryTime: "", deliveryRound: "",
         useCustomerAddr: false,
         newAddr: {
@@ -137,7 +149,7 @@ export function useOrderLogistics(
     });
 
     return {
-        step2, ORDER_MODES, MINUTE_OPTIONS, setOrderMode,
+        step2, ORDER_MODES, ORDER_SOURCES, MINUTE_OPTIONS, setOrderMode,
         pickupTimeParts, deliveryTimeParts, exitTimeParts,
         customerHasAddress, customerAddressFormatted, needsDelivery,
         pickupTimeOutOfHours, deliveryTimeOutOfHours, deliveryTimeWarningMsg, exitTimeOutOfHours,

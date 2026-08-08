@@ -12,6 +12,7 @@ import type {
 } from "~/types/order.types";
 import { useToast } from "vue-toastification";
 import OrderModeSelector from "~/components/order/OrderModeSelector.vue";
+import OrderSourceSelector from "~/components/order/OrderSourceSelector.vue";
 import OrderPickupLogistics from "~/components/order/OrderPickupLogistics.vue";
 import OrderDeliveryTimingDetails from "~/components/order/OrderDeliveryTimingDetails.vue";
 import OrderDeliveryAddressForm from "~/components/order/OrderDeliveryAddressForm.vue";
@@ -315,6 +316,7 @@ function populateFromOrder(order: OrderDetail) {
   // Order type
   setOrderMode(getOrderMode(order));
   step2.includesFlowers = order.includesFlowers;
+  step2.orderSource = (order.orderSource as typeof step2.orderSource) ?? "";
 
   // Branch
   if (order.branch?.id) step2.pickupBranchId = order.branch.id;
@@ -659,6 +661,7 @@ async function submitOrder() {
       isEvento: step2.isEvento,
       isEnTienda: step2.isEnTienda,
       includesFlowers: step2.includesFlowers,
+      orderSource: step2.orderSource || undefined,
       customerId: cust.id,
       branchId,
       advancePayment,
@@ -1059,6 +1062,12 @@ function next() {
               :includes-flowers="step2.includesFlowers"
               @select-mode="setOrderMode"
               @update:includes-flowers="step2.includesFlowers = $event"
+            />
+
+            <!-- Canal de origen -->
+            <OrderSourceSelector
+              :order-source="step2.orderSource"
+              @update:order-source="step2.orderSource = $event"
             />
 
             <!-- En tienda: Recolección -->
