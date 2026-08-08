@@ -237,16 +237,11 @@ export const manualSections: ManualSection[] = [
                 steps: [
                     'Paso 1 — Cliente: busca al cliente por teléfono (o últimos 4 dígitos) o regístralo si es nuevo.',
                     'Paso 2 — Tipo y logística: elige En tienda, Domicilio o Evento, y marca "Incluye flores" si aplica. Ingresa fecha, hora y dirección según el tipo.',
-                    'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, relleno, cubierta, forma, texto e imagen de referencia.',
+                    'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, relleno, cubierta, forma, texto, una o varias imágenes de referencia y, si aplica, un descuento (requiere autorización) o pisos adicionales (ver subsecciones más abajo).',
                     'Paso 4 — Pago: elige la forma de pago (Efectivo, Tarjeta o Transferencia) y el modo (Pago completo o Anticipo). Si eliges Transferencia, ingresa también la cuenta o referencia. Haz clic en "Registrar pedido".',
                 ],
                 warning: 'El sistema solo permite registrar pedidos con hora entre las 8:00 AM y las 7:59 PM. La fecha mínima de entrega es el día siguiente al actual.',
-                tip: 'La cuenta/referencia de transferencia es un dato protegido: una vez guardado no se vuelve a mostrar en el panel (ni en el detalle del pedido ni al editarlo), solo aparece impreso en el PDF del pedido. Si editas un pedido con pago por transferencia y dejas ese campo en blanco, se conserva el valor ya guardado; si escribes uno nuevo, lo reemplaza.',
-                    'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, relleno, cubierta, forma, texto, una o varias imágenes de referencia y, si aplica, un descuento (requiere autorización) o pisos adicionales (ver subsecciones más abajo).',
-                    'Paso 4 — Pago: elige la forma de pago (Efectivo, Tarjeta o Transferencia) y el modo (Pago completo o Anticipo). Haz clic en "Registrar pedido".',
-                ],
-                warning: 'El sistema solo permite registrar pedidos con hora entre las 8:00 AM y las 7:59 PM. La fecha mínima de entrega es el día siguiente al actual.',
-                tip: 'Si inicias sesión con una cuenta de Empleado compartida por la sucursal, el sistema te pedirá tu PIN personal antes de guardar el pedido — ver "Identificación con PIN de empleado" más abajo.',
+                tip: 'La cuenta/referencia de transferencia es un dato protegido: una vez guardado no se vuelve a mostrar en el panel (ni en el detalle del pedido ni al editarlo), solo aparece impreso en el PDF del pedido. Si editas un pedido con pago por transferencia y dejas ese campo en blanco, se conserva el valor ya guardado; si escribes uno nuevo, lo reemplaza. Si además inicias sesión con una cuenta de Empleado compartida por la sucursal, el sistema te pedirá tu PIN personal antes de guardar el pedido — ver "Identificación con PIN de empleado" más abajo.',
             },
             {
                 id: 'pisos-pastel',
