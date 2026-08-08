@@ -14,6 +14,7 @@ export function useOrderPayment(
         paymentMode: "FULL" as "FULL" | "DEPOSIT",
         depositAmount: 0,
         requiresInvoice: false,
+        transferAccount: "",
     });
 
     const subtotal = computed(() => orderProducts.value.reduce((s, r) => {

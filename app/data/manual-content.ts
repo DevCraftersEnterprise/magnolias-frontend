@@ -238,9 +238,10 @@ export const manualSections: ManualSection[] = [
                     'Paso 1 — Cliente: busca al cliente por teléfono o regístralo si es nuevo.',
                     'Paso 2 — Tipo y logística: elige En tienda, Domicilio o Evento, y marca "Incluye flores" si aplica. Ingresa fecha, hora y dirección según el tipo.',
                     'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, relleno, cubierta, forma, texto e imagen de referencia.',
-                    'Paso 4 — Pago: elige la forma de pago (Efectivo, Tarjeta o Transferencia) y el modo (Pago completo o Anticipo). Haz clic en "Registrar pedido".',
+                    'Paso 4 — Pago: elige la forma de pago (Efectivo, Tarjeta o Transferencia) y el modo (Pago completo o Anticipo). Si eliges Transferencia, ingresa también la cuenta o referencia. Haz clic en "Registrar pedido".',
                 ],
                 warning: 'El sistema solo permite registrar pedidos con hora entre las 8:00 AM y las 7:59 PM. La fecha mínima de entrega es el día siguiente al actual.',
+                tip: 'La cuenta/referencia de transferencia es un dato protegido: una vez guardado no se vuelve a mostrar en el panel (ni en el detalle del pedido ni al editarlo), solo aparece impreso en el PDF del pedido. Si editas un pedido con pago por transferencia y dejas ese campo en blanco, se conserva el valor ya guardado; si escribes uno nuevo, lo reemplaza.',
             },
             {
                 id: 'tipos-pedido',
