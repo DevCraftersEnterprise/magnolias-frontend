@@ -235,13 +235,57 @@ export const manualSections: ManualSection[] = [
                 content:
                     'Para registrar un pedido, haz clic en el botón "+" junto al título "Pedidos Registrados". Serás llevado a un formulario de 4 pasos.',
                 steps: [
-                    'Paso 1 — Cliente: busca al cliente por teléfono o regístralo si es nuevo.',
+                    'Paso 1 — Cliente: busca al cliente por teléfono (o últimos 4 dígitos) o regístralo si es nuevo.',
                     'Paso 2 — Tipo y logística: elige En tienda, Domicilio o Evento, y marca "Incluye flores" si aplica. Ingresa fecha, hora y dirección según el tipo.',
                     'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, relleno, cubierta, forma, texto e imagen de referencia.',
                     'Paso 4 — Pago: elige la forma de pago (Efectivo, Tarjeta o Transferencia) y el modo (Pago completo o Anticipo). Si eliges Transferencia, ingresa también la cuenta o referencia. Haz clic en "Registrar pedido".',
                 ],
                 warning: 'El sistema solo permite registrar pedidos con hora entre las 8:00 AM y las 7:59 PM. La fecha mínima de entrega es el día siguiente al actual.',
                 tip: 'La cuenta/referencia de transferencia es un dato protegido: una vez guardado no se vuelve a mostrar en el panel (ni en el detalle del pedido ni al editarlo), solo aparece impreso en el PDF del pedido. Si editas un pedido con pago por transferencia y dejas ese campo en blanco, se conserva el valor ya guardado; si escribes uno nuevo, lo reemplaza.',
+                    'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, relleno, cubierta, forma, texto, una o varias imágenes de referencia y, si aplica, un descuento (requiere autorización) o pisos adicionales (ver subsecciones más abajo).',
+                    'Paso 4 — Pago: elige la forma de pago (Efectivo, Tarjeta o Transferencia) y el modo (Pago completo o Anticipo). Haz clic en "Registrar pedido".',
+                ],
+                warning: 'El sistema solo permite registrar pedidos con hora entre las 8:00 AM y las 7:59 PM. La fecha mínima de entrega es el día siguiente al actual.',
+                tip: 'Si inicias sesión con una cuenta de Empleado compartida por la sucursal, el sistema te pedirá tu PIN personal antes de guardar el pedido — ver "Identificación con PIN de empleado" más abajo.',
+            },
+            {
+                id: 'pisos-pastel',
+                title: '3.2.1 Pasteles de varios pisos',
+                content:
+                    'Al configurar un producto tipo pastel en el Paso 3, puedes activar la opción "¿Pastel de varios pisos?" para armar un pastel de piso múltiple. Cada piso se configura de forma independiente.',
+                steps: [
+                    'Activa el interruptor "¿Pastel de varios pisos?". El sistema crea automáticamente 2 pisos (el mínimo para activar la opción).',
+                    'Para cada piso, configura su propio tamaño, color, tipo de pan, relleno y cubierta.',
+                    'Haz clic en "Agregar piso" para sumar más pisos; no hay un límite fijo.',
+                    'Puedes quitar un piso mientras queden al menos 2 (por debajo de eso, la opción se desactiva).',
+                ],
+                tip: 'La forma, el precio, la cantidad, el texto/escritura y las notas del producto se configuran una sola vez para todo el pastel, no por piso — solo tamaño, color, tipo de pan, relleno y cubierta varían entre pisos.',
+            },
+            {
+                id: 'descuento-producto',
+                title: '3.2.2 Aplicar un descuento a un producto',
+                content:
+                    'Cualquier línea de producto dentro de un pedido puede llevar un descuento porcentual, pero requiere autorización de un usuario con rol Administrador o Superadministrador.',
+                steps: [
+                    'En el Paso 3, dentro de la configuración del producto, ingresa el porcentaje de descuento deseado.',
+                    'El sistema abrirá un modal pidiendo usuario y contraseña de un Admin o Super.',
+                    'Si las credenciales son válidas, el descuento queda autorizado y se aplica a esa línea.',
+                    'Si editas un pedido y cambias el porcentaje de descuento de una línea (incluyendo bajarlo a 0), se vuelve a pedir autorización.',
+                ],
+                tip: 'Solo se vuelve a pedir autorización cuando el porcentaje de descuento realmente cambia. Editar otros campos del pedido no reabre el modal de autorización.',
+            },
+            {
+                id: 'pin-empleado',
+                title: '3.2.3 Identificación con PIN de empleado',
+                content:
+                    'Si tu sucursal usa una cuenta de "Empleado" compartida entre varias personas del mostrador, el sistema necesita saber quién realizó cada acción de forma individual. Para eso existe el PIN de empleado (ver también la sección "Empleados de sucursal").',
+                steps: [
+                    'Al crear, editar, entregar o cancelar un pedido con una cuenta de Empleado, aparecerá el modal "Identifícate".',
+                    'Ingresa tu PIN personal de 4 a 6 dígitos (asignado por el administrador al registrarte como empleado de la sucursal).',
+                    'Si el PIN es correcto, la acción continúa y queda registrada con tu nombre como autor.',
+                    'El PIN es de un solo uso por sesión de acción: puede volver a pedirse pasado un tiempo o al realizar una acción distinta.',
+                ],
+                warning: 'Los usuarios con cuenta individual (Administrador, Superadministrador o Pastelero) no necesitan PIN — esta identificación solo aplica a cuentas de Empleado compartidas por sucursal.',
             },
             {
                 id: 'tipos-pedido',
@@ -258,7 +302,7 @@ export const manualSections: ManualSection[] = [
                 id: 'detalle-pedido',
                 title: '3.3 Ver el detalle de un pedido',
                 content:
-                    'Desde la tabla de pedidos, haz clic en cualquier fila para abrir el modal de detalle. Verás: información del cliente y dirección, tipo/fecha/hora de entrega, lista de productos con personalizaciones, imágenes de referencia, datos de pago (total, abono y saldo), pastelero asignado, y usuario que creó el pedido.',
+                    'Desde la tabla de pedidos, haz clic en cualquier fila para abrir el modal de detalle. Verás: información del cliente y dirección, tipo/fecha/hora de entrega, lista de productos con personalizaciones (incluye pisos, si el producto los tiene), imágenes de referencia, datos de pago (total, abono y saldo), el repostero asignado a cada línea, y usuario que creó el pedido.',
                 steps: [
                     'Si el pedido tiene saldo pendiente, verás una sección para registrar un abono.',
                     'Ingresa el monto del abono y haz clic en "Guardar abono".',
@@ -266,28 +310,54 @@ export const manualSections: ManualSection[] = [
                 ],
             },
             {
+                id: 'asignacion-repostero',
+                title: '3.4 Asignación de repostero por producto',
+                content:
+                    'La asignación ya no se hace a nivel de todo el pedido, sino por cada línea de producto dentro de él. Un mismo pedido puede tener distintos productos preparados por distintos reposteros.',
+                steps: [
+                    'Abre el modal de detalle del pedido (haz clic en la fila de la tabla).',
+                    'Junto a cada producto verás un selector para asignar (o reasignar) al repostero encargado de esa línea.',
+                    'Selecciona al repostero disponible en la sucursal; la asignación se guarda de inmediato.',
+                    'Una línea sin asignar sigue siendo visible y puede ser tomada por cualquier pastelero de la sucursal desde su propio tablero.',
+                ],
+                tip: 'El estado general del pedido (Creado / En proceso / Finalizado) ya no se cambia manualmente: se calcula automáticamente a partir del avance de producción de cada línea — pasa a "En proceso" en cuanto una línea inicia, y a "Finalizado" solo cuando todas las líneas están listas.',
+                warning: 'Administrador y Superadministrador conservan la opción de forzar manualmente el estado completo del pedido (por ejemplo, para corregir un caso excepcional), pero el uso normal del día a día es por línea.',
+            },
+            {
                 id: 'acciones-pedido',
-                title: '3.4 Acciones sobre un pedido',
+                title: '3.5 Otras acciones sobre un pedido',
                 content: 'En la tabla de pedidos, el menú de acciones de cada pedido permite:',
                 steps: [
-                    'Asignar pastelero: selecciona al pastelero disponible en la sucursal y confirma.',
                     'Marcar como entregado: confirma la entrega. Esta acción no se puede deshacer.',
                     'Cancelar pedido: ingresa el motivo de cancelación y confirma.',
                     'Editar pedido: abre el formulario de 4 pasos con toda la información precargada.',
                 ],
+                tip: 'La asignación de repostero se hace desde el modal de detalle (ver subsección anterior), no desde este menú.',
             },
             {
                 id: 'vista-pastelero',
-                title: '3.5 Vista del Pastelero',
+                title: '3.6 Vista del Pastelero',
                 content:
-                    'Los usuarios con rol Pastelero ven un tablero de producción organizado por fecha de entrega, dividido en tres columnas: Pendientes (Creado), En proceso y Listos (Finalizado).',
+                    'Los usuarios con rol Pastelero ven un tablero de producción organizado por fecha de entrega, dividido en tres columnas: Pendientes, En proceso y Listos. A diferencia de antes, cada tarjeta del tablero representa un producto asignado, no un pedido completo — si un pedido tiene dos productos asignados a reposteros distintos, cada uno lo ve solo en su propio tablero.',
                 steps: [
                     'Usa las pestañas: Mañana, Pasado mañana o Rango para filtrar por fecha.',
-                    'Para iniciar un pedido: haz clic en "Iniciar producción" → pasa a En proceso.',
-                    'Para terminar un pedido: haz clic en "Marcar como listo" → pasa a Listo.',
-                    'Haz clic en el código del pedido para ver su detalle completo con imágenes de referencia.',
+                    'Para iniciar la producción de un producto: entra al detalle del pedido y haz clic en "Iniciar producción" sobre esa línea → pasa a En proceso.',
+                    'Para marcarlo listo: haz clic en "Marcar como listo" sobre esa línea → pasa a Listo.',
+                    'Haz clic en el código del pedido para ver su detalle completo con imágenes de referencia y avanzar el estado de cada línea asignada.',
                 ],
                 tip: 'Cada cambio de estado requiere confirmación. Las imágenes de referencia tienen zoom y desplazamiento para ver los detalles del diseño.',
+            },
+            {
+                id: 'ver-como-pastelero',
+                title: '3.7 Vista previa como Pastelero (SUPER/ADMIN)',
+                content:
+                    'Los usuarios con rol Superadministrador o Administrador pueden previsualizar el sistema tal como lo ve un Pastelero, sin necesidad de otra cuenta.',
+                steps: [
+                    'En la barra superior, activa el interruptor "Ver como pastelero".',
+                    'La interfaz cambia al tablero de producción, igual que lo vería un usuario con rol Pastelero.',
+                    'Desactiva el interruptor para volver a tu vista normal de Administrador/Superadministrador.',
+                ],
+                tip: 'Útil para verificar cómo quedará organizado el tablero antes de capacitar al equipo de cocina, o para resolver dudas puntuales de un pastelero sin tener que pedirle su sesión.',
             },
         ],
     },
@@ -354,11 +424,24 @@ export const manualSections: ManualSection[] = [
                 title: '4.6 Producto favorito',
                 content:
                     'El sistema permite marcar un único producto como favorito. Este se muestra de forma destacada en la página pública de la tienda.',
-                warning: 'Solo puede existir un producto favorito a la vez. Al marcar uno nuevo como favorito, el anterior perderá esa condición automáticamente.',
+                warning: 'Solo puede existir un producto favorito a la vez. Al marcar uno nuevo como favorito, el anterior perderá esa condición automáticamente. Un producto oculto del catálogo público no puede marcarse como favorito.',
+            },
+            {
+                id: 'visibilidad-publica',
+                title: '4.7 Visibilidad pública',
+                content:
+                    'Cada producto tiene un interruptor "Visible al público", independiente de si está Activo/Inactivo. Sirve para productos que quieres seguir usando internamente (por ejemplo, en pedidos personalizados) sin que aparezcan en la tienda pública.',
+                steps: [
+                    'Abre el modal de edición del producto.',
+                    'Activa o desactiva el interruptor "Visible al público".',
+                    'Si está activo: el producto aparece en el catálogo público de la tienda.',
+                    'Si está inactivo: el producto queda oculto del catálogo público, pero sigue disponible para buscarlo al armar un pedido desde el panel.',
+                ],
+                warning: 'Si ocultas un producto que estaba marcado como favorito, pierde la condición de favorito automáticamente.',
             },
             {
                 id: 'activar-desactivar',
-                title: '4.7 Activar o desactivar un producto',
+                title: '4.8 Activar o desactivar un producto',
                 content:
                     'Si un producto ya no está disponible temporalmente, puedes desactivarlo sin eliminarlo. Los productos inactivos dejan de aparecer en el buscador al crear pedidos. Para volverlos a habilitar, simplemente activa el interruptor nuevamente y guarda.',
                 steps: [
@@ -430,13 +513,15 @@ export const manualSections: ManualSection[] = [
                 id: 'buscar-cliente',
                 title: '6.1 Buscar un cliente',
                 content:
-                    'La búsqueda de clientes se realiza por número de teléfono. El sistema filtra automáticamente los resultados mientras escribes.',
+                    'La búsqueda de clientes se realiza por número de teléfono. Junto a la barra de búsqueda hay un selector con dos modos: "Teléfono" y "Últimos 4". El sistema filtra automáticamente los resultados mientras escribes.',
                 steps: [
-                    'Escribe el número de teléfono en la barra de búsqueda (solo dígitos, sin guiones).',
+                    'Modo "Teléfono" (por defecto): escribe desde el inicio del número (solo dígitos, sin guiones) para buscar por coincidencia de prefijo.',
+                    'Modo "Últimos 4": útil cuando el cliente solo recuerda o dicta los últimos dígitos de su número. Escribe exactamente 4 dígitos; la búsqueda se dispara automáticamente al completarlos.',
                     'Los resultados se filtran en tiempo real.',
                     'Si no hay resultados, el cliente aún no está registrado.',
                     'Si hay más de 10 clientes, usa los botones Anterior y Siguiente para navegar.',
                 ],
+                tip: 'El mismo selector "Teléfono / Últimos 4" también está disponible al buscar cliente dentro del formulario de creación/edición de pedidos (Paso 1).',
             },
             {
                 id: 'registrar-cliente',
@@ -451,6 +536,7 @@ export const manualSections: ManualSection[] = [
                     ['Notas', 'No', 'Observaciones generales sobre el cliente'],
                 ],
                 tip: 'Registrar la dirección del cliente desde el inicio facilitará mucho el proceso al crear pedidos de tipo Domicilio, ya que el sistema la ofrecerá automáticamente.',
+                warning: 'El teléfono debe ser único: si ya existe un cliente registrado con ese número, el sistema rechazará el registro y mostrará un aviso. Busca primero por teléfono para confirmar que el cliente no esté ya dado de alta.',
             },
             {
                 id: 'editar-cliente',
@@ -566,7 +652,56 @@ export const manualSections: ManualSection[] = [
     },
 
     // ──────────────────────────────────────────────
-    // SECCIÓN 10: APÉNDICE
+    // SECCIÓN 10: EMPLEADOS DE SUCURSAL Y PIN
+    // ──────────────────────────────────────────────
+    {
+        id: 'empleados-sucursal',
+        title: 'Empleados de sucursal y PIN',
+        icon: '🪪',
+        description: 'Registra a las personas que operan una cuenta de Empleado compartida, para identificar individualmente quién realiza cada acción sobre un pedido.',
+        roleAccess: ['SUPER', 'ADMIN'],
+        subsections: [
+            {
+                id: 'que-es-empleado-sucursal',
+                title: '9.1 ¿Qué es un empleado de sucursal?',
+                content:
+                    'Es distinto de un "Usuario" del sistema (sección Usuarios). Un empleado de sucursal no tiene usuario ni contraseña propios para iniciar sesión: es simplemente un nombre + apellido + PIN, vinculado a una sucursal, que sirve para identificar a la persona real detrás de una cuenta de Empleado compartida por el mostrador. Se gestiona desde "Empleados" en el menú lateral.',
+                tip: 'Si cada persona de tu equipo ya tiene su propio Usuario individual (por ejemplo, Administradores, Superadministradores o Pasteleros), no necesitas registrarla también como empleado de sucursal — el PIN solo aplica a sesiones con rol Empleado.',
+            },
+            {
+                id: 'crear-empleado-sucursal',
+                title: '9.2 Registrar un empleado de sucursal',
+                content: 'Haz clic en "+ Nuevo empleado" en la sucursal seleccionada en la barra superior.',
+                steps: [
+                    'Ingresa el nombre y apellido del empleado.',
+                    'Define un PIN (de 4 a 6 dígitos).',
+                    'Haz clic en Guardar. El empleado queda activo de inmediato en esa sucursal.',
+                ],
+                warning: 'El PIN es sensible: solo debe conocerlo el empleado correspondiente. Compártelo de forma privada, no en un chat grupal ni en un lugar visible.',
+            },
+            {
+                id: 'regenerar-pin',
+                title: '9.3 Regenerar el PIN de un empleado',
+                content:
+                    'Si un empleado olvidó su PIN o sospechas que alguien más lo conoce, puedes regenerarlo. El sistema genera uno nuevo aleatorio.',
+                steps: [
+                    'Localiza al empleado en la tabla y haz clic en "Regenerar PIN".',
+                    'Confirma la acción.',
+                    'El nuevo PIN se muestra en pantalla una sola vez, con un botón para copiarlo.',
+                    'Compárteselo al empleado de inmediato: el sistema no lo volverá a mostrar.',
+                ],
+            },
+            {
+                id: 'desactivar-empleado',
+                title: '9.4 Editar o desactivar un empleado',
+                content:
+                    'Desde la tabla puedes editar el nombre/apellido de un empleado o desactivarlo si ya no forma parte del equipo. Al desactivarlo, su PIN deja de funcionar para identificarse, pero el historial de acciones que ya realizó se conserva.',
+            },
+        ],
+    },
+
+    // ──────────────────────────────────────────────
+    // SECCIÓN 11: APÉNDICE
     // ──────────────────────────────────────────────
     {
         id: 'apendice',
@@ -577,7 +712,7 @@ export const manualSections: ManualSection[] = [
         subsections: [
             {
                 id: 'glosario',
-                title: '9.1 Glosario de términos',
+                title: '10.1 Glosario de términos',
                 content: 'Definiciones de los términos más utilizados en el sistema:',
                 tableHeaders: ['Término', 'Definición'],
                 tableRows: [
@@ -588,34 +723,39 @@ export const manualSections: ManualSection[] = [
                     ['Evento', 'Pedido para celebraciones con posibles servicios adicionales'],
                     ['Anticipo / Abono', 'Pago parcial registrado al crear el pedido o posteriormente'],
                     ['Saldo restante', 'Monto que el cliente aún debe liquidar'],
-                    ['Pastelero', 'Usuario encargado de la producción de los pedidos en cocina'],
-                    ['Asignación', 'Acción de vincular un pedido a un pastelero específico'],
+                    ['Pastelero / Repostero', 'Usuario encargado de la producción de los pedidos en cocina; "repostero" se usa en la asignación por línea de producto'],
+                    ['Asignación', 'Acción de vincular una línea de producto de un pedido a un pastelero específico'],
+                    ['Piso', 'Cada nivel independiente de un pastel de varios pisos, con su propio tamaño/color/tipo de pan/relleno/cubierta'],
                     ['Catálogo', 'Conjunto de opciones para personalizar un producto'],
                     ['Cubierta', 'Tipo de decoración exterior de un pastel'],
                     ['Manga', 'Estilo de borde decorativo con manga pastelera'],
                     ['Sucursal', 'Punto físico de venta o producción de la pastelería'],
-                    ['Tablero Kanban', 'Vista de pedidos del pastelero organizada por estado de producción'],
+                    ['Empleado de sucursal', 'Persona identificada por nombre + PIN dentro de una cuenta de Empleado compartida, distinta de un Usuario del sistema'],
+                    ['PIN de empleado', 'Código de 4 a 6 dígitos que identifica individualmente a un empleado de sucursal al crear, editar, entregar o cancelar un pedido'],
+                    ['Descuento autorizado', 'Porcentaje de descuento aplicado a una línea de producto, válido solo tras confirmarse con usuario y contraseña de un Admin o Super'],
+                    ['Visible al público', 'Condición de un producto para aparecer (o no) en el catálogo de la tienda pública, independiente de si está Activo'],
+                    ['Tablero Kanban', 'Vista del pastelero organizada por estado de producción, con una tarjeta por producto asignado'],
                     ['Favorito', 'Producto destacado que se muestra en la tienda pública'],
                     ['Desactivar', 'Ocultar temporalmente un elemento sin eliminarlo permanentemente'],
                 ],
             },
             {
                 id: 'estados-pedido',
-                title: '9.2 Estados de un pedido',
-                content: 'Un pedido pasa por los siguientes estados:',
-                tableHeaders: ['Estado', 'Color', 'Descripción', '¿Quién lo asigna?'],
+                title: '10.2 Estados de un pedido',
+                content: 'Un pedido pasa por los siguientes estados. Creado, En proceso y Finalizado ya no se marcan a mano: se calculan automáticamente a partir del avance de producción de cada línea de producto (ver "Asignación de repostero por producto" en la sección Pedidos).',
+                tableHeaders: ['Estado', 'Color', 'Descripción', '¿Cómo se llega a él?'],
                 tableRows: [
-                    ['Creado', 'Verde', 'Registrado, en espera de producción', 'Sistema al crear'],
-                    ['En proceso', 'Amarillo', 'El pastelero ya inició la elaboración', 'Pastelero'],
-                    ['Finalizado', 'Azul', 'Listo para entrega o recogida', 'Pastelero'],
-                    ['Entregado', 'Naranja', 'Fue entregado al cliente', 'Admin / Empleado'],
-                    ['Cancelado', 'Rojo', 'Cancelado; requiere motivo', 'Admin / Empleado'],
+                    ['Creado', 'Verde', 'Registrado, ninguna línea ha iniciado producción', 'Automático al crear el pedido'],
+                    ['En proceso', 'Amarillo', 'Al menos una línea de producto ya inició producción', 'Automático en cuanto un pastelero inicia una línea'],
+                    ['Finalizado', 'Azul', 'Todas las líneas de producto están listas', 'Automático cuando la última línea queda lista'],
+                    ['Entregado', 'Naranja', 'Fue entregado al cliente', 'Admin / Empleado, manualmente'],
+                    ['Cancelado', 'Rojo', 'Cancelado; requiere motivo', 'Admin / Empleado, manualmente'],
                 ],
-                tip: 'Un pedido puede ser cancelado desde cualquier estado antes de ser entregado.',
+                tip: 'Un pedido puede ser cancelado desde cualquier estado antes de ser entregado. Administrador y Superadministrador conservan una opción para forzar manualmente el estado completo del pedido en casos excepcionales.',
             },
             {
                 id: 'faq',
-                title: '9.4 Preguntas frecuentes',
+                title: '10.4 Preguntas frecuentes',
                 content: 'Respuestas a las dudas más comunes del sistema:',
                 steps: [
                     '¿Puedo crear un pedido sin que el cliente esté registrado? No directamente. Pero en el Paso 1 del formulario puedes registrar al cliente nuevo de forma rápida sin salir del proceso.',
@@ -624,9 +764,14 @@ export const manualSections: ManualSection[] = [
                     '¿Puedo registrar varios abonos para el mismo pedido? Sí. Desde el modal de detalle puedes registrar múltiples abonos en distintos momentos.',
                     '¿Qué sucede si desactivo un producto? Deja de aparecer en el buscador al crear pedidos. Los pedidos ya registrados no se ven afectados.',
                     '¿Puedo tener más de un producto favorito? No. Solo un favorito a la vez; al marcar uno nuevo, el anterior pierde esa condición.',
-                    '¿Un pastelero puede ver todos los pedidos? No. Solo ve los pedidos que le han sido asignados explícitamente.',
+                    '¿Un pastelero puede ver todos los pedidos? No. Solo ve los productos que le han sido asignados explícitamente, aunque pertenezcan a distintos pedidos.',
                     '¿Cómo cambio la contraseña de un usuario? En Usuarios, abre el modal de edición y escribe la nueva contraseña. Si lo dejas vacío, no cambiará.',
                     '¿Puedo eliminar una sucursal, producto o usuario? El sistema no elimina registros permanentemente. Solo puedes desactivarlos, lo que los oculta sin borrar su historial.',
+                    '¿Puedo buscar un cliente con solo los últimos 4 dígitos de su teléfono? Sí. Cambia el selector junto al buscador a "Últimos 4" e ingresa exactamente 4 dígitos.',
+                    '¿Todos los productos de un pedido los prepara el mismo pastelero? No necesariamente. Cada línea de producto se asigna por separado; un pedido puede tener productos preparados por distintos reposteros.',
+                    '¿Por qué me piden un PIN al crear/editar un pedido? Porque iniciaste sesión con una cuenta de Empleado compartida por tu sucursal; el PIN identifica cuál de las personas que usan esa cuenta realizó la acción. Las cuentas individuales (Admin, Super, Pastelero) no lo requieren.',
+                    '¿Cualquiera puede aplicar un descuento a un producto? No. Se requiere ingresar usuario y contraseña de un Admin o Super para autorizarlo, aunque quien esté armando el pedido sea un Empleado.',
+                    '¿Puedo armar un pastel de varios pisos? Sí, activa "¿Pastel de varios pisos?" al configurar el producto en el Paso 3 del pedido y agrega los pisos que necesites (mínimo 2).',
                 ],
             },
         ],
@@ -669,6 +814,12 @@ export const adminChecklist: ChecklistItem[] = [
         section: 'productos',
     },
     {
+        id: 'empleados-sucursal',
+        label: 'Empleados de sucursal registrados (si aplica)',
+        description: 'Si tu equipo usa cuentas de Empleado compartidas, cada persona tiene su registro con PIN individual.',
+        section: 'empleados-sucursal',
+    },
+    {
         id: 'pedido-prueba',
         label: 'Primer pedido de prueba realizado',
         description: 'Se realizó un pedido de prueba para verificar que el flujo completo funciona correctamente.',
@@ -698,8 +849,10 @@ export const roleCards: RoleCard[] = [
         permissions: [
             'Acceso completo a todo el sistema',
             'Gestión de todas las sucursales',
-            'Creación y edición de usuarios',
+            'Creación y edición de usuarios y empleados de sucursal',
             'Configuración de catálogos',
+            'Autorizar descuentos por producto',
+            'Vista previa como Pastelero ("ver como pastelero")',
             'Ver estadísticas globales',
         ],
     },
@@ -712,8 +865,10 @@ export const roleCards: RoleCard[] = [
         permissions: [
             'Acceso completo a todo el sistema',
             'Gestión de sucursales propias',
-            'Creación y edición de usuarios',
+            'Creación y edición de usuarios y empleados de sucursal',
             'Configuración de catálogos',
+            'Autorizar descuentos por producto',
+            'Vista previa como Pastelero ("ver como pastelero")',
             'Ver estadísticas por sucursal',
         ],
     },
@@ -724,11 +879,12 @@ export const roleCards: RoleCard[] = [
         bgColor: '#e7f1ff',
         icon: '💼',
         permissions: [
-            'Registrar y gestionar pedidos',
+            'Registrar y gestionar pedidos (con pisos, imágenes y descuentos)',
             'Buscar y registrar clientes',
             'Marcar pedidos como entregados',
             'Registrar abonos de pago',
             'Cancelar pedidos con motivo',
+            'Se identifica con PIN personal si la cuenta es compartida por la sucursal',
         ],
     },
     {
@@ -738,10 +894,10 @@ export const roleCards: RoleCard[] = [
         bgColor: '#fff3cd',
         icon: '🎂',
         permissions: [
-            'Ver solo los pedidos asignados',
+            'Ver solo los productos que le han sido asignados (por línea, no por pedido completo)',
             'Acceso al tablero de producción',
-            'Iniciar producción de pedidos',
-            'Marcar pedidos como listos',
+            'Iniciar producción de cada línea asignada',
+            'Marcar cada línea como lista',
             'Ver detalles e imágenes de referencia',
         ],
     },

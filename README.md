@@ -1,13 +1,14 @@
 # Magnolias Frontend 🌸
 
-Frontend de Magnolias - Landing page y panel administrativo construido con Nuxt 4.
+Frontend de Magnolias: landing page pública, tienda de productos y panel de administración (pedidos, productos, catálogos, clientes, sucursales, usuarios, empleados de sucursal) construido con Nuxt 4 en modo SPA (`ssr: false`). Incluye además un **Manual de Usuario** interactivo (`/manual`) para capacitar al equipo en el uso del panel.
 
 ## 🛠️ Stack Tecnológico
 
-- **Nuxt 4** - Framework Vue.js para producción
-- **Vue 3** - Framework JavaScript reactivo
-- **Tailwind CSS** - Framework de CSS utility-first
-- **TypeScript** - Tipado estático para JavaScript
+- **Nuxt 4** (SPA, `ssr: false`) — framework Vue.js
+- **Vue 3** — framework JavaScript reactivo
+- **Tailwind CSS** — framework de CSS utility-first
+- **TypeScript** — tipado estático
+- **Vitest** + `@nuxt/test-utils` + `@vue/test-utils` + `happy-dom` — pruebas unitarias de composables y componentes
 
 ## 📦 Instalación
 
@@ -17,6 +18,8 @@ Instala las dependencias:
 npm install
 ```
 
+Copia `.env.example` a `.env` y completa la URL de la API (ver [Configuración](#-configuración)).
+
 ## 🚀 Desarrollo
 
 Inicia el servidor de desarrollo en `http://localhost:3000`:
@@ -25,59 +28,46 @@ Inicia el servidor de desarrollo en `http://localhost:3000`:
 npm run dev
 ```
 
-## 🏗️ Producción
+## 🧪 Pruebas
 
-### Para VPS/Cloud con Node.js
+```bash
+# Ejecutar la suite completa una vez
+npm run test
 
-Compila la aplicación para producción:
+# Modo watch
+npm run test:watch
+
+# Con reporte de cobertura
+npm run test:cov
+```
+
+Cada Pull Request corre `test:cov` + `build` + un análisis de SonarQube Cloud en CI (`.github/workflows/ci.yml`) antes de poder fusionarse a `dev`/`staging`/`prod`.
+
+## 🏗️ Build
+
+Compila la aplicación (SSR/Node):
 
 ```bash
 npm run build
 ```
 
-Previsualiza la build de producción localmente:
+Previsualiza la build localmente:
 
 ```bash
 npm run preview
 ```
 
-### Para Hosting Compartido (Sitio Estático)
-
-Genera sitio estático:
+Genera el sitio como export estático (lo que usa el pipeline de despliegue):
 
 ```bash
 npm run generate
 ```
 
-O usa el script automatizado:
+## 🌐 Despliegue
 
-**Windows:**
-```bash
-deploy.bat
-```
+El despliegue a producción es **automático vía GitHub Actions** (`.github/workflows/deploy.yml`): cada push a la rama `prod` corre las pruebas, genera el sitio estático (`npm run generate`) y lo sube por FTP a Hostinger (`public_html/`), con notificación a Discord al finalizar. No requiere pasos manuales ni scripts locales.
 
-**Linux/Mac:**
-```bash
-chmod +x deploy.sh
-./deploy.sh
-```
-
-## 🌐 Despliegue en Hostinger
-
-Consulta la guía completa de despliegue: **[DEPLOYMENT.md](DEPLOYMENT.md)**
-
-### Resumen Rápido
-
-**Opción 1: VPS/Cloud con Node.js** (Recomendado)
-1. Conecta via SSH a tu servidor
-2. Clona el proyecto o sube via SFTP
-3. Ejecuta `npm install && npm run build`
-4. Inicia con PM2: `pm2 start ecosystem.config.js`
-5. Configura Nginx como reverse proxy
-
-**Opción 2: Hosting Compartido**
-1. Ejecuta `deploy.bat` (Windows) o `deploy.sh` (Linux/Mac)
-2. Sube el contenido de la carpeta `deploy/` via FTP a `public_html/`
+Flujo de ramas: `dev` → `staging` → `prod`, con reglas de protección de rama estrictas en los tres ambientes (sin bypass). El deploy automático solo está configurado para `prod`; `dev`/`staging` se usan para desarrollo y pruebas antes de promover.
 
 ## 🔧 Configuración
 
@@ -89,28 +79,40 @@ Crea un archivo `.env` basado en `.env.example`:
 NUXT_PUBLIC_API_BASE=https://magnolias-rest-api.onrender.com
 ```
 
+En el pipeline de despliegue, este valor se inyecta desde el secret `NUXT_PUBLIC_API_BASE` del repositorio (uno distinto por ambiente en Render para el backend).
+
 ### API Backend
 
-Este frontend se conecta a una API NestJS. Asegúrate de que la URL de la API esté correctamente configurada en:
-- Variables de entorno (`.env`)
-- O en `nuxt.config.ts`
+Este frontend consume la API de [`magnolias-backend`](../magnolias-backend) (NestJS). Asegúrate de que `NUXT_PUBLIC_API_BASE` apunte al ambiente correcto (`dev`/`staging`/`prod` en Render).
 
 ## 📁 Estructura del Proyecto
 
+Nuxt 4 usa `app/` como `srcDir`; todo el código de la aplicación vive ahí dentro.
+
 ```
+app/
 ├── components/          # Componentes Vue reutilizables
-│   ├── layout/         # Componentes de layout (Sidebar, Topbar)
-│   └── decor/          # Componentes decorativos
-├── composables/        # Composables de Vue (lógica reutilizable)
-├── layouts/            # Layouts de página
-├── middleware/         # Middleware de rutas
-├── pages/              # Páginas de la aplicación (routing automático)
-│   └── admin/          # Panel administrativo
-├── services/           # Servicios de API
-├── public/             # Archivos estáticos
-├── .htaccess           # Configuración para hosting compartido
-├── ecosystem.config.js # Configuración para PM2
-└── nuxt.config.ts      # Configuración de Nuxt
+│   ├── admin/           # Controles del panel (buscador, etc.)
+│   ├── branch-employee/ # Alta de empleados de sucursal (PIN)
+│   ├── customer/        # Modales de cliente
+│   ├── layout/          # Sidebar, Topbar (incluye el toggle "ver como pastelero")
+│   ├── manual/           # Piezas del Manual de Usuario (Search, Sidebar, Section, etc.)
+│   ├── order/            # Wizard de pedidos: tipo, logística, pisos, asignación,
+│   │                      #   PIN de empleado, autorización de descuento, etc.
+│   ├── product/          # Alta/edición de productos
+│   └── ui/                # Componentes base (modal, etc.)
+├── composables/          # Lógica reutilizable (useAuth, useBranch, useCustomerLookup,
+│                          #   useEmployeePin, useOrderCatalogs, useProductBuilder, etc.)
+├── data/                 # Contenido estático, incluye manual-content.ts (Manual de Usuario)
+├── layouts/               # Layouts de página (admin, público)
+├── middleware/            # Middleware de rutas (auth, roles)
+├── pages/                 # Páginas (routing automático)
+│   ├── admin/              # Panel administrativo
+│   │   └── pedidos/        # Lista, crear, editar, detalle de pedidos
+│   └── manual/              # Manual de Usuario interactivo
+├── services/               # Clientes de la API por dominio (orders, customers, products, ...)
+├── types/                  # Tipos compartidos por dominio
+└── utils/                  # Utilidades generales
 ```
 
 ## 📚 Documentación
@@ -118,10 +120,10 @@ Este frontend se conecta a una API NestJS. Asegúrate de que la URL de la API es
 - [Nuxt Documentation](https://nuxt.com/docs)
 - [Vue 3 Documentation](https://vuejs.org/)
 - [Tailwind CSS](https://tailwindcss.com/docs)
+- Manual de Usuario del panel: `/manual` (dentro de la propia app)
 
 ---
 
-📍 **Proyecto**: Magnolias Frontend  
-🏢 **Desarrollado para**: devCrafters  
-📅 **Última actualización**: Marzo 2026
-
+📍 **Proyecto**: Magnolias Frontend
+🏢 **Desarrollado para**: devCrafters
+📅 **Última actualización**: Agosto 2026

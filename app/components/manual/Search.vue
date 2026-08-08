@@ -24,6 +24,11 @@ const suggestions = [
   "pago",
   "rol",
   "producto",
+  "pin",
+  "empleado",
+  "descuento",
+  "piso",
+  "últimos 4",
 ];
 
 interface SearchResult {
