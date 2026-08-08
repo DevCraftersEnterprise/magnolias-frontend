@@ -490,6 +490,10 @@ function populateFromOrder(order: OrderDetail) {
     TRANSFER: "TRANSFERENCIA",
   };
   step4.paymentType = pmRevMap[order.paymentMethod ?? ""] ?? "EFECTIVO";
+  // transferAccount es un dato protegido: el backend nunca lo devuelve en
+  // este GET (solo se incluye al generar el PDF), así que el campo siempre
+  // arranca vacío aunque el pedido ya tenga uno guardado.
+  step4.transferAccount = "";
   const advance = parseMoney(order.advancePayment);
   const total = parseMoney(order.totalAmount);
   if (advance > 0 && advance < total) {
@@ -677,6 +681,13 @@ async function submitOrder() {
       }),
       setupServiceCost: serviceCost.value || undefined,
       requiresInvoice: step4.requiresInvoice || undefined,
+      // Vacío = conservar el valor ya guardado (ver populateFromOrder: el
+      // backend nunca devuelve este dato, así que el campo siempre arranca
+      // en blanco aunque el pedido ya tenga uno).
+      transferAccount:
+        step4.paymentType === "TRANSFERENCIA"
+          ? step4.transferAccount.trim() || undefined
+          : undefined,
       deliveryAddress,
       details,
       flowers: flowersPayload,
@@ -2154,6 +2165,28 @@ function next() {
                 >
                   <path d="M6 9l6 6 6-6" />
                 </svg>
+              </div>
+
+              <!-- Cuenta/referencia de transferencia (solo si el pago es por transferencia) -->
+              <div v-if="step4.paymentType === 'TRANSFERENCIA'">
+                <label
+                  for="transferAccount"
+                  class="block text-[13px] font-semibold text-gray-600 mb-2"
+                  >Cuenta o referencia de transferencia:</label
+                >
+                <input
+                  id="transferAccount"
+                  v-model="step4.transferAccount"
+                  type="text"
+                  maxlength="255"
+                  class="w-full h-11 rounded-xl px-4 text-[14px] ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/50 placeholder:text-gray-400 transition"
+                  placeholder="Déjalo en blanco para conservar el dato ya guardado"
+                />
+                <p class="mt-1.5 text-[12px] text-gray-400">
+                  Por seguridad, el dato guardado no se muestra aquí. Déjalo
+                  en blanco para conservarlo, o escribe uno nuevo para
+                  reemplazarlo. Solo aparece impreso en el PDF del pedido.
+                </p>
               </div>
 
               <!-- Requiere factura -->

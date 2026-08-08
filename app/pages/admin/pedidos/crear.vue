@@ -236,6 +236,10 @@ const canNext = computed(() => {
           (r.discountPercent >= 0 && r.discountPercent <= 100)),
     );
   }
+  if (step.value === 4) {
+    if (step4.paymentType === "TRANSFERENCIA" && !step4.transferAccount.trim())
+      return false;
+  }
   return true;
 });
 
@@ -401,6 +405,10 @@ async function submitOrder() {
       setupServiceCost: serviceCost.value || undefined,
       hasPhotoReference: orderProducts.value.some((r) => r.referenceFiles.length > 0),
       requiresInvoice: step4.requiresInvoice || undefined,
+      transferAccount:
+        step4.paymentType === "TRANSFERENCIA"
+          ? step4.transferAccount.trim() || undefined
+          : undefined,
       deliveryAddress,
       details,
       flowers: flowersPayload,
@@ -2249,6 +2257,27 @@ function next() {
               >
                 <path d="M6 9l6 6 6-6" />
               </svg>
+            </div>
+
+            <!-- Cuenta/referencia de transferencia (solo si el pago es por transferencia) -->
+            <div v-if="step4.paymentType === 'TRANSFERENCIA'">
+              <label
+                for="transferAccount"
+                class="block text-[13px] font-semibold text-gray-600 mb-2"
+                >Cuenta o referencia de transferencia:</label
+              >
+              <input
+                id="transferAccount"
+                v-model="step4.transferAccount"
+                type="text"
+                maxlength="255"
+                class="w-full h-11 rounded-xl px-4 text-[14px] ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/50 placeholder:text-gray-400 transition"
+                placeholder="Ej. BBVA 1234567890"
+              />
+              <p class="mt-1.5 text-[12px] text-gray-400">
+                Este dato es confidencial: no vuelve a mostrarse en el panel,
+                solo aparece impreso en el PDF del pedido.
+              </p>
             </div>
 
             <!-- Requiere factura -->
