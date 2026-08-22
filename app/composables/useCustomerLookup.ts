@@ -2,10 +2,13 @@ import { customersService } from "~/services/customers.service";
 import type { CreateCustomerRequest, CustomerItem } from "~/types/customer.types";
 import { useToast } from "vue-toastification";
 
+export type PhoneSearchMode = "prefix" | "last4";
+
 export function useCustomerLookup() {
     const toast = useToast();
     const selectedCustomer = ref<CustomerItem | null>(null);
     const phoneQuery = ref("");
+    const phoneSearchMode = ref<PhoneSearchMode>("prefix");
     const searching = ref(false);
     const results = ref<CustomerItem[]>([]);
     const hasSearched = ref(false);
@@ -13,10 +16,19 @@ export function useCustomerLookup() {
     async function searchByPhone() {
         const digits = phoneQuery.value.replace(/\D/g, "").trim();
         if (!digits) return;
+
+        if (phoneSearchMode.value === "last4" && digits.length !== 4) {
+            toast.error("Ingresa exactamente 4 dígitos.");
+            return;
+        }
+
         searching.value = true;
         hasSearched.value = true;
         try {
-            const data = await customersService.getCustomers({ phone: digits, isActive: true, limit: 10 });
+            const params = phoneSearchMode.value === "last4"
+                ? { last4: digits, isActive: true, limit: 10 }
+                : { phone: digits, isActive: true, limit: 10 };
+            const data = await customersService.getCustomers(params);
             results.value = data.items ?? [];
         } catch (e: any) {
             toast.error(e?.message || "Error al buscar.");
@@ -28,6 +40,29 @@ export function useCustomerLookup() {
 
     function selectCustomer(c: CustomerItem) {
         selectedCustomer.value = c;
+    }
+
+    /**
+     * Cleans the raw input to digits-only, truncated to the current search
+     * mode's expected length (4 for last4, 10 for a full-ish prefix).
+     * Shared by every page embedding the phone search field so the
+     * behavior (and its markup, see `OrderCustomerPhoneSearch.vue`) isn't
+     * copy-pasted per page.
+     */
+    function onPhoneQueryInput(e: Event) {
+        const input = e.target as HTMLInputElement;
+        const maxLen = phoneSearchMode.value === "last4" ? 4 : 10;
+        const clean = input.value.replace(/\D/g, "").slice(0, maxLen);
+        input.value = clean;
+        phoneQuery.value = clean;
+    }
+
+    function setPhoneSearchMode(mode: PhoneSearchMode) {
+        if (phoneSearchMode.value === mode) return;
+        phoneSearchMode.value = mode;
+        phoneQuery.value = "";
+        results.value = [];
+        hasSearched.value = false;
     }
 
     // ── Inline registration ──────────────────────────────────────────────────
@@ -116,8 +151,9 @@ export function useCustomerLookup() {
     }
 
     return {
-        selectedCustomer, phoneQuery, searching,
+        selectedCustomer, phoneQuery, phoneSearchMode, searching,
         results, hasSearched, searchByPhone, selectCustomer,
+        onPhoneQueryInput, setPhoneSearchMode,
         showRegister, registering, regForm, canRegister, registerAndSelect,
     };
 }

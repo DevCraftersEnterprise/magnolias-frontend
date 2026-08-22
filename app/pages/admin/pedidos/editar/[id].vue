@@ -11,6 +11,13 @@ import type {
   UpdateOrderPayload,
 } from "~/types/order.types";
 import { useToast } from "vue-toastification";
+import OrderModeSelector from "~/components/order/OrderModeSelector.vue";
+import OrderPickupLogistics from "~/components/order/OrderPickupLogistics.vue";
+import OrderDeliveryTimingDetails from "~/components/order/OrderDeliveryTimingDetails.vue";
+import OrderDeliveryAddressForm from "~/components/order/OrderDeliveryAddressForm.vue";
+import OrderEventServicesAndDetails from "~/components/order/OrderEventServicesAndDetails.vue";
+import OrderProductTiersEditor from "~/components/order/OrderProductTiersEditor.vue";
+import OrderDetailTiersSummary from "~/components/order/OrderDetailTiersSummary.vue";
 
 const router = useRouter();
 const routeP = useRoute();
@@ -27,6 +34,7 @@ const {
   styles,
   flowerCatalog,
   colorCatalog,
+  commonAddresses,
   colorName,
   colorHex,
   catalogLabel,
@@ -35,11 +43,14 @@ const {
 const {
   selectedCustomer,
   phoneQuery,
+  phoneSearchMode,
   searching,
   results,
   hasSearched,
   searchByPhone,
   selectCustomer,
+  onPhoneQueryInput,
+  setPhoneSearchMode,
   showRegister,
   registering,
   regForm,
@@ -75,6 +86,11 @@ const {
   getProductImageUrl,
   UBICACION_OPTIONS,
   MANGA_OPTIONS,
+  addTier,
+  removeTier,
+  setHasTiers,
+  MIN_TIERS,
+  makeTierRow,
 } = useProductBuilder(colorCatalog);
 
 const removingRefImage = ref<string | null>(null);
@@ -178,8 +194,7 @@ async function onEmployeePinSubmit(pin: string) {
 
 const {
   step2,
-  florMode,
-  ORDER_TYPES,
+  setOrderMode,
   MINUTE_OPTIONS,
   pickupTimeParts,
   deliveryTimeParts,
@@ -227,25 +242,21 @@ if (typeof window !== "undefined") {
 const canNext = computed(() => {
   if (step.value === 1) return !!selectedCustomer.value;
   if (step.value === 2) {
-    if (!step2.orderType) return false;
-    if (step2.orderType === "VITRINA") {
+    if (!step2.orderMode) return false;
+    if (
+      step2.includesFlowers &&
+      !flowerRows.value.some(
+        (r) => r.flowerId && r.colorId && Number(r.quantity) > 0,
+      )
+    )
+      return false;
+    if (step2.isEnTienda) {
       if (pickupTimeOutOfHours.value) return false;
       return !!(step2.pickupBranchId && step2.pickupDate);
     }
-    if (step2.orderType === "FLOR" && florMode.value === "vitrina") {
-      if (pickupTimeOutOfHours.value) return false;
-      if (!step2.pickupBranchId || !step2.pickupDate) return false;
-      if (
-        !flowerRows.value.some(
-          (r) => r.flowerId && r.colorId && Number(r.quantity) > 0,
-        )
-      )
-        return false;
-      return true;
-    }
     if (!step2.deliveryDate) return false;
     if (!step2AddressValid.value) return false;
-    if (step2.orderType !== "EVENTO") {
+    if (!step2.isEvento) {
       if (deliveryTimeOutOfHours.value) return false;
     }
     return true;
@@ -302,17 +313,13 @@ function populateFromOrder(order: OrderDetail) {
   }
 
   // Order type
-  step2.orderType = order.orderType as typeof step2.orderType;
-
-  // FLOR mode (domicilio vs vitrina)
-  if (order.orderType === "FLOR") {
-    florMode.value = order.isCustomerPickup ? "vitrina" : "domicilio";
-  }
+  setOrderMode(getOrderMode(order));
+  step2.includesFlowers = order.includesFlowers;
 
   // Branch
   if (order.branch?.id) step2.pickupBranchId = order.branch.id;
 
-  // Collection datetime (VITRINA / FLOR-vitrina)
+  // Collection datetime (en tienda)
   if (order.collectionDateTime) {
     step2.pickupDate = order.collectionDateTime.split("T")[0] ?? "";
     const timePart = order.collectionDateTime.split("T")[1]?.substring(0, 5);
@@ -371,8 +378,8 @@ function populateFromOrder(order: OrderDetail) {
     step2.deliveryNotes = da.deliveryNotes ?? "";
   }
 
-  // EVENTO fields
-  if (order.orderType === "EVENTO") {
+  // Evento fields
+  if (order.isEvento) {
     step2.eventGuestCount = order.guestCount ?? "";
     step2.eventResponsibleName = order.setupPersonName ?? "";
     const svc = order.eventServices ?? [];
@@ -414,6 +421,19 @@ function populateFromOrder(order: OrderDetail) {
       fillingId: d.filling?.id ?? "",
       frostingId: d.frosting?.id ?? "",
       styleId: d.style?.id ?? "",
+      hasTiers: (d.tiers ?? []).length > 0,
+      tiers: (d.tiers ?? [])
+        .slice()
+        .sort((a, b) => a.position - b.position)
+        .map((t, tIdx) => ({
+          ...makeTierRow(t.position ?? tIdx + 1),
+          sizeId: t.productSize ?? "",
+          customSize: t.customSize ?? "",
+          colorId: t.color?.id ?? "",
+          breadId: t.breadType?.id ?? "",
+          fillingId: t.filling?.id ?? "",
+          frostingId: t.frosting?.id ?? "",
+        })),
       withText: d.hasWriting ?? false,
       text: d.writingText ?? "",
       textLocation: d.writingLocation ?? "TOP",
@@ -470,6 +490,10 @@ function populateFromOrder(order: OrderDetail) {
     TRANSFER: "TRANSFERENCIA",
   };
   step4.paymentType = pmRevMap[order.paymentMethod ?? ""] ?? "EFECTIVO";
+  // transferAccount es un dato protegido: el backend nunca lo devuelve en
+  // este GET (solo se incluye al generar el PDF), así que el campo siempre
+  // arranca vacío aunque el pedido ya tenga uno guardado.
+  step4.transferAccount = "";
   const advance = parseMoney(order.advancePayment);
   const total = parseMoney(order.totalAmount);
   if (advance > 0 && advance < total) {
@@ -526,13 +550,11 @@ async function submitOrder() {
 
   try {
     const cust = selectedCustomer.value!;
-    const isVitrina =
-      step2.orderType === "VITRINA" ||
-      (step2.orderType === "FLOR" && florMode.value === "vitrina");
+    const isVitrina = step2.isEnTienda;
     const branchId = isVitrina
       ? step2.pickupBranchId || (topbarBranch.value?.id ?? "")
       : (topbarBranch.value?.id ?? "");
-    const isEvento = step2.orderType === "EVENTO";
+    const isEvento = step2.isEvento;
 
     const deliveryDateISO = isVitrina
       ? step2.pickupDate
@@ -572,7 +594,14 @@ async function submitOrder() {
 
     let deliveryAddress: CreateOrderDeliveryAddress | undefined;
     if (!isVitrina) {
-      if (step2.useCustomerAddr) {
+      if (isEvento && step2.useCommonAddr && step2.commonAddrId) {
+        deliveryAddress = {
+          useCustomerAddress: false,
+          useCommonAddress: true,
+          commonAddressId: step2.commonAddrId,
+          deliveryNotes: step2.newAddr.deliveryNotes || undefined,
+        };
+      } else if (step2.useCustomerAddr) {
         deliveryAddress = {
           useCustomerAddress: true,
           betweenStreets: step2.betweenStreets || undefined,
@@ -585,6 +614,12 @@ async function submitOrder() {
       } else {
         deliveryAddress = {
           useCustomerAddress: false,
+          saveAsCommonAddress:
+            isEvento && step2.saveAsCommonAddr ? true : undefined,
+          commonAddressName:
+            isEvento && step2.saveAsCommonAddr
+              ? step2.commonAddrName || undefined
+              : undefined,
           newAddress: {
             street: step2.newAddr.street,
             number: step2.newAddr.number,
@@ -604,41 +639,15 @@ async function submitOrder() {
 
     const details: UpdateOrderDetailPayload[] = orderProducts.value.map(
       (r) => ({
-        productId: r.product.id,
-        price: r.price,
-        quantity: r.qty,
-        productSize: r.sizeId || undefined,
-        customSize:
-          r.sizeId === "CUSTOM" ? r.customSize || undefined : undefined,
-        hasWriting: r.withText,
-        writingText: r.withText && r.text ? r.text : undefined,
-        writingLocation:
-          r.withText && r.textLocation ? r.textLocation : undefined,
-        pipingLocation:
-          r.mangaStyle && r.mangaStyle !== "NONE" ? r.mangaStyle : undefined,
-        decorationNotes: r.mangaNotes || undefined,
-        notes: r.notes || undefined,
-        breadTypeId: r.breadId || undefined,
-        colorId: r.colorId || undefined,
-        fillingId: r.fillingId || undefined,
-        frostingId: r.frostingId || undefined,
-        styleId: r.styleId || undefined,
-        referenceFiles: r.referenceFiles.length > 0 ? r.referenceFiles : undefined,
+        ...buildOrderDetailPayload(r),
         discountPercent: r.discountPercent || undefined,
       }),
     );
 
-    const flowersPayload =
-      step2.orderType === "FLOR" || isEvento
-        ? flowerRows.value
-            .filter((f) => f.flowerId)
-            .map((f) => ({
-              flowerId: f.flowerId,
-              colorId: f.colorId || undefined,
-              quantity: Number(f.quantity) || 1,
-              notes: f.note || undefined,
-            }))
-        : undefined;
+    const flowersPayload = buildFlowersPayload(
+      step2.includesFlowers,
+      flowerRows.value,
+    );
 
     const collectionDateTime =
       isVitrina && step2.pickupDate
@@ -647,7 +656,9 @@ async function submitOrder() {
 
     const payload: UpdateOrderPayload = {
       id: orderId,
-      orderType: step2.orderType!,
+      isEvento: step2.isEvento,
+      isEnTienda: step2.isEnTienda,
+      includesFlowers: step2.includesFlowers,
       customerId: cust.id,
       branchId,
       advancePayment,
@@ -669,11 +680,14 @@ async function submitOrder() {
         eventServices: eventServices.length ? eventServices : undefined,
       }),
       setupServiceCost: serviceCost.value || undefined,
-      isCustomerPickup:
-        step2.orderType === "FLOR" && florMode.value === "vitrina"
-          ? true
-          : undefined,
       requiresInvoice: step4.requiresInvoice || undefined,
+      // Vacío = conservar el valor ya guardado (ver populateFromOrder: el
+      // backend nunca devuelve este dato, así que el campo siempre arranca
+      // en blanco aunque el pedido ya tenga uno).
+      transferAccount:
+        step4.paymentType === "TRANSFERENCIA"
+          ? step4.transferAccount.trim() || undefined
+          : undefined,
       deliveryAddress,
       details,
       flowers: flowersPayload,
@@ -806,63 +820,14 @@ function next() {
           >
             <!-- Left: search + register -->
             <div class="space-y-5 lg:pr-8">
-              <div>
-                <label
-                  class="block text-[13px] font-semibold text-gray-600 mb-2"
-                  >Teléfono:</label
-                >
-                <div class="relative">
-                  <input
-                    :value="phoneQuery"
-                    @input="onPhoneInput($event, (v) => (phoneQuery = v))"
-                    @keydown="
-                      (e) => {
-                        if (e.key === 'Enter') {
-                          searchByPhone();
-                          return;
-                        }
-                        if (
-                          e.key.length === 1 &&
-                          !/\d/.test(e.key) &&
-                          !e.ctrlKey &&
-                          !e.metaKey
-                        )
-                          e.preventDefault();
-                      }
-                    "
-                    type="tel"
-                    inputmode="numeric"
-                    maxlength="10"
-                    class="w-full h-12 rounded-xl px-4 pr-12 text-[14px] ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/50 placeholder:text-gray-400 transition"
-                    placeholder="Ingresa número de teléfono"
-                  />
-                  <button
-                    type="button"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 grid h-8 w-8 place-items-center rounded-lg hover:bg-black/5 transition"
-                    :class="searching ? 'text-[#FC9AD3]' : 'text-gray-400'"
-                    @click="searchByPhone"
-                  >
-                    <div
-                      v-if="searching"
-                      class="h-4 w-4 rounded-full border-2 border-black/10 border-t-[#FC9AD3] animate-spin"
-                    />
-                    <svg
-                      v-else
-                      viewBox="0 0 24 24"
-                      class="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="M21 21l-4.3-4.3" />
-                    </svg>
-                  </button>
-                </div>
-                <p class="mt-1.5 text-[12px] text-gray-400">
-                  Presiona Enter o el ícono para buscar.
-                </p>
-              </div>
+              <OrderCustomerPhoneSearch
+                :phone-query="phoneQuery"
+                :phone-search-mode="phoneSearchMode"
+                :searching="searching"
+                @input="onPhoneQueryInput"
+                @search="searchByPhone"
+                @set-mode="setPhoneSearchMode"
+              />
 
               <button
                 type="button"
@@ -1089,600 +1054,48 @@ function next() {
           </div>
           <div class="px-6 py-6 space-y-8">
             <!-- Tipo de pedido -->
-            <fieldset>
-              <legend
-                class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-              >
-                Tipo de pedido
-              </legend>
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <button
-                  v-for="t in ORDER_TYPES"
-                  :key="t.key"
-                  type="button"
-                  @click="step2.orderType = t.key"
-                  :class="[
-                    'relative flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-4 transition-all',
-                    step2.orderType === t.key
-                      ? 'border-[#FC9AD3] bg-pink-50 shadow-sm'
-                      : 'border-black/10 hover:border-[#FC9AD3]/60 hover:bg-pink-50/40',
-                  ]"
-                >
-                  <span
-                    v-if="step2.orderType === t.key"
-                    class="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#FC9AD3]"
-                  >
-                    <svg
-                      viewBox="0 0 12 12"
-                      class="h-2.5 w-2.5"
-                      fill="none"
-                      stroke="white"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M2 6l3 3 5-5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </span>
-                  <span class="text-2xl leading-none select-none">
-                    <template v-if="t.icon === 'delivery'">🛵</template>
-                    <template v-else-if="t.icon === 'shop'">🏪</template>
-                    <template v-else-if="t.icon === 'flower'">🌸</template>
-                    <template v-else-if="t.icon === 'event'">🎉</template>
-                  </span>
-                  <span
-                    class="text-[13px] font-semibold text-[#111827] text-center"
-                    >{{ t.label }}</span
-                  >
-                  <span
-                    class="text-[11px] text-gray-400 text-center leading-tight"
-                    >{{ t.sub }}</span
-                  >
-                </button>
-              </div>
-            </fieldset>
+            <OrderModeSelector
+              :order-mode="step2.orderMode"
+              :includes-flowers="step2.includesFlowers"
+              @select-mode="setOrderMode"
+              @update:includes-flowers="step2.includesFlowers = $event"
+            />
 
-            <!-- VITRINA: Recolección -->
-            <fieldset v-if="step2.orderType === 'VITRINA'">
-              <legend
-                class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-              >
-                Logística de Recolección
-              </legend>
-              <div
-                class="divide-y divide-black/8 rounded-xl border border-black/10 overflow-hidden"
-              >
-                <div class="flex items-center gap-3 px-4 py-3 bg-white">
-                  <label
-                    class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
-                    >Sucursal</label
-                  >
-                  <div class="relative flex-1">
-                    <select
-                      v-model="step2.pickupBranchId"
-                      class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                    >
-                      <option value="" disabled>Selecciona sucursal</option>
-                      <option v-for="b in branches" :key="b.id" :value="b.id">
-                        {{ b.name }}
-                      </option>
-                    </select>
-                    <svg
-                      class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <path
-                        d="M6 9l6 6 6-6"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div
-                  class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 bg-white"
-                >
-                  <div class="flex items-center gap-3">
-                    <label
-                      class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                      >Fecha de recolección</label
-                    >
-                    <input
-                      v-model="step2.pickupDate"
-                      type="date"
-                      :min="minDeliveryDate"
-                      class="rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                    />
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <label
-                      class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                      >Hora</label
-                    >
-                    <div class="flex items-center gap-1">
-                      <select
-                        v-model.number="pickupTimeParts.h"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option v-for="h in 12" :key="h" :value="h">
-                          {{ h }}
-                        </option>
-                      </select>
-                      <span class="text-gray-400 text-[13px]">:</span>
-                      <select
-                        v-model="pickupTimeParts.m"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option v-for="m in MINUTE_OPTIONS" :key="m" :value="m">
-                          {{ m }}
-                        </option>
-                      </select>
-                      <select
-                        v-model="pickupTimeParts.p"
-                        class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                      >
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div
-                    v-if="pickupTimeOutOfHours"
-                    class="w-full flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700"
-                  >
-                    La hora seleccionada está fuera del horario de atención
-                    (8:00 AM – 7:59 PM). ¿Estás seguro?
-                  </div>
-                </div>
-              </div>
-            </fieldset>
-
-            <!-- FLOR: modo entrega -->
-            <fieldset v-if="step2.orderType === 'FLOR'" class="space-y-3">
-              <legend
-                class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-              >
-                Modo de entrega
-              </legend>
-              <div class="flex gap-6">
-                <label
-                  class="flex items-center gap-2 cursor-pointer select-none"
-                  ><input
-                    type="radio"
-                    v-model="florMode"
-                    value="domicilio"
-                    class="accent-[#FC9AD3]"
-                  /><span class="text-[13px] font-medium text-gray-700"
-                    >🛵 Domicilio</span
-                  ></label
-                >
-                <label
-                  class="flex items-center gap-2 cursor-pointer select-none"
-                  ><input
-                    type="radio"
-                    v-model="florMode"
-                    value="vitrina"
-                    class="accent-[#FC9AD3]"
-                  /><span class="text-[13px] font-medium text-gray-700"
-                    >🏪 Recolección en sucursal</span
-                  ></label
-                >
-              </div>
-              <template v-if="florMode === 'vitrina'">
-                <div
-                  class="divide-y divide-black/8 rounded-xl border border-black/10 overflow-hidden"
-                >
-                  <div class="flex items-center gap-3 px-4 py-3 bg-white">
-                    <label
-                      class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
-                      >Sucursal</label
-                    >
-                    <div class="relative flex-1">
-                      <select
-                        v-model="step2.pickupBranchId"
-                        class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                      >
-                        <option value="" disabled>Selecciona sucursal</option>
-                        <option v-for="b in branches" :key="b.id" :value="b.id">
-                          {{ b.name }}
-                        </option>
-                      </select>
-                      <svg
-                        class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2.5"
-                      >
-                        <path
-                          d="M6 9l6 6 6-6"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                  <div
-                    class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 bg-white"
-                  >
-                    <div class="flex items-center gap-3">
-                      <label
-                        class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                        >Fecha de recolección</label
-                      >
-                      <input
-                        v-model="step2.pickupDate"
-                        type="date"
-                        :min="minDeliveryDate"
-                        class="rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex items-center gap-3">
-                      <label
-                        class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                        >Hora</label
-                      >
-                      <div class="flex items-center gap-1">
-                        <select
-                          v-model.number="pickupTimeParts.h"
-                          class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                        >
-                          <option v-for="h in 12" :key="h" :value="h">
-                            {{ h }}
-                          </option>
-                        </select>
-                        <span class="text-gray-400 text-[13px]">:</span>
-                        <select
-                          v-model="pickupTimeParts.m"
-                          class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                        >
-                          <option
-                            v-for="m in MINUTE_OPTIONS"
-                            :key="m"
-                            :value="m"
-                          >
-                            {{ m }}
-                          </option>
-                        </select>
-                        <select
-                          v-model="pickupTimeParts.p"
-                          class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                        >
-                          <option value="AM">AM</option>
-                          <option value="PM">PM</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </fieldset>
+            <!-- En tienda: Recolección -->
+            <OrderPickupLogistics
+              v-if="step2.isEnTienda"
+              :step2="step2"
+              :branches="branches"
+              :pickup-time-parts="pickupTimeParts"
+              :min-delivery-date="minDeliveryDate"
+              :pickup-time-out-of-hours="pickupTimeOutOfHours"
+              :minute-options="MINUTE_OPTIONS"
+            />
 
             <!-- Entrega: fecha / hora / dirección -->
             <template v-if="needsDelivery">
-              <fieldset>
-                <legend
-                  class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-                >
-                  {{
-                    step2.orderType === "EVENTO"
-                      ? "Logística del evento"
-                      : "Detalles de la entrega"
-                  }}
-                </legend>
-                <div
-                  class="divide-y divide-black/8 rounded-xl border border-black/10 overflow-hidden"
-                >
-                  <!-- Ronda -->
-                  <div class="flex items-center gap-3 px-4 py-3 bg-white">
-                    <label
-                      class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
-                      >Ronda de entrega</label
-                    >
-                    <div class="relative flex-1">
-                      <select
-                        v-model="step2.deliveryRound"
-                        class="w-full appearance-none rounded-xl bg-white pl-3 pr-9 py-2 text-[13px] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                      >
-                        <option value="" disabled>Selecciona ronda</option>
-                        <option value="1">Ronda 1</option>
-                        <option value="2">Ronda 2</option>
-                        <option value="3">Ronda 3</option>
-                      </select>
-                      <svg
-                        class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2.5"
-                      >
-                        <path
-                          d="M6 9l6 6 6-6"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                  <!-- Fecha + Hora -->
-                  <div
-                    class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 bg-white"
-                  >
-                    <div class="flex items-center gap-3">
-                      <label
-                        class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                        >{{
-                          step2.orderType === "EVENTO"
-                            ? "Fecha del evento"
-                            : "Fecha de entrega"
-                        }}
-                        <span class="text-red-400">*</span></label
-                      >
-                      <input
-                        v-model="step2.deliveryDate"
-                        type="date"
-                        :min="minDeliveryDate"
-                        class="rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex items-center gap-3">
-                      <label
-                        class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                        >{{
-                          step2.orderType === "EVENTO"
-                            ? "Hora del evento"
-                            : "Hora de entrega"
-                        }}</label
-                      >
-                      <div class="flex items-center gap-1">
-                        <select
-                          v-model.number="deliveryTimeParts.h"
-                          class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                        >
-                          <option v-for="h in 12" :key="h" :value="h">
-                            {{ h }}
-                          </option>
-                        </select>
-                        <span class="text-gray-400 text-[13px]">:</span>
-                        <select
-                          v-model="deliveryTimeParts.m"
-                          class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                        >
-                          <option
-                            v-for="m in MINUTE_OPTIONS"
-                            :key="m"
-                            :value="m"
-                          >
-                            {{ m }}
-                          </option>
-                        </select>
-                        <select
-                          v-model="deliveryTimeParts.p"
-                          class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                        >
-                          <option value="AM">AM</option>
-                          <option value="PM">PM</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div
-                      v-if="deliveryTimeOutOfHours"
-                      class="w-full flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700"
-                    >
-                      {{ deliveryTimeWarningMsg }}
-                    </div>
-                  </div>
-                  <!-- EVENTO: hora de salida -->
-                  <div
-                    v-if="step2.orderType === 'EVENTO'"
-                    class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 bg-white"
-                  >
-                    <div class="flex items-center gap-3">
-                      <label
-                        class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                        >Hora de salida</label
-                      >
-                      <div class="flex items-center gap-1">
-                        <select
-                          v-model.number="exitTimeParts.h"
-                          class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                        >
-                          <option v-for="h in 12" :key="h" :value="h">
-                            {{ h }}
-                          </option>
-                        </select>
-                        <span class="text-gray-400 text-[13px]">:</span>
-                        <select
-                          v-model="exitTimeParts.m"
-                          class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                        >
-                          <option
-                            v-for="m in MINUTE_OPTIONS"
-                            :key="m"
-                            :value="m"
-                          >
-                            {{ m }}
-                          </option>
-                        </select>
-                        <select
-                          v-model="exitTimeParts.p"
-                          class="appearance-none rounded-lg border border-black/12 px-2 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white cursor-pointer"
-                        >
-                          <option value="AM">AM</option>
-                          <option value="PM">PM</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div
-                      v-if="exitTimeOutOfHours"
-                      class="w-full flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700"
-                    >
-                      La hora de salida parece muy temprana (antes de las 7:00
-                      AM). ¿Estás seguro?
-                    </div>
-                  </div>
-                </div>
-              </fieldset>
+              <OrderDeliveryTimingDetails
+                :step2="step2"
+                :delivery-time-parts="deliveryTimeParts"
+                :exit-time-parts="exitTimeParts"
+                :min-delivery-date="minDeliveryDate"
+                :delivery-time-out-of-hours="deliveryTimeOutOfHours"
+                :delivery-time-warning-msg="deliveryTimeWarningMsg"
+                :exit-time-out-of-hours="exitTimeOutOfHours"
+                :minute-options="MINUTE_OPTIONS"
+              />
 
-              <!-- Dirección -->
-              <fieldset class="space-y-3">
-                <legend
-                  class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-                >
-                  Dirección de entrega
-                </legend>
-                <label
-                  :class="[
-                    'flex items-center gap-2.5 cursor-pointer select-none',
-                    !customerHasAddress && 'opacity-40 pointer-events-none',
-                  ]"
-                >
-                  <input
-                    v-model="step2.useCustomerAddr"
-                    type="checkbox"
-                    :disabled="!customerHasAddress"
-                    class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                  />
-                  <span class="text-[13px] text-gray-700"
-                    >Usar la dirección del cliente registrada<span
-                      v-if="!customerHasAddress"
-                      class="text-gray-400"
-                    >
-                      (el cliente no tiene dirección registrada)</span
-                    ></span
-                  >
-                </label>
-                <div
-                  v-if="step2.useCustomerAddr && customerHasAddress"
-                  class="rounded-lg bg-pink-50 border border-[#FC9AD3]/40 px-4 py-3 text-[13px] text-gray-700"
-                >
-                  {{ customerAddressFormatted }}
-                </div>
-                <template v-if="!step2.useCustomerAddr">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Calle <span class="text-red-400">*</span></label
-                      ><input
-                        v-model="step2.newAddr.street"
-                        type="text"
-                        placeholder="Av. Principal"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Número <span class="text-red-400">*</span></label
-                      ><input
-                        v-model="step2.newAddr.number"
-                        type="text"
-                        placeholder="123"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Colonia <span class="text-red-400">*</span></label
-                      ><input
-                        v-model="step2.newAddr.neighborhood"
-                        type="text"
-                        placeholder="Col. Centro"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Ciudad</label
-                      ><input
-                        v-model="step2.newAddr.city"
-                        type="text"
-                        placeholder="CDMX"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Entre calles</label
-                      ><input
-                        v-model="step2.newAddr.betweenStreets"
-                        type="text"
-                        placeholder="Entre A y B"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Referencia</label
-                      ><input
-                        v-model="step2.newAddr.reference"
-                        type="text"
-                        placeholder="Casa color azul…"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                  </div>
-                </template>
-                <!-- Overrides receptor -->
-                <div
-                  v-if="
-                    step2.useCustomerAddr ||
-                    (step2.newAddr.street && step2.newAddr.number)
-                  "
-                  class="border-t border-dashed border-black/10 pt-4 space-y-3"
-                >
-                  <p
-                    class="text-[12px] font-semibold text-gray-400 uppercase tracking-wide"
-                  >
-                    Para esta entrega (opcional)
-                  </p>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Nombre de quien recibe</label
-                      ><input
-                        v-model="step2.receiverName"
-                        type="text"
-                        placeholder="Nombre del receptor"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Teléfono de quien recibe</label
-                      ><input
-                        :value="step2.receiverPhone"
-                        @input="
-                          onPhoneInput($event, (v) => (step2.receiverPhone = v))
-                        "
-                        type="tel"
-                        inputmode="numeric"
-                        maxlength="10"
-                        placeholder="5512345678"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                      />
-                    </div>
-                    <div class="flex flex-col gap-1 sm:col-span-2">
-                      <label class="text-[13px] font-medium text-gray-600"
-                        >Indicaciones para el repartidor</label
-                      ><textarea
-                        v-model="step2.deliveryNotes"
-                        rows="2"
-                        placeholder="Instrucciones especiales…"
-                        class="rounded-lg border border-black/15 px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white resize-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </fieldset>
+              <OrderDeliveryAddressForm
+                :step2="step2"
+                :common-addresses="commonAddresses"
+                :customer-has-address="customerHasAddress"
+                :customer-address-formatted="customerAddressFormatted"
+                :on-phone-input="onPhoneInput"
+              />
             </template>
 
             <!-- FLOR: flores -->
-            <fieldset v-if="step2.orderType === 'FLOR'">
+            <fieldset v-if="step2.includesFlowers">
               <div class="flex items-center gap-2 mb-3">
                 <legend
                   class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide"
@@ -1845,92 +1258,8 @@ function next() {
               </div>
             </fieldset>
 
-            <!-- EVENTO: Servicios + Detalles -->
-            <fieldset v-if="step2.orderType === 'EVENTO'">
-              <legend
-                class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-              >
-                Servicios
-              </legend>
-              <div
-                class="flex flex-wrap items-center gap-4 rounded-xl border border-black/10 bg-white px-5 py-4"
-              >
-                <label
-                  class="flex items-center gap-2 cursor-pointer select-none"
-                  ><input
-                    v-model="step2.eventServices.dessertTable"
-                    type="checkbox"
-                    class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                  /><span class="text-[13px] text-gray-700"
-                    >Mesa de Postres</span
-                  ></label
-                >
-                <label
-                  class="flex items-center gap-2 cursor-pointer select-none"
-                  ><input
-                    v-model="step2.eventServices.cake"
-                    type="checkbox"
-                    class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                  /><span class="text-[13px] text-gray-700">Pastel</span></label
-                >
-                <label
-                  class="flex items-center gap-2 cursor-pointer select-none"
-                  ><input
-                    v-model="step2.eventServices.cheeseTable"
-                    type="checkbox"
-                    class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                  /><span class="text-[13px] text-gray-700"
-                    >Mesa de Quesos</span
-                  ></label
-                >
-                <label
-                  class="flex items-center gap-2 cursor-pointer select-none"
-                  ><input
-                    v-model="step2.eventServices.plated"
-                    type="checkbox"
-                    class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-                  /><span class="text-[13px] text-gray-700"
-                    >Platillos</span
-                  ></label
-                >
-              </div>
-            </fieldset>
-            <fieldset v-if="step2.orderType === 'EVENTO'">
-              <legend
-                class="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3"
-              >
-                Detalles del Evento
-              </legend>
-              <div
-                class="rounded-xl border border-black/10 bg-white px-5 py-4 flex flex-wrap items-center gap-4"
-              >
-                <div class="flex items-center gap-2">
-                  <label
-                    class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                    >Número de invitados</label
-                  >
-                  <input
-                    v-model.number="step2.eventGuestCount"
-                    type="number"
-                    min="1"
-                    placeholder="150"
-                    class="w-24 rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
-                  />
-                </div>
-                <div class="flex items-center gap-2 flex-1 min-w-0">
-                  <label
-                    class="text-[13px] font-medium text-gray-700 flex-shrink-0"
-                    >Responsable del montaje</label
-                  >
-                  <input
-                    v-model="step2.eventResponsibleName"
-                    type="text"
-                    placeholder="Nombre del responsable"
-                    class="flex-1 rounded-xl bg-white px-3 py-2 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60"
-                  />
-                </div>
-              </div>
-            </fieldset>
+            <!-- Servicios y Detalles del Evento -->
+            <OrderEventServicesAndDetails v-if="step2.isEvento" :step2="step2" />
           </div>
         </div>
 
@@ -2187,7 +1516,22 @@ function next() {
                   </div>
                   <!-- Atributos -->
                   <div class="divide-y divide-black/5 bg-white">
+                    <!-- Pisos (toggle + editor de pastel de 2+ pisos) -->
+                    <OrderProductTiersEditor
+                      :has-tiers="row.hasTiers"
+                      :tiers="row.tiers"
+                      :color-catalog="colorCatalog"
+                      :bread-types="breadTypes"
+                      :fillings="fillings"
+                      :frostings="frostings"
+                      :min-tiers="MIN_TIERS"
+                      @update:has-tiers="(v) => setHasTiers(i, v)"
+                      @add-tier="addTier(i)"
+                      @remove-tier="(tIdx) => removeTier(i, tIdx)"
+                    />
+
                     <div
+                      v-if="!row.hasTiers"
                       class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
                     >
                       <div class="flex items-center gap-2">
@@ -2270,72 +1614,74 @@ function next() {
                     <div
                       class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
                     >
-                      <div class="flex items-center gap-2">
-                        <span
-                          class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                          >Relleno</span
-                        >
-                        <div class="relative">
-                          <select
-                            v-model="row.fillingId"
-                            class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                      <template v-if="!row.hasTiers">
+                        <div class="flex items-center gap-2">
+                          <span
+                            class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                            >Relleno</span
                           >
-                            <option value="">—</option>
-                            <option
-                              v-for="f in fillings"
-                              :key="f.id"
-                              :value="f.id"
+                          <div class="relative">
+                            <select
+                              v-model="row.fillingId"
+                              class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
                             >
-                              {{ f.name }}
-                            </option></select
-                          ><svg
-                            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                          >
-                            <path
-                              d="M6 9l6 6 6-6"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <span
-                          class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                          >Frosting</span
-                        >
-                        <div class="relative">
-                          <select
-                            v-model="row.frostingId"
-                            class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                          >
-                            <option value="">—</option>
-                            <option
-                              v-for="f in frostings"
-                              :key="f.id"
-                              :value="f.id"
+                              <option value="">—</option>
+                              <option
+                                v-for="f in fillings"
+                                :key="f.id"
+                                :value="f.id"
+                              >
+                                {{ f.name }}
+                              </option></select
+                            ><svg
+                              class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              stroke-width="2.5"
                             >
-                              {{ f.name }}
-                            </option></select
-                          ><svg
-                            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                          >
-                            <path
-                              d="M6 9l6 6 6-6"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
+                              <path
+                                d="M6 9l6 6 6-6"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
+                        <div class="flex items-center gap-2">
+                          <span
+                            class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                            >Frosting</span
+                          >
+                          <div class="relative">
+                            <select
+                              v-model="row.frostingId"
+                              class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                            >
+                              <option value="">—</option>
+                              <option
+                                v-for="f in frostings"
+                                :key="f.id"
+                                :value="f.id"
+                              >
+                                {{ f.name }}
+                              </option></select
+                            ><svg
+                              class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              stroke-width="2.5"
+                            >
+                              <path
+                                d="M6 9l6 6 6-6"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      </template>
                       <div class="flex items-center gap-2">
                         <span
                           class="text-[12px] font-medium text-gray-500 flex-shrink-0"
@@ -2821,6 +2167,28 @@ function next() {
                 </svg>
               </div>
 
+              <!-- Cuenta/referencia de transferencia (solo si el pago es por transferencia) -->
+              <div v-if="step4.paymentType === 'TRANSFERENCIA'">
+                <label
+                  for="transferAccount"
+                  class="block text-[13px] font-semibold text-gray-600 mb-2"
+                  >Cuenta o referencia de transferencia:</label
+                >
+                <input
+                  id="transferAccount"
+                  v-model="step4.transferAccount"
+                  type="text"
+                  maxlength="255"
+                  class="w-full h-11 rounded-xl px-4 text-[14px] ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/50 placeholder:text-gray-400 transition"
+                  placeholder="Déjalo en blanco para conservar el dato ya guardado"
+                />
+                <p class="mt-1.5 text-[12px] text-gray-400">
+                  Por seguridad, el dato guardado no se muestra aquí. Déjalo
+                  en blanco para conservarlo, o escribe uno nuevo para
+                  reemplazarlo. Solo aparece impreso en el PDF del pedido.
+                </p>
+              </div>
+
               <!-- Requiere factura -->
               <label
                 class="flex items-center gap-2.5 cursor-pointer select-none"
@@ -2836,7 +2204,7 @@ function next() {
               </label>
               <div
                 :class="
-                  step2.orderType === 'VITRINA'
+                  step2.isEnTienda
                     ? 'opacity-40 pointer-events-none select-none'
                     : ''
                 "
@@ -2844,7 +2212,7 @@ function next() {
                 <p class="text-[14px] font-semibold text-[#111827] mb-2">
                   Costo por servicio
                   <span
-                    v-if="step2.orderType === 'VITRINA'"
+                    v-if="step2.isEnTienda"
                     class="ml-2 text-[11px] font-normal text-gray-400"
                     >(no aplica en tienda)</span
                   >
@@ -2862,7 +2230,7 @@ function next() {
                     min="0"
                     v-model.number="serviceCost"
                     placeholder="0.00"
-                    :disabled="step2.orderType === 'VITRINA'"
+                    :disabled="step2.isEnTienda"
                     class="flex-1 bg-transparent px-3 text-[13px] font-semibold text-[#111827] outline-none"
                   />
                 </div>
@@ -3100,45 +2468,56 @@ function next() {
                       Sin detalles adicionales
                     </p>
                   </div>
-                  <div
-                    v-if="detailRow.sizeId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Tamaño</span>
+                  <OrderDetailTiersSummary
+                    v-if="detailRow.hasTiers"
+                    :tiers="detailRow.tiers"
+                    :color-name="colorName"
+                    :catalog-label="catalogLabel"
+                    :bread-types="breadTypes"
+                    :fillings="fillings"
+                    :frostings="frostings"
+                  />
+                  <template v-else>
+                    <div
+                      v-if="detailRow.sizeId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Tamaño</span>
 
-                    <span class="text-[12px] font-semibold text-[#111827]">{{
-                      detailRow.sizeId === "CUSTOM"
-                        ? detailRow.customSize.toUpperCase()
-                        : detailRow.sizeId
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="detailRow.breadId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Tipo de Pan</span
-                    ><span class="text-[12px] font-semibold text-[#111827]">{{
-                      catalogLabel(breadTypes, detailRow.breadId)
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="detailRow.fillingId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Relleno</span
-                    ><span class="text-[12px] font-semibold text-[#111827]">{{
-                      catalogLabel(fillings, detailRow.fillingId)
-                    }}</span>
-                  </div>
-                  <div
-                    v-if="detailRow.frostingId"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500">Frosting</span
-                    ><span class="text-[12px] font-semibold text-[#111827]">{{
-                      catalogLabel(frostings, detailRow.frostingId)
-                    }}</span>
-                  </div>
+                      <span class="text-[12px] font-semibold text-[#111827]">{{
+                        detailRow.sizeId === "CUSTOM"
+                          ? detailRow.customSize.toUpperCase()
+                          : detailRow.sizeId
+                      }}</span>
+                    </div>
+                    <div
+                      v-if="detailRow.breadId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Tipo de Pan</span
+                      ><span class="text-[12px] font-semibold text-[#111827]">{{
+                        catalogLabel(breadTypes, detailRow.breadId)
+                      }}</span>
+                    </div>
+                    <div
+                      v-if="detailRow.fillingId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Relleno</span
+                      ><span class="text-[12px] font-semibold text-[#111827]">{{
+                        catalogLabel(fillings, detailRow.fillingId)
+                      }}</span>
+                    </div>
+                    <div
+                      v-if="detailRow.frostingId"
+                      class="flex justify-between py-2"
+                    >
+                      <span class="text-[12px] text-gray-500">Frosting</span
+                      ><span class="text-[12px] font-semibold text-[#111827]">{{
+                        catalogLabel(frostings, detailRow.frostingId)
+                      }}</span>
+                    </div>
+                  </template>
                   <div
                     v-if="detailRow.styleId"
                     class="flex justify-between py-2"

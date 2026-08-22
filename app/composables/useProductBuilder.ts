@@ -4,6 +4,14 @@ import type { ProductSize } from '~/types/order.types';
 
 export type ExistingReferenceImage = { id: string; imageUrl: string };
 
+export type TierRow = {
+    localId: string;
+    position: number;
+    sizeId: ProductSize | ''; customSize: string;
+    colorId: string; breadId: string;
+    fillingId: string; frostingId: string;
+};
+
 export type OrderProductRow = {
     product: ProductItem;
     qty: number; price: number;
@@ -15,7 +23,65 @@ export type OrderProductRow = {
     withReference: boolean; referenceFiles: File[]; referencePreviews: string[];
     existingReferenceImages: ExistingReferenceImage[];
     discountPercent: number;
+    hasTiers: boolean; tiers: TierRow[];
 };
+
+export const MIN_TIERS = 2;
+
+/**
+ * Mapea un TierRow (estado del formulario) al payload de un piso que espera
+ * el backend. Compartido entre crear.vue y editar.vue para no duplicar esta
+ * lógica en ambas páginas del wizard.
+ */
+export function mapTierToPayload(tier: TierRow, index: number) {
+    return {
+        position: index + 1,
+        productSize: tier.sizeId || undefined,
+        customSize:
+            tier.sizeId === "CUSTOM" ? tier.customSize || undefined : undefined,
+        breadTypeId: tier.breadId || undefined,
+        fillingId: tier.fillingId || undefined,
+        frostingId: tier.frostingId || undefined,
+        colorId: tier.colorId || undefined,
+    };
+}
+
+/**
+ * Mapea un OrderProductRow (estado del formulario) al payload de un detalle
+ * de pedido que espera el backend, sin incluir `discountPercent` (su regla
+ * difiere entre crear.vue y editar.vue - cada página lo agrega aparte).
+ * Compartido entre ambas páginas del wizard.
+ */
+export function buildOrderDetailPayload(row: OrderProductRow) {
+    return {
+        productId: row.product.id,
+        price: row.price,
+        quantity: row.qty,
+        productSize: row.hasTiers ? undefined : row.sizeId || undefined,
+        customSize:
+            !row.hasTiers && row.sizeId === "CUSTOM"
+                ? row.customSize || undefined
+                : undefined,
+        hasWriting: row.withText,
+        writingText: row.withText && row.text ? row.text : undefined,
+        writingLocation:
+            row.withText && row.textLocation ? row.textLocation : undefined,
+        pipingLocation:
+            row.mangaStyle && row.mangaStyle !== "NONE" ? row.mangaStyle : undefined,
+        decorationNotes: row.mangaNotes || undefined,
+        notes: row.notes || undefined,
+        breadTypeId: row.hasTiers ? undefined : row.breadId || undefined,
+        colorId: row.hasTiers ? undefined : row.colorId || undefined,
+        fillingId: row.hasTiers ? undefined : row.fillingId || undefined,
+        frostingId: row.hasTiers ? undefined : row.frostingId || undefined,
+        styleId: row.styleId || undefined,
+        referenceFiles:
+            row.referenceFiles.length > 0 ? row.referenceFiles : undefined,
+        tiers: row.hasTiers
+            ? row.tiers.map((tier, index) => mapTierToPayload(tier, index))
+            : undefined,
+    };
+}
 
 export const MAX_REFERENCE_IMAGES_PER_ROW = 10;
 
@@ -78,7 +144,44 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
             withReference: false, referenceFiles: [], referencePreviews: [],
             existingReferenceImages: [],
             discountPercent: 0,
+            hasTiers: false, tiers: [],
         };
+    }
+
+    let tierIdCounter = 0;
+    function makeTierRow(position: number): TierRow {
+        tierIdCounter++;
+        return {
+            localId: `tier-${tierIdCounter}`,
+            position,
+            sizeId: "", customSize: "",
+            colorId: "", breadId: "",
+            fillingId: "", frostingId: "",
+        };
+    }
+
+    function addTier(rowIndex: number) {
+        const row = orderProducts.value[rowIndex];
+        if (!row) return;
+        row.tiers.push(makeTierRow(row.tiers.length + 1));
+    }
+
+    function removeTier(rowIndex: number, tierIndex: number) {
+        const row = orderProducts.value[rowIndex];
+        if (!row) return;
+        row.tiers.splice(tierIndex, 1);
+        row.tiers.forEach((t, i) => { t.position = i + 1; });
+    }
+
+    function setHasTiers(rowIndex: number, value: boolean) {
+        const row = orderProducts.value[rowIndex];
+        if (!row) return;
+        row.hasTiers = value;
+        if (value) {
+            while (row.tiers.length < MIN_TIERS) row.tiers.push(makeTierRow(row.tiers.length + 1));
+        } else {
+            row.tiers = [];
+        }
     }
 
     function addProduct(p: ProductItem) {
@@ -153,7 +256,7 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
         const r = detailRow.value;
         if (!r) return false;
         return !!(r.sizeId || r.colorId || r.breadId || r.fillingId ||
-            r.frostingId || r.styleId || (r.withText && r.text) ||
+            r.frostingId || r.styleId || r.hasTiers || (r.withText && r.text) ||
             (r.mangaStyle && r.mangaStyle !== "NONE") || r.notes ||
             r.referencePreviews.length > 0 || r.existingReferenceImages.length > 0);
     });
@@ -174,6 +277,7 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
         orderProducts, productQuery, productSearching, productResults, showProductPanel,
         openColorPicker, colorPickerKey, pickColor,
         addProduct, removeProduct, makeProductRow,
+        addTier, removeTier, setHasTiers, makeTierRow, MIN_TIERS,
         refModal, refModalRow, openRefModal, onRefFileChange, confirmRefImage, removeRefImage, removeRefImageAt, removeExistingReferenceImage,
         detailModal, detailRow, detailRowHasDetails, openDetailModal, closeDetailModal,
         optionLabel, getProductImageUrl,

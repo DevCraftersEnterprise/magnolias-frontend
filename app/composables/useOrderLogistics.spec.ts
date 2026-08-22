@@ -50,27 +50,15 @@ describe('useOrderLogistics', () => {
         expect(step2.deliveryTime).toBe('10:00')
     })
 
-    it('al elegir VITRINA, fija pickupBranchId a la sucursal del topbar y pone serviceCost en 0', async () => {
-        const { step2, serviceCost } = setup({ branchId: 'branch-1' })
+    it('al elegir en tienda, fija pickupBranchId a la sucursal del topbar y pone serviceCost en 0', async () => {
+        const { setOrderMode, step2, serviceCost } = setup({ branchId: 'branch-1' })
         serviceCost.value = 99
 
-        step2.orderType = 'VITRINA'
+        setOrderMode('enTienda')
         await nextTick()
 
         expect(step2.pickupBranchId).toBe('branch-1')
         expect(serviceCost.value).toBe(0)
-    })
-
-    it('al salir de FLOR, florMode vuelve a "domicilio"', async () => {
-        const { step2, florMode } = setup()
-        step2.orderType = 'FLOR'
-        await nextTick()
-        florMode.value = 'vitrina'
-
-        step2.orderType = 'DOMICILIO'
-        await nextTick()
-
-        expect(florMode.value).toBe('domicilio')
     })
 
     it('al seleccionar un cliente, useCustomerAddr refleja si tiene dirección', async () => {
@@ -102,22 +90,22 @@ describe('useOrderLogistics', () => {
         expect(customerAddressFormatted.value).toBe('Reforma, #10, Centro, CDMX')
     })
 
-    it('needsDelivery es false sin tipo de pedido o en VITRINA', () => {
-        const { step2, needsDelivery } = setup()
+    it('needsDelivery es false sin modo seleccionado o en tienda', () => {
+        const { setOrderMode, needsDelivery } = setup()
         expect(needsDelivery.value).toBe(false)
 
-        step2.orderType = 'VITRINA'
+        setOrderMode('enTienda')
         expect(needsDelivery.value).toBe(false)
     })
 
-    it('needsDelivery es false en FLOR modo vitrina, true en FLOR modo domicilio', () => {
-        const { step2, florMode, needsDelivery } = setup()
-        step2.orderType = 'FLOR'
-        florMode.value = 'vitrina'
-        expect(needsDelivery.value).toBe(false)
-
-        florMode.value = 'domicilio'
+    it('needsDelivery sigue siendo true en domicilio y false en tienda, sin importar includesFlowers', () => {
+        const { setOrderMode, step2, needsDelivery } = setup()
+        setOrderMode('domicilio')
+        step2.includesFlowers = true
         expect(needsDelivery.value).toBe(true)
+
+        setOrderMode('enTienda')
+        expect(needsDelivery.value).toBe(false)
     })
 
     it('pickupTimeOutOfHours detecta horarios antes de las 8am o desde las 8pm', async () => {
@@ -134,9 +122,9 @@ describe('useOrderLogistics', () => {
         expect(pickupTimeOutOfHours.value).toBe(false)
     })
 
-    it('deliveryTimeOutOfHours usa un límite distinto para EVENTO (antes de las 7am)', async () => {
-        const { step2, deliveryTimeParts, deliveryTimeOutOfHours } = setup()
-        step2.orderType = 'EVENTO'
+    it('deliveryTimeOutOfHours usa un límite distinto para evento (antes de las 7am)', async () => {
+        const { setOrderMode, deliveryTimeParts, deliveryTimeOutOfHours } = setup()
+        setOrderMode('evento')
 
         deliveryTimeParts.h = 6
         deliveryTimeParts.p = 'AM'
@@ -149,9 +137,9 @@ describe('useOrderLogistics', () => {
         expect(deliveryTimeOutOfHours.value).toBe(false)
     })
 
-    it('deliveryTimeOutOfHours usa el rango general (8am-8pm) para otros tipos', async () => {
-        const { step2, deliveryTimeParts, deliveryTimeOutOfHours } = setup()
-        step2.orderType = 'DOMICILIO'
+    it('deliveryTimeOutOfHours usa el rango general (8am-8pm) para otros modos', async () => {
+        const { setOrderMode, deliveryTimeParts, deliveryTimeOutOfHours } = setup()
+        setOrderMode('domicilio')
 
         deliveryTimeParts.h = 6
         deliveryTimeParts.p = 'AM'
@@ -164,12 +152,12 @@ describe('useOrderLogistics', () => {
         expect(deliveryTimeOutOfHours.value).toBe(false)
     })
 
-    it('deliveryTimeWarningMsg cambia según el tipo de pedido', () => {
-        const { step2, deliveryTimeWarningMsg } = setup()
-        step2.orderType = 'EVENTO'
+    it('deliveryTimeWarningMsg cambia según el modo de pedido', () => {
+        const { setOrderMode, deliveryTimeWarningMsg } = setup()
+        setOrderMode('evento')
         expect(deliveryTimeWarningMsg.value).toContain('evento')
 
-        step2.orderType = 'DOMICILIO'
+        setOrderMode('domicilio')
         expect(deliveryTimeWarningMsg.value).toContain('horario de atención')
     })
 
@@ -207,16 +195,16 @@ describe('useOrderLogistics', () => {
     })
 
     it('step2AddressValid es true si se usa la dirección del cliente', () => {
-        const { step2, step2AddressValid } = setup()
-        step2.orderType = 'DOMICILIO'
+        const { setOrderMode, step2, step2AddressValid } = setup()
+        setOrderMode('domicilio')
         step2.useCustomerAddr = true
 
         expect(step2AddressValid.value).toBe(true)
     })
 
-    it('step2AddressValid es true en EVENTO con dirección común seleccionada', () => {
-        const { step2, step2AddressValid } = setup()
-        step2.orderType = 'EVENTO'
+    it('step2AddressValid es true en evento con dirección común seleccionada', () => {
+        const { setOrderMode, step2, step2AddressValid } = setup()
+        setOrderMode('evento')
         step2.useCommonAddr = true
         step2.commonAddrId = 'addr-1'
 
@@ -224,8 +212,8 @@ describe('useOrderLogistics', () => {
     })
 
     it('step2AddressValid exige calle/número/colonia para una dirección nueva', () => {
-        const { step2, step2AddressValid } = setup()
-        step2.orderType = 'DOMICILIO'
+        const { setOrderMode, step2, step2AddressValid } = setup()
+        setOrderMode('domicilio')
 
         expect(step2AddressValid.value).toBe(false)
 

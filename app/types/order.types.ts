@@ -1,5 +1,4 @@
 export type OrderStatus = 'CREATED' | 'IN PROCESS' | 'DONE' | 'DELIVERED' | 'CANCELED';
-export type OrderType = 'DOMICILIO' | 'EVENTO' | 'VITRINA' | 'PERSONALIZADO' | 'FLOR';
 export type ProductSize = '10P' | '15P' | '20P' | '25P' | '30P' | '40P' | '50P' | 'CUSTOM';
 
 export type OrderDeliveryAddress = {
@@ -38,7 +37,11 @@ export type OrderCustomer = {
     address?: OrderCustomerAddress;
 }
 
-export type OrderAssignedBaker = {
+// Asignación de repostero por línea de producto (Cliente #11) - reemplaza
+// la asignación a nivel de pedido completo que existía antes.
+export type OrderDetailProductionStatus = 'PENDING' | 'IN_PROCESS' | 'DONE';
+
+export type OrderLineAssignedBaker = {
     id: string;
     name: string;
     lastname: string;
@@ -46,9 +49,9 @@ export type OrderAssignedBaker = {
     area?: string;
 }
 
-export type OrderAssignment = {
+export type OrderLineAssignment = {
     id: string;
-    baker: OrderAssignedBaker;
+    baker: OrderLineAssignedBaker;
     assignedDate: string;
     notes?: string | null;
 }
@@ -56,7 +59,9 @@ export type OrderAssignment = {
 export type OrderItem = {
     id: string;
     orderCode: string;
-    orderType?: OrderType;
+    isEvento?: boolean;
+    isEnTienda?: boolean;
+    includesFlowers?: boolean;
     deliveryDate: string;
     deliveryTime?: string;
     totalAmount: string;
@@ -68,7 +73,10 @@ export type OrderItem = {
     createdBy?: OrderAuditUser;
     updatedBy?: OrderAuditUser;
     reference?: string | string[];
-    assignments?: OrderAssignment[];
+    // Resumen liviano de asignación por línea (ver detalle completo para los
+    // reposteros reales de cada línea).
+    assignedBakersCount?: number;
+    totalLinesCount?: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -110,6 +118,17 @@ export type OrderDetailCatalogItem = {
     name: string;
 } | null
 
+export type OrderDetailTier = {
+    id?: string;
+    position: number;
+    productSize?: ProductSize | null;
+    customSize?: string | null;
+    breadType?: OrderDetailCatalogItem;
+    filling?: OrderDetailCatalogItem;
+    frosting?: OrderDetailCatalogItem;
+    color?: OrderDetailCatalogItem;
+}
+
 export type OrderDetailItem = {
     id: string;
     price: string;
@@ -130,11 +149,36 @@ export type OrderDetailItem = {
     filling?: OrderDetailCatalogItem;
     frosting?: OrderDetailCatalogItem;
     style?: OrderDetailCatalogItem;
+    tiers?: OrderDetailTier[];
+    assignments?: OrderLineAssignment[];
+    productionStatus?: OrderDetailProductionStatus;
     discountPercent?: number | string | null;
     discountAuthorizedBy?: { id: string; name: string; lastname: string } | null;
     discountAuthorizedAt?: string | null;
     createdAt?: string;
     updatedAt?: string;
+}
+
+// Tarjeta del kanban de repostero (GET /api/orders/details/assignments/:bakerId)
+// - una línea de producto con el contexto mínimo de su pedido padre.
+export type OrderDetailAssignmentCard = {
+    id: string;
+    assignedDate: string;
+    notes?: string | null;
+    orderDetail: OrderDetailItem & {
+        order: {
+            id: string;
+            orderCode: string;
+            deliveryDate: string;
+            deliveryTime?: string | null;
+            status: OrderStatus;
+            isEvento?: boolean;
+            isEnTienda?: boolean;
+            remainingBalance?: string;
+            branch?: { id: string; name: string };
+            customer?: { fullName: string };
+        };
+    };
 }
 
 export type OrderDetailCustomer = {
@@ -187,7 +231,9 @@ export type OrderPayment = {
 
 export type OrderDetail = {
     id: string;
-    orderType: OrderType;
+    isEvento: boolean;
+    isEnTienda: boolean;
+    includesFlowers: boolean;
     orderCode: string;
     deliveryRound?: string | null;
     deliveryDate: string;
@@ -228,6 +274,16 @@ export type OrderDetail = {
     payments?: OrderPayment[];
 }
 
+export type OrderDetailTierPayload = {
+    position: number;
+    productSize?: ProductSize;
+    customSize?: string;
+    breadTypeId?: string;
+    fillingId?: string;
+    frostingId?: string;
+    colorId?: string;
+}
+
 export type UpdateOrderDetailPayload = {
     productId: string;
     price: number;
@@ -247,11 +303,14 @@ export type UpdateOrderDetailPayload = {
     styleId?: string;
     referenceFiles?: File[];
     discountPercent?: number;
+    tiers?: OrderDetailTierPayload[];
 }
 
 export type UpdateOrderPayload = {
     id: string;
-    orderType?: OrderType;
+    isEvento?: boolean;
+    isEnTienda?: boolean;
+    includesFlowers?: boolean;
     customerId?: string;
     branchId?: string;
     advancePayment?: number;
@@ -302,6 +361,7 @@ export type CreateOrderDetail = {
     styleId?: string;
     referenceFiles?: File[];
     discountPercent?: number;
+    tiers?: OrderDetailTierPayload[];
 }
 
 export type CreateOrderFlower = {
@@ -336,7 +396,9 @@ export type CreateOrderDeliveryAddress = {
 }
 
 export type CreateOrderPayload = {
-    orderType: OrderType;
+    isEvento?: boolean;
+    isEnTienda?: boolean;
+    includesFlowers?: boolean;
     customerId: string;
     branchId: string;
     advancePayment: number;
@@ -346,9 +408,9 @@ export type CreateOrderPayload = {
     deliveryTime?: string;
     readyTime?: string;
     deliveryRound?: string;
-    // VITRINA / FLOR-vitrina pickup
+    // isEnTienda pickup
     collectionDateTime?: string;
-    // EVENTO
+    // isEvento
     eventTime?: string;
     setupTime?: string;
     branchDepartureTime?: string;

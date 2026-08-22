@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { useFlowerRows } from './useFlowerRows'
+import { buildFlowersPayload, useFlowerRows } from './useFlowerRows'
 
 describe('useFlowerRows', () => {
     it('empieza con una fila vacía', () => {
@@ -46,6 +46,33 @@ describe('useFlowerRows', () => {
 
         expect(flowerRows.value).toEqual([
             { flowerId: '', colorId: '', quantity: '', note: '' },
+        ])
+    })
+})
+
+describe('buildFlowersPayload', () => {
+    const rows = [
+        { flowerId: 'flower-1', colorId: 'color-1', quantity: 3, note: 'borde' },
+        { flowerId: '', colorId: '', quantity: '' as const, note: '' },
+    ]
+
+    it('devuelve undefined si includesFlowers es false', () => {
+        expect(buildFlowersPayload(false, rows)).toBeUndefined()
+    })
+
+    it('filtra filas sin flowerId y mapea el resto cuando includesFlowers es true', () => {
+        expect(buildFlowersPayload(true, rows)).toEqual([
+            { flowerId: 'flower-1', colorId: 'color-1', quantity: 3, notes: 'borde' },
+        ])
+    })
+
+    it('usa cantidad 1 por defecto si quantity es inválida', () => {
+        const result = buildFlowersPayload(true, [
+            { flowerId: 'flower-1', colorId: '', quantity: '' as const, note: '' },
+        ])
+
+        expect(result).toEqual([
+            { flowerId: 'flower-1', colorId: undefined, quantity: 1, notes: undefined },
         ])
     })
 })

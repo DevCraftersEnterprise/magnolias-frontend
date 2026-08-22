@@ -74,6 +74,93 @@ describe('useCustomerLookup', () => {
             expect(toastMock.error).toHaveBeenCalledWith('Sin conexión')
             expect(results.value).toEqual([])
         })
+
+        it('en modo last4 busca por last4 en vez de phone', async () => {
+            customersServiceMock.getCustomers.mockResolvedValue({
+                items: [{ id: 'c1', fullName: 'Ana' }],
+            })
+            const { phoneQuery, phoneSearchMode, searchByPhone } =
+                useCustomerLookup()
+            phoneSearchMode.value = 'last4'
+            phoneQuery.value = '4567'
+
+            await searchByPhone()
+
+            expect(customersServiceMock.getCustomers).toHaveBeenCalledWith({
+                last4: '4567',
+                isActive: true,
+                limit: 10,
+            })
+        })
+
+        it('en modo last4 no busca y muestra error si no son exactamente 4 dígitos', async () => {
+            const { phoneQuery, phoneSearchMode, searchByPhone, hasSearched } =
+                useCustomerLookup()
+            phoneSearchMode.value = 'last4'
+            phoneQuery.value = '456'
+
+            await searchByPhone()
+
+            expect(customersServiceMock.getCustomers).not.toHaveBeenCalled()
+            expect(toastMock.error).toHaveBeenCalledWith(
+                'Ingresa exactamente 4 dígitos.',
+            )
+            expect(hasSearched.value).toBe(false)
+        })
+    })
+
+    describe('onPhoneQueryInput', () => {
+        it('limpia caracteres no numéricos y trunca a 10 dígitos en modo prefix', () => {
+            const { phoneQuery, onPhoneQueryInput } = useCustomerLookup()
+            const input = document.createElement('input')
+            input.value = '55-5555-55555'
+
+            onPhoneQueryInput({ target: input } as unknown as Event)
+
+            expect(input.value).toBe('5555555555')
+            expect(phoneQuery.value).toBe('5555555555')
+        })
+
+        it('trunca a 4 dígitos en modo last4', () => {
+            const { phoneQuery, phoneSearchMode, onPhoneQueryInput } =
+                useCustomerLookup()
+            phoneSearchMode.value = 'last4'
+            const input = document.createElement('input')
+            input.value = '1234567'
+
+            onPhoneQueryInput({ target: input } as unknown as Event)
+
+            expect(input.value).toBe('1234')
+            expect(phoneQuery.value).toBe('1234')
+        })
+    })
+
+    describe('setPhoneSearchMode', () => {
+        it('cambia el modo y limpia query/resultados/hasSearched', () => {
+            const {
+                phoneQuery, phoneSearchMode, results, hasSearched,
+                setPhoneSearchMode,
+            } = useCustomerLookup()
+            phoneQuery.value = '5551234567'
+            results.value = [{ id: 'c1' } as never]
+            hasSearched.value = true
+
+            setPhoneSearchMode('last4')
+
+            expect(phoneSearchMode.value).toBe('last4')
+            expect(phoneQuery.value).toBe('')
+            expect(results.value).toEqual([])
+            expect(hasSearched.value).toBe(false)
+        })
+
+        it('no hace nada si el modo ya es el actual', () => {
+            const { phoneQuery, setPhoneSearchMode } = useCustomerLookup()
+            phoneQuery.value = '5551234567'
+
+            setPhoneSearchMode('prefix')
+
+            expect(phoneQuery.value).toBe('5551234567')
+        })
     })
 
     describe('registro inline', () => {

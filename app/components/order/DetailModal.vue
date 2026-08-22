@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ordersService } from "~/services/orders.service";
-import type { OrderDetail, OrderItem, OrderType } from "~/types/order.types";
+import type { OrderDetail, OrderItem } from "~/types/order.types";
 import { useToast } from "vue-toastification";
+import { useOrderDetailAssignment } from "~/composables/useOrderDetailAssignment";
 
 const props = defineProps<{
   open: boolean;
@@ -20,6 +21,10 @@ const { locationLabel } = useOrderCatalogs();
 const activeData = ref<OrderDetail | null>(null);
 const loadingDetail = ref(false);
 
+// ── Asignación de repostero por línea (Cliente #11) ─────────────────────────
+const { bakers, bakersLoading, assigningDetailId, loadBakers, assignBaker } =
+  useOrderDetailAssignment();
+
 watch(
   () => props.open,
   async (v) => {
@@ -30,6 +35,9 @@ watch(
     loadingDetail.value = true;
     try {
       activeData.value = await ordersService.getOrder(props.order.id);
+      if (activeData.value?.branch?.id) {
+        loadBakers(activeData.value.branch.id);
+      }
     } catch {
       activeData.value = null; // fall back to list data
     } finally {
@@ -37,6 +45,18 @@ watch(
     }
   },
 );
+
+async function onAssignBaker(detailId: string, bakerId: string) {
+  try {
+    const assignment = await assignBaker(detailId, bakerId);
+    if (!activeData.value) return;
+    const detail = activeData.value.details.find((d) => d.id === detailId);
+    if (detail) detail.assignments = [assignment];
+    toast.success("Repostero asignado correctamente.");
+  } catch (e: any) {
+    toast.error(e?.message || "No se pudo asignar el repostero.");
+  }
+}
 
 // ── Escape key ───────────────────────────────────────────────────────────────
 function onKey(e: KeyboardEvent) {
@@ -143,14 +163,12 @@ function nameInitials(name: string) {
   return parts[0]?.slice(0, 2).toUpperCase() ?? "??";
 }
 
-function typeColor(t?: OrderType) {
-  return t
-    ? (TYPE_COLORS[t] ?? { bg: "#eee", text: "#333" })
-    : { bg: "#eee", text: "#333" };
+function typeColor(o: { isEvento?: boolean; isEnTienda?: boolean }) {
+  return getOrderTypeColor(o);
 }
 
-function typeLabel(t?: OrderType) {
-  return t ? (TYPE_LABELS[t] ?? t) : "—";
+function typeLabel(o: { isEvento?: boolean; isEnTienda?: boolean }) {
+  return getOrderTypeLabel(o);
 }
 
 function paymentLabel(pm?: string | null) {
@@ -164,11 +182,10 @@ function roundLabel(r?: string | null) {
 // ── Descargar formato ───────────────────────────────────────────────────────
 const downloading = ref(false);
 
-function formatEndpoint(orderType?: OrderType): string {
-  if (orderType === "DOMICILIO") return "domicilio";
-  if (orderType === "EVENTO") return "evento";
-  if (orderType === "VITRINA") return "vitrina";
-  return "personalizado"; // FLOR, PERSONALIZADO
+function formatEndpoint(o: { isEvento?: boolean; isEnTienda?: boolean }): string {
+  if (o.isEvento) return "evento";
+  if (o.isEnTienda) return "vitrina";
+  return "domicilio";
 }
 
 async function downloadFormat() {
@@ -178,8 +195,7 @@ async function downloadFormat() {
     const config = useRuntimeConfig();
     const base = String(config.public.apiBase || "").replace(/\/$/, "");
     const token = useCookie<string | null>("access_token").value;
-    const orderType = activeData.value?.orderType ?? props.order.orderType;
-    const endpoint = formatEndpoint(orderType);
+    const endpoint = formatEndpoint(activeData.value ?? props.order);
     const res = await fetch(
       `${base}/api/formats/${endpoint}/${props.order.id}`,
       {
@@ -353,7 +369,7 @@ async function downloadFormat() {
                       <p class="text-[11px] text-gray-400">Tipo</p>
                       <p class="mt-0.5 text-[13px] font-medium text-[#111827]">
                         {{
-                          typeLabel(activeData?.orderType ?? order.orderType) ||
+                          typeLabel(activeData ?? order) ||
                           "—"
                         }}
                       </p>
@@ -763,8 +779,49 @@ async function downloadFormat() {
                           </p>
                         </div>
                       </div>
+                      <!-- Repostero asignado a esta línea (Cliente #11) -->
+                      <OrderDetailAssignmentRow
+                        :detail-id="detail.id"
+                        :assignment="detail.assignments?.[0]"
+                        :bakers="bakers"
+                        :loading="bakersLoading || assigningDetailId === detail.id"
+                        @assign="(bakerId) => onAssignBaker(detail.id, bakerId)"
+                      />
+                      <!-- Pisos (pastel de 2+ pisos) -->
+                      <div
+                        v-if="detail.tiers && detail.tiers.length > 0"
+                        class="space-y-1.5 pt-1"
+                      >
+                        <div
+                          v-for="tier in detail.tiers"
+                          :key="tier.id ?? tier.position"
+                          class="rounded-lg bg-white px-2.5 py-1.5 ring-1 ring-black/5"
+                        >
+                          <p
+                            class="text-[9px] font-bold uppercase tracking-wide text-gray-400"
+                          >
+                            Piso {{ tier.position }}
+                          </p>
+                          <p class="text-[12px] text-gray-700">
+                            {{
+                              [
+                                tier.productSize?.toUpperCase() === "CUSTOM"
+                                  ? tier.customSize
+                                  : (tier.productSize ?? tier.customSize),
+                                tier.color?.name,
+                                tier.breadType?.name,
+                                tier.filling?.name,
+                                tier.frosting?.name,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ") || "—"
+                            }}
+                          </p>
+                        </div>
+                      </div>
                       <!-- Attributes grid -->
                       <div
+                        v-else
                         class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 pt-1"
                       >
                         <div v-if="detail.productSize || detail.customSize">
@@ -801,12 +858,13 @@ async function downloadFormat() {
                             {{ detail.color.name }}
                           </p>
                         </div>
-                        <div v-if="detail.style">
-                          <p class="text-[10px] text-gray-400">Forma</p>
-                          <p class="text-[12px] text-gray-700">
-                            {{ detail.style.name }}
-                          </p>
-                        </div>
+                      </div>
+                      <!-- Forma: siempre aparece, con o sin pisos -->
+                      <div v-if="detail.style" class="pt-1">
+                        <p class="text-[10px] text-gray-400">Forma</p>
+                        <p class="text-[12px] text-gray-700">
+                          {{ detail.style.name }}
+                        </p>
                       </div>
                       <!-- Writing -->
                       <div

@@ -30,9 +30,12 @@ const {
 } = usePagination(loadCustomers);
 
 // ─── Search ──────────────────────────────────────────────────────────────────
+type PhoneSearchMode = "prefix" | "last4";
+const phoneSearchMode = ref<PhoneSearchMode>("prefix");
+
 function normalizePhoneQuery(input: string) {
-  const s = (input ?? "").trim();
-  return s ? s.replace(/\D/g, "") : "";
+  const digits = (input ?? "").trim().replace(/\D/g, "");
+  return phoneSearchMode.value === "last4" ? digits.slice(-4) : digits;
 }
 
 const {
@@ -40,6 +43,12 @@ const {
   debouncedQuery: debouncedPhone,
   clear: clearSearch,
 } = useDebounceSearch(() => loadCustomers(true), 350, normalizePhoneQuery);
+
+function setPhoneSearchMode(mode: PhoneSearchMode) {
+  if (phoneSearchMode.value === mode) return;
+  phoneSearchMode.value = mode;
+  clearSearch();
+}
 
 // ─── Load ────────────────────────────────────────────────────────────────────
 async function loadCustomers(shouldReset = false) {
@@ -51,8 +60,12 @@ async function loadCustomers(shouldReset = false) {
       customers.value = [];
     }
 
+    const digits = debouncedPhone.value;
+    const isLast4Mode = phoneSearchMode.value === "last4";
+
     const data = await customersService.getCustomers({
-      phone: debouncedPhone.value || undefined,
+      phone: !isLast4Mode ? (digits || undefined) : undefined,
+      last4: isLast4Mode && digits.length === 4 ? digits : undefined,
       isActive: true,
       limit: pagination.value.limit,
       offset: pagination.value.offset,
@@ -320,13 +333,35 @@ async function confirmDelete() {
             </div>
 
             <!-- Search (derecha, como en la imagen) -->
-            <AdminSearchInput
-              v-model="phoneQuery"
-              placeholder="Buscar por teléfono"
-              inputmode="numeric"
-              class="w-[360px] max-w-[46vw]"
-              @clear="clearSearch"
-            />
+            <div class="flex items-center gap-2">
+              <fieldset class="flex items-center rounded-xl bg-white ring-1 ring-black/10 p-0.5 text-[12px] border-0 m-0">
+                <legend class="sr-only">Modo de búsqueda por teléfono</legend>
+                <button
+                  type="button"
+                  class="rounded-lg px-3 py-1.5 transition"
+                  :class="phoneSearchMode === 'prefix' ? 'bg-[#101541] text-white' : 'text-gray-500 hover:bg-black/5'"
+                  @click="setPhoneSearchMode('prefix')"
+                >
+                  Teléfono
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg px-3 py-1.5 transition"
+                  :class="phoneSearchMode === 'last4' ? 'bg-[#101541] text-white' : 'text-gray-500 hover:bg-black/5'"
+                  @click="setPhoneSearchMode('last4')"
+                >
+                  Últimos 4
+                </button>
+              </fieldset>
+
+              <AdminSearchInput
+                v-model="phoneQuery"
+                :placeholder="phoneSearchMode === 'last4' ? 'Buscar por últimos 4 dígitos' : 'Buscar por teléfono'"
+                inputmode="numeric"
+                class="w-[300px] max-w-[40vw]"
+                @clear="clearSearch"
+              />
+            </div>
           </div>
         </div>
 
