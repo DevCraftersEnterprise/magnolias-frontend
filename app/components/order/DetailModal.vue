@@ -175,6 +175,10 @@ function paymentLabel(pm?: string | null) {
   return pm ? (PAYMENT_METHOD_LABELS[pm] ?? pm) : "—";
 }
 
+function sourceLabel(source?: string | null) {
+  return source ? (ORDER_SOURCE_LABELS[source] ?? source) : "—";
+}
+
 function roundLabel(r?: string | null) {
   return r ? (DELIVERY_ROUND_LABELS[r] ?? r) : "—";
 }
@@ -384,6 +388,12 @@ async function downloadFormat() {
                       <p class="text-[11px] text-gray-400">Pago</p>
                       <p class="mt-0.5 text-[13px] font-medium text-[#111827]">
                         {{ paymentLabel(activeData.paymentMethod) }}
+                      </p>
+                    </div>
+                    <div v-if="activeData?.orderSource">
+                      <p class="text-[11px] text-gray-400">Canal</p>
+                      <p class="mt-0.5 text-[13px] font-medium text-[#111827]">
+                        {{ sourceLabel(activeData.orderSource) }}
                       </p>
                     </div>
                     <div v-if="activeData?.branch">
