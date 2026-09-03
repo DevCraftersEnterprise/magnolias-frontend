@@ -236,7 +236,7 @@ export const manualSections: ManualSection[] = [
                     'Para registrar un pedido, haz clic en el botón "+" junto al título "Pedidos Registrados". Serás llevado a un formulario de 4 pasos.',
                 steps: [
                     'Paso 1 — Cliente: busca al cliente por teléfono (o últimos 4 dígitos) o regístralo si es nuevo.',
-                    'Paso 2 — Tipo y logística: elige En tienda, Domicilio o Evento, y marca "Incluye flores" si aplica. Ingresa fecha, hora y dirección según el tipo.',
+                    'Paso 2 — Tipo y logística: elige En tienda, Domicilio o Evento, marca "Incluye flores" si aplica, e indica el canal de origen (WhatsApp, Instagram, Facebook, llamada telefónica o en persona). Ingresa fecha, hora y dirección según el tipo.',
                     'Paso 3 — Productos: busca y agrega los productos. Configura precio, cantidad, tamaño, color, tipo de pan, relleno, cubierta, forma, texto, una o varias imágenes de referencia y, si aplica, un descuento (requiere autorización) o pisos adicionales (ver subsecciones más abajo).',
                     'Paso 4 — Pago: elige la forma de pago (Efectivo, Tarjeta o Transferencia) y el modo (Pago completo o Anticipo). Si eliges Transferencia, ingresa también la cuenta o referencia. Haz clic en "Registrar pedido".',
                 ],
@@ -281,6 +281,13 @@ export const manualSections: ManualSection[] = [
                     'El PIN es de un solo uso por sesión de acción: puede volver a pedirse pasado un tiempo o al realizar una acción distinta.',
                 ],
                 warning: 'Los usuarios con cuenta individual (Administrador, Superadministrador o Pastelero) no necesitan PIN — esta identificación solo aplica a cuentas de Empleado compartidas por sucursal.',
+            },
+            {
+                id: 'canal-origen',
+                title: '3.2.4 Canal de origen del pedido',
+                content:
+                    'En el Paso 2 es obligatorio indicar por dónde se tomó el pedido: WhatsApp, Instagram, Facebook, llamada telefónica o en persona (mostrador). Este dato no cambia nada en la logística del pedido — se guarda para que, más adelante, se puedan generar reportes de ventas por canal.',
+                tip: 'Al editar un pedido registrado antes de que existiera este campo, el selector puede aparecer vacío; puedes completarlo en ese momento si lo sabes, pero no es obligatorio para guardar los demás cambios.',
             },
             {
                 id: 'tipos-pedido',
@@ -728,6 +735,7 @@ export const manualSections: ManualSection[] = [
                     ['Empleado de sucursal', 'Persona identificada por nombre + PIN dentro de una cuenta de Empleado compartida, distinta de un Usuario del sistema'],
                     ['PIN de empleado', 'Código de 4 a 6 dígitos que identifica individualmente a un empleado de sucursal al crear, editar, entregar o cancelar un pedido'],
                     ['Descuento autorizado', 'Porcentaje de descuento aplicado a una línea de producto, válido solo tras confirmarse con usuario y contraseña de un Admin o Super'],
+                    ['Canal de origen', 'Por dónde se tomó el pedido (WhatsApp, Instagram, Facebook, llamada telefónica o en persona); se captura para futuros reportes de ventas por canal'],
                     ['Visible al público', 'Condición de un producto para aparecer (o no) en el catálogo de la tienda pública, independiente de si está Activo'],
                     ['Tablero Kanban', 'Vista del pastelero organizada por estado de producción, con una tarjeta por producto asignado'],
                     ['Favorito', 'Producto destacado que se muestra en la tienda pública'],

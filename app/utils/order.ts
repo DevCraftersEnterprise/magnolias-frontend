@@ -63,6 +63,14 @@ export const DELIVERY_ROUND_LABELS: Record<string, string> = {
     ROUND_4: 'Ronda 4',
 }
 
+export const ORDER_SOURCE_LABELS: Record<string, string> = {
+    WHATSAPP: 'WhatsApp',
+    INSTAGRAM: 'Instagram',
+    FACEBOOK: 'Facebook',
+    PHONE_CALL: 'Llamada telefónica',
+    IN_PERSON: 'En persona / Mostrador',
+}
+
 export const LOCATION_LABELS: Record<string, string> = {
     TOP: "Arriba",
     BOTTOM: "Abajo",
