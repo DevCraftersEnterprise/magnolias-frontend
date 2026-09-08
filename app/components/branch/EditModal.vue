@@ -186,11 +186,12 @@ async function onSubmit() {
       </div>
 
       <div>
-        <label class="text-xs font-semibold text-black/60"
+        <label for="branch-location-url" class="text-xs font-semibold text-black/60"
           >Enlace de Google Maps
           <span class="font-normal text-black/40">(opcional)</span></label
         >
         <input
+          id="branch-location-url"
           v-model="form.locationUrl"
           type="url"
           class="mt-1 h-11 w-full rounded-xl bg-black/5 px-3 text-sm outline-none focus:ring-2 focus:ring-black/10"
