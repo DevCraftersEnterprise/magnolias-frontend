@@ -247,7 +247,7 @@ async function onSubmit() {
           >
             <option value="" disabled>Selecciona un rol</option>
             <option value="ADMIN">Admin</option>
-            <option value="EMPLOYEE">Empleado</option>
+            <option v-if="mode === 'edit'" value="EMPLOYEE">Empleado</option>
             <option value="BAKER">Pastelero</option>
           </select>
           <svg

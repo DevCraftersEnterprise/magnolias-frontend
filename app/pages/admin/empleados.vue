@@ -23,12 +23,21 @@ const {
   nextPage,
 } = usePagination(loadEmployees);
 
+// Evita que una respuesta atrasada de una sucursal anterior sobrescriba
+// la lista si el admin cambia de sucursal antes de que llegue la respuesta.
+let loadRequestId = 0;
+
 async function loadEmployees(shouldReset = false) {
-  if (!selectedBranch.value?.id) {
+  const branchId = selectedBranch.value?.id;
+
+  if (!branchId) {
+    loadRequestId += 1;
     employees.value = [];
     loading.value = false;
     return;
   }
+
+  const requestId = ++loadRequestId;
 
   loading.value = true;
   try {
@@ -38,17 +47,22 @@ async function loadEmployees(shouldReset = false) {
     }
 
     const data = await branchEmployeesService.getBranchEmployees(
-      selectedBranch.value.id,
+      branchId,
       pagination.value.limit,
       pagination.value.offset,
     );
 
+    // Si mientras tanto se disparó otra carga (cambio de sucursal o
+    // paginación), esta respuesta ya está obsoleta: se descarta.
+    if (requestId !== loadRequestId) return;
+
     employees.value = data.items ?? [];
     update(data.pagination, data.total);
   } catch (e: any) {
+    if (requestId !== loadRequestId) return;
     toast.error(e?.message || "Ocurrió un error cargando empleados.");
   } finally {
-    loading.value = false;
+    if (requestId === loadRequestId) loading.value = false;
   }
 }
 

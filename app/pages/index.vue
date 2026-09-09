@@ -369,26 +369,10 @@ const branches = computed(
 
           <!-- Mapa -->
           <BranchMap
-            v-if="branch.latitude && branch.longitude"
-            :latitude="Number(branch.latitude)"
-            :longitude="Number(branch.longitude)"
+            :location-url="branch.locationUrl"
             :name="branch.name"
             class="mt-1"
           />
-          <div
-            v-else
-            class="mt-1 h-36 rounded-xl bg-gradient-to-br from-[#F7C0DB] to-[#F48AC1] flex items-center justify-center"
-          >
-            <svg
-              class="h-8 w-8 text-white/60"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path
-                d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
-              />
-            </svg>
-          </div>
 
           <!-- Botón Cotiza aquí -->
           <a

@@ -2,8 +2,7 @@ export type BranchResponse = {
     id: string;
     name: string;
     address: string;
-    latitude: number;
-    longitude: number;
+    locationUrl?: string | null;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
@@ -12,12 +11,13 @@ export type BranchResponse = {
         phone1: string;
         phone2: string | null;
         whatsapp: string | null;
-    };
+    } | null;
 }
 
 export type BranchCreatePayload = {
     name: string;
     address: string;
+    locationUrl?: string | null;
 }
 
 export type BranchUpdatePayload = {
@@ -25,6 +25,7 @@ export type BranchUpdatePayload = {
     name: string;
     address: string;
     isActive: boolean;
+    locationUrl?: string | null;
 }
 
 export type BranchPhonesPayload = {

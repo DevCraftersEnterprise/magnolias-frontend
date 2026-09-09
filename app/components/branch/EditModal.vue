@@ -32,6 +32,7 @@ const form = reactive({
   phone1: originalPhones.phone1,
   phone2: originalPhones.phone2,
   whatsapp: originalPhones.whatsapp,
+  locationUrl: props.branch.locationUrl ?? "",
 });
 
 async function onSubmit() {
@@ -51,6 +52,7 @@ async function onSubmit() {
       name: form.name.trim(),
       address: form.address.trim(),
       isActive: form.isActive,
+      locationUrl: form.locationUrl.trim() || null,
     };
 
     // Always use PATCH regardless of isActive — the PATCH endpoint handles deactivation via isActive: false
@@ -181,6 +183,24 @@ async function onSubmit() {
           class="mt-1 h-11 w-full rounded-xl bg-black/5 px-3 text-sm outline-none focus:ring-2 focus:ring-black/10"
           placeholder="Ej. 55 1234 5678"
         />
+      </div>
+
+      <div>
+        <label for="branch-location-url" class="text-xs font-semibold text-black/60"
+          >Enlace de Google Maps
+          <span class="font-normal text-black/40">(opcional)</span></label
+        >
+        <input
+          id="branch-location-url"
+          v-model="form.locationUrl"
+          type="url"
+          class="mt-1 h-11 w-full rounded-xl bg-black/5 px-3 text-sm outline-none focus:ring-2 focus:ring-black/10"
+          placeholder="Ej. https://www.google.com/maps/embed?pb=..."
+        />
+        <p class="mt-1 text-[11px] text-black/40">
+          En Google Maps: Compartir → Insertar un mapa → copia el enlace del
+          iframe o el enlace de compartir.
+        </p>
       </div>
 
       <div class="mt-2 flex justify-end gap-2">

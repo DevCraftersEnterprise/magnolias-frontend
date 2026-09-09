@@ -17,6 +17,7 @@ const createdBranch = ref<BranchResponse | null>(null);
 const form = reactive({
   name: "",
   address: "",
+  locationUrl: "",
   phone1: "",
   phone2: "",
   whatsapp: "",
@@ -26,6 +27,7 @@ function onClose() {
   step.value = 1;
   form.name = "";
   form.address = "";
+  form.locationUrl = "";
   form.phone1 = "";
   form.phone2 = "";
   form.whatsapp = "";
@@ -40,6 +42,7 @@ async function onStep1() {
     const branch = await branchesService.createBranch({
       name: form.name.trim(),
       address: form.address.trim(),
+      locationUrl: form.locationUrl.trim() || null,
     });
     createdBranchId.value = branch.id;
     createdBranch.value = branch;
@@ -113,6 +116,24 @@ async function onStep2() {
           placeholder="Ej. Av. Juárez 123, Col. Centro"
           required
         />
+      </div>
+
+      <div>
+        <label for="branch-location-url" class="text-xs font-semibold text-black/60"
+          >Enlace de Google Maps
+          <span class="font-normal text-black/40">(opcional)</span></label
+        >
+        <input
+          id="branch-location-url"
+          v-model="form.locationUrl"
+          type="url"
+          class="mt-1 h-11 w-full rounded-xl bg-black/5 px-3 text-sm outline-none focus:ring-2 focus:ring-black/10"
+          placeholder="Ej. https://www.google.com/maps/embed?pb=..."
+        />
+        <p class="mt-1 text-[11px] text-black/40">
+          En Google Maps: Compartir → Insertar un mapa → copia el enlace del
+          iframe o el enlace de compartir.
+        </p>
       </div>
 
       <div class="mt-2 flex justify-end gap-2">
