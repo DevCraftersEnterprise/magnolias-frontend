@@ -181,7 +181,7 @@ onMounted(async () => {
 
           <!-- Mapa -->
           <BranchMap
-            :location-url="branch.locationUrl"
+            :address="branch.address"
             :name="branch.name"
             class="mt-1"
           />
