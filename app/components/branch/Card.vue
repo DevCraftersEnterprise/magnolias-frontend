@@ -6,7 +6,6 @@ defineProps<{
   phone2?: string | null;
   whatsapp?: string | null;
   isActive: boolean;
-  locationUrl?: string | null;
 }>();
 
 const emit = defineEmits<{ (e: "edit"): void }>();
@@ -117,6 +116,6 @@ const emit = defineEmits<{ (e: "edit"): void }>();
       </div>
     </div>
 
-    <BranchMap :location-url="locationUrl" :name="name" class="mt-3" />
+    <BranchMap :address="address" :name="name" class="mt-3" />
   </div>
 </template>

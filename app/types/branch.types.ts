@@ -17,7 +17,6 @@ export type BranchResponse = {
 export type BranchCreatePayload = {
     name: string;
     address: string;
-    locationUrl?: string | null;
 }
 
 export type BranchUpdatePayload = {
@@ -25,7 +24,6 @@ export type BranchUpdatePayload = {
     name: string;
     address: string;
     isActive: boolean;
-    locationUrl?: string | null;
 }
 
 export type BranchPhonesPayload = {

@@ -5,50 +5,39 @@ import BranchMap from './Map.vue'
 function mountMap(props: Record<string, unknown> = {}) {
     return mount(BranchMap, {
         props: {
-            name: 'Sucursal Centro',
+            address: 'Av. Morelos 314, Ciudad Obregón, Sonora',
+            name: 'Sucursal Morelos',
             ...props,
         },
     })
 }
 
 describe('BranchMap', () => {
-    it('muestra el degradado de respaldo cuando no hay locationUrl', () => {
-        const wrapper = mountMap({ locationUrl: null })
+    it('no renderiza ningún iframe (evita el problema de enlaces no embebibles)', () => {
+        const wrapper = mountMap()
 
         expect(wrapper.find('iframe').exists()).toBe(false)
-        expect(wrapper.find('button').exists()).toBe(false)
     })
 
-    it('usa el enlace de "insertar un mapa" tal cual si ya trae output=embed', () => {
-        const url = 'https://www.google.com/maps/embed?pb=abc123'
-        const wrapper = mountMap({ locationUrl: url })
+    it('arma el enlace de búsqueda de Google Maps a partir de la dirección', () => {
+        const wrapper = mountMap({ address: 'Av. Morelos 314, Ciudad Obregón, Sonora' })
 
-        expect(wrapper.find('iframe').attributes('src')).toBe(url)
-    })
-
-    it('agrega output=embed a un enlace normal de Google Maps sin query previa', () => {
-        const url = 'https://www.google.com/maps/place/Foo'
-        const wrapper = mountMap({ locationUrl: url })
-
-        expect(wrapper.find('iframe').attributes('src')).toBe(
-            `${url}?output=embed`,
+        expect(wrapper.find('a').attributes('href')).toBe(
+            'https://www.google.com/maps/search/?api=1&query=Av.%20Morelos%20314%2C%20Ciudad%20Obreg%C3%B3n%2C%20Sonora',
         )
     })
 
-    it('agrega output=embed con "&" cuando el enlace ya trae query params', () => {
-        const url = 'https://maps.google.com/?q=21.88,-102.29'
-        const wrapper = mountMap({ locationUrl: url })
+    it('abre el enlace en una pestaña nueva de forma segura', () => {
+        const wrapper = mountMap()
+        const link = wrapper.find('a')
 
-        expect(wrapper.find('iframe').attributes('src')).toBe(
-            `${url}&output=embed`,
-        )
+        expect(link.attributes('target')).toBe('_blank')
+        expect(link.attributes('rel')).toBe('noopener noreferrer')
     })
 
-    it('muestra el botón "Ver en Google Maps" solo cuando hay locationUrl', () => {
-        const wrapper = mountMap({
-            locationUrl: 'https://maps.app.goo.gl/abc123',
-        })
+    it('muestra el texto "Ver en Google Maps"', () => {
+        const wrapper = mountMap()
 
-        expect(wrapper.find('button').text()).toContain('Ver en Google Maps')
+        expect(wrapper.text()).toContain('Ver en Google Maps')
     })
 })
