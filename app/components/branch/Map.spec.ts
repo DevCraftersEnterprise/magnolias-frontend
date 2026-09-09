@@ -19,11 +19,11 @@ describe('BranchMap', () => {
         expect(wrapper.find('iframe').exists()).toBe(false)
     })
 
-    it('arma el enlace de búsqueda de Google Maps a partir de la dirección', () => {
-        const wrapper = mountMap({ address: 'Av. Morelos 314, Ciudad Obregón, Sonora' })
+    it('arma el enlace de búsqueda de Google Maps con el nombre del negocio y la dirección', () => {
+        const wrapper = mountMap({ address: 'Av. Morelos #314, Ciudad Obregón, Sonora' })
 
         expect(wrapper.find('a').attributes('href')).toBe(
-            'https://www.google.com/maps/search/?api=1&query=Av.%20Morelos%20314%2C%20Ciudad%20Obreg%C3%B3n%2C%20Sonora',
+            'https://www.google.com/maps/search/Pasteler%C3%ADa+Magnolias,+Av.+Morelos+%23314,+Ciudad+Obreg%C3%B3n,+Sonora',
         )
     })
 

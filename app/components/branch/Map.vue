@@ -4,15 +4,21 @@ const props = defineProps<{
     name: string;
 }>();
 
+const BUSINESS_NAME = 'Pastelería Magnolias';
+
 // Enlace de búsqueda de Google Maps (no requiere API key ni que la
 // sucursal tenga un enlace guardado; siempre funciona a partir de la
-// dirección de la sucursal).
-const mapsUrl = computed(
-    () =>
-        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-            props.address,
-        )}`,
-);
+// dirección de la sucursal). Se arma como
+// https://www.google.com/maps/search/Pastelería+Magnolias,+<dirección>
+// codificando espacios como "+" y dejando comas/puntos literales, igual
+// que el formato que usa Google al compartir una búsqueda.
+const mapsUrl = computed(() => {
+    const query = `${BUSINESS_NAME}, ${props.address}`;
+    const encoded = encodeURIComponent(query)
+        .replaceAll('%20', '+')
+        .replaceAll('%2C', ',');
+    return `https://www.google.com/maps/search/${encoded}`;
+});
 </script>
 
 <template>
