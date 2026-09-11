@@ -86,4 +86,41 @@ describe('apiFetch', () => {
             message: 'No encontrado',
         })
     })
+
+    it('convierte un message de arreglo (ValidationPipe de Nest) en un string legible', async () => {
+        vi.mocked(fetch).mockResolvedValue(
+            mockFetchResponse({
+                ok: false,
+                status: 400,
+                json: async () => ({
+                    statusCode: 400,
+                    message: [
+                        'Invalid piping location',
+                        'Product ID must be a valid UUID',
+                    ],
+                    error: 'Bad Request',
+                }),
+            }) as Response,
+        )
+
+        await expect(apiFetch('/api/orders')).rejects.toMatchObject({
+            status: 400,
+            message: 'Invalid piping location Product ID must be a valid UUID',
+        })
+    })
+
+    it('usa data.error cuando no hay message', async () => {
+        vi.mocked(fetch).mockResolvedValue(
+            mockFetchResponse({
+                ok: false,
+                status: 401,
+                json: async () => ({ error: 'Unauthorized' }),
+            }) as Response,
+        )
+
+        await expect(apiFetch('/api/private')).rejects.toMatchObject({
+            status: 401,
+            message: 'Unauthorized',
+        })
+    })
 })
