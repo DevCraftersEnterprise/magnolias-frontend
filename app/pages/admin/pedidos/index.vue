@@ -80,6 +80,7 @@ const {
   employeeActionToken,
   openModal: openEmployeePinModal,
   verifyPin: verifyEmployeePin,
+  reset: resetEmployeePin,
 } = useEmployeePin();
 
 type PendingEmployeeAction = "deliver" | "cancel" | null;
@@ -113,11 +114,13 @@ async function executeDeliver() {
   }
 
   delivering.value = true;
+  // Token de un solo uso: se consume aquí para que la siguiente acción (en
+  // este mismo pedido u otro) vuelva a pedir el PIN, en vez de asumir que
+  // sigue siendo el mismo compañero frente al mostrador.
+  const actionToken = employeeActionToken.value || undefined;
+  if (isEmployeeSession.value) resetEmployeePin();
   try {
-    await ordersService.markDelivered(
-      deliverTarget.value.id,
-      employeeActionToken.value || undefined,
-    );
+    await ordersService.markDelivered(deliverTarget.value.id, actionToken);
     deliverConfirm.value = false;
     deliverTarget.value = null;
     await loadOrders(true);
@@ -179,11 +182,14 @@ async function executeCancel() {
   }
 
   canceling.value = true;
+  // Token de un solo uso: ver nota equivalente en executeDeliver.
+  const actionToken = employeeActionToken.value || undefined;
+  if (isEmployeeSession.value) resetEmployeePin();
   try {
     await ordersService.cancelOrder(
       cancelTarget.value.id,
       cancelReason.value,
-      employeeActionToken.value || undefined,
+      actionToken,
     );
     cancelConfirm.value = false;
     cancelTarget.value = null;

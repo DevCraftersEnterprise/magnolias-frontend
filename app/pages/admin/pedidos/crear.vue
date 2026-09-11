@@ -133,6 +133,7 @@ const {
   employeeActionToken,
   openModal: openEmployeePinModal,
   verifyPin: verifyEmployeePin,
+  reset: resetEmployeePin,
 } = useEmployeePin();
 
 async function onEmployeePinSubmit(pin: string) {
@@ -421,6 +422,11 @@ async function submitOrder() {
           : undefined,
       employeeActionToken: employeeActionToken.value || undefined,
     };
+
+    // El token de PIN es de un solo uso: se consume aquí para que, si esta
+    // creación falla y otro compañero retoma el formulario, se le vuelva a
+    // pedir su propio PIN en vez de reutilizar la identificación anterior.
+    if (isEmployeeSession.value) resetEmployeePin();
 
     await ordersService.createOrder(payload);
     toast.success("Pedido creado correctamente.");

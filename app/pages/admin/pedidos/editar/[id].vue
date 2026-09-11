@@ -186,6 +186,7 @@ const {
   employeeActionToken,
   openModal: openEmployeePinModal,
   verifyPin: verifyEmployeePin,
+  reset: resetEmployeePin,
 } = useEmployeePin();
 
 async function onEmployeePinSubmit(pin: string) {
@@ -697,6 +698,9 @@ async function submitOrder() {
       discountAuthToken: discountAuthToken.value || undefined,
       employeeActionToken: employeeActionToken.value || undefined,
     };
+
+    // Token de un solo uso: ver nota equivalente en crear.vue.
+    if (isEmployeeSession.value) resetEmployeePin();
 
     await ordersService.updateOrder(payload);
     toast.success("Pedido actualizado correctamente.");
