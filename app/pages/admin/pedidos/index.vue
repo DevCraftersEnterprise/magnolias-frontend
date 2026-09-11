@@ -13,10 +13,18 @@ import { useToast } from "vue-toastification";
 
 const { user } = useAuthUser();
 const { selectedBranch } = useBranch();
-const { effectiveRole } = useViewAs();
+const { effectiveRole, canToggleViewAs, viewAsBakerId } = useViewAs();
 
 const isBaker = computed(() => effectiveRole.value === "BAKER");
 const toast = useToast();
+
+// Un ADMIN/SUPER que "ve como pastelero" no es un pastelero real: el kanban
+// debe consultarse con el id del pastelero elegido en el Topbar (viewAsBakerId),
+// no con el id de la sesión actual (que siempre sería el del admin y nunca
+// tendría asignaciones propias).
+const kanbanBakerId = computed(() =>
+  canToggleViewAs.value ? viewAsBakerId.value : (user.value?.id ?? ""),
+);
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function typeColor(o: { isEvento?: boolean; isEnTienda?: boolean }) {
@@ -72,6 +80,7 @@ const {
   employeeActionToken,
   openModal: openEmployeePinModal,
   verifyPin: verifyEmployeePin,
+  reset: resetEmployeePin,
 } = useEmployeePin();
 
 type PendingEmployeeAction = "deliver" | "cancel" | null;
@@ -105,11 +114,13 @@ async function executeDeliver() {
   }
 
   delivering.value = true;
+  // Token de un solo uso: se consume aquí para que la siguiente acción (en
+  // este mismo pedido u otro) vuelva a pedir el PIN, en vez de asumir que
+  // sigue siendo el mismo compañero frente al mostrador.
+  const actionToken = employeeActionToken.value || undefined;
+  if (isEmployeeSession.value) resetEmployeePin();
   try {
-    await ordersService.markDelivered(
-      deliverTarget.value.id,
-      employeeActionToken.value || undefined,
-    );
+    await ordersService.markDelivered(deliverTarget.value.id, actionToken);
     deliverConfirm.value = false;
     deliverTarget.value = null;
     await loadOrders(true);
@@ -171,11 +182,14 @@ async function executeCancel() {
   }
 
   canceling.value = true;
+  // Token de un solo uso: ver nota equivalente en executeDeliver.
+  const actionToken = employeeActionToken.value || undefined;
+  if (isEmployeeSession.value) resetEmployeePin();
   try {
     await ordersService.cancelOrder(
       cancelTarget.value.id,
       cancelReason.value,
-      employeeActionToken.value || undefined,
+      actionToken,
     );
     cancelConfirm.value = false;
     cancelTarget.value = null;
@@ -311,14 +325,16 @@ const doneLines = computed(() =>
 
 async function loadKanbanOrders() {
   if (!isBaker.value) return;
-  if (!user.value?.id) {
+  if (!kanbanBakerId.value) {
     kanbanAssignments.value = [];
     kanbanLoading.value = false;
     return;
   }
   kanbanLoading.value = true;
   try {
-    const data = await ordersService.getBakerDetailAssignments(user.value.id);
+    const data = await ordersService.getBakerDetailAssignments(
+      kanbanBakerId.value,
+    );
     kanbanAssignments.value = (data ?? []).filter(
       (c) =>
         c.orderDetail.order.status !== "DELIVERED" &&
@@ -363,6 +379,10 @@ function refreshKanban() {
   loadKanbanOrders();
 }
 
+function goToLineDetail(card: OrderDetailAssignmentCard) {
+  navigateTo("/admin/pedidos/detalle/" + card.orderDetail.order.id);
+}
+
 // ─── Kanban confirm modal ───────────────────────────────────────────────────
 const kanbanConfirmTarget = ref<OrderDetailAssignmentCard | null>(null);
 function requestAdvanceStatus(card: OrderDetailAssignmentCard) {
@@ -381,7 +401,7 @@ async function confirmAdvanceStatus() {
 // estando ya en /admin/pedidos), por eso se observa de forma reactiva en vez
 // de solo cargar datos en onMounted.
 watch(
-  isBaker,
+  [isBaker, kanbanBakerId],
   () => {
     if (isBaker.value) loadKanbanOrders();
     else loadOrders(true);
@@ -449,6 +469,31 @@ function onOrderPaymentUpdated(payload: {
                   @click="navigateTo('/admin/pedidos/crear')"
                 >
                   <span class="text-[18px] leading-none">+</span>
+                </button>
+                <button
+                  type="button"
+                  class="grid h-9 w-9 place-items-center rounded-xl bg-white ring-1 ring-black/10 text-[#111827] hover:bg-black/5 transition disabled:opacity-40"
+                  title="Actualizar"
+                  aria-label="Actualizar lista de pedidos"
+                  :disabled="loading"
+                  @click="loadOrders(false)"
+                >
+                  <svg
+                    class="h-4 w-4"
+                    :class="{ 'animate-spin': loading }"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M23 4v6h-6" />
+                    <path d="M1 20v-6h6" />
+                    <path
+                      d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                    />
+                  </svg>
                 </button>
               </div>
 
@@ -1180,8 +1225,17 @@ function onOrderPaymentUpdated(payload: {
               </Transition>
             </div>
 
+            <!-- ADMIN/SUPER en "ver como pastelero" sin elegir a quién previsualizar -->
+            <div
+              v-if="canToggleViewAs && !kanbanBakerId"
+              class="py-16 text-center text-[13px] text-gray-500"
+            >
+              Selecciona un pastelero en el aviso "Viendo como" (arriba) para
+              previsualizar su tablero.
+            </div>
+
             <!-- Loading -->
-            <div v-if="kanbanLoading" class="py-16 flex justify-center">
+            <div v-else-if="kanbanLoading" class="py-16 flex justify-center">
               <div
                 class="h-6 w-6 animate-spin rounded-full border-2 border-black/10 border-t-[#C9007C]"
               ></div>
@@ -1212,12 +1266,13 @@ function onOrderPaymentUpdated(payload: {
                   <div
                     v-for="card in pendingLines"
                     :key="card.orderDetail.id"
-                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    @click="
-                      navigateTo(
-                        '/admin/pedidos/detalle/' + card.orderDetail.order.id,
-                      )
-                    "
+                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden hover:ring-black/[0.14] hover:shadow-sm transition"
+                  >
+                  <button
+                    type="button"
+                    class="block w-full text-left cursor-pointer"
+                    aria-label="Ver detalle del pedido"
+                    @click="goToLineDetail(card)"
                   >
                     <div class="h-1 bg-amber-400"></div>
                     <div
@@ -1298,9 +1353,9 @@ function onOrderPaymentUpdated(payload: {
                         Saldo pendiente
                       </div>
                     </div>
+                  </button>
                     <div
                       class="border-t border-black/[0.06] px-3 py-2.5"
-                      @click.stop
                     >
                       <button
                         class="w-full rounded-lg bg-amber-50 py-1.5 text-[12px] font-semibold text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
@@ -1344,12 +1399,13 @@ function onOrderPaymentUpdated(payload: {
                   <div
                     v-for="card in inProcessLines"
                     :key="card.orderDetail.id"
-                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    @click="
-                      navigateTo(
-                        '/admin/pedidos/detalle/' + card.orderDetail.order.id,
-                      )
-                    "
+                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden hover:ring-black/[0.14] hover:shadow-sm transition"
+                  >
+                  <button
+                    type="button"
+                    class="block w-full text-left cursor-pointer"
+                    aria-label="Ver detalle del pedido"
+                    @click="goToLineDetail(card)"
                   >
                     <div class="h-1 bg-violet-400"></div>
                     <div
@@ -1430,9 +1486,9 @@ function onOrderPaymentUpdated(payload: {
                         Saldo pendiente
                       </div>
                     </div>
+                  </button>
                     <div
                       class="border-t border-black/[0.06] px-3 py-2.5"
-                      @click.stop
                     >
                       <button
                         class="w-full rounded-lg bg-violet-50 py-1.5 text-[12px] font-semibold text-violet-700 hover:bg-violet-100 transition disabled:opacity-40"
@@ -1473,15 +1529,13 @@ function onOrderPaymentUpdated(payload: {
                   >
                 </div>
                 <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
-                  <div
+                  <button
                     v-for="card in doneLines"
                     :key="card.orderDetail.id"
-                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    @click="
-                      navigateTo(
-                        '/admin/pedidos/detalle/' + card.orderDetail.order.id,
-                      )
-                    "
+                    type="button"
+                    class="block w-full text-left bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
+                    aria-label="Ver detalle del pedido"
+                    @click="goToLineDetail(card)"
                   >
                     <div class="h-1 bg-emerald-400"></div>
                     <div
@@ -1556,7 +1610,7 @@ function onOrderPaymentUpdated(payload: {
                         Listo para entregar
                       </div>
                     </div>
-                  </div>
+                  </button>
                   <div
                     v-if="doneLines.length === 0"
                     class="py-10 text-center text-[12px] text-gray-400"
@@ -1596,8 +1650,10 @@ function onOrderPaymentUpdated(payload: {
         class="fixed inset-0 z-[110] flex items-center justify-center px-4"
       >
         <!-- Backdrop -->
-        <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        <button
+          type="button"
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
+          aria-label="Cerrar"
           @click="kanbanConfirmTarget = null"
         />
 
@@ -1708,8 +1764,10 @@ function onOrderPaymentUpdated(payload: {
         v-if="deliverConfirm"
         class="fixed inset-0 z-[110] flex items-center justify-center px-4"
       >
-        <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        <button
+          type="button"
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
+          aria-label="Cerrar"
           @click="deliverConfirm = false"
         />
         <div
@@ -1791,8 +1849,10 @@ function onOrderPaymentUpdated(payload: {
         v-if="cancelConfirm"
         class="fixed inset-0 z-[110] flex items-center justify-center px-4"
       >
-        <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        <button
+          type="button"
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
+          aria-label="Cerrar"
           @click="cancelConfirm = false"
         />
         <div

@@ -5,11 +5,16 @@ export type ApiError = {
 }
 
 function normalizeError(status: number, data: any): ApiError {
-  return {
-    status,
-    message: data?.message || data?.error || `Error ${status}`,
-    data,
-  }
+  // El ValidationPipe global de Nest devuelve `message` como un arreglo de
+  // strings cuando hay uno o más errores de validación (en vez de un solo
+  // string). Sin este join, ese arreglo se pasaba tal cual a toast.error(),
+  // que al no recibir un string no muestra ningún texto (toast rojo vacío).
+  const rawMessage = data?.message ?? data?.error
+  const message = Array.isArray(rawMessage)
+    ? rawMessage.join(' ')
+    : rawMessage || `Error ${status}`
+
+  return { status, message, data }
 }
 
 export async function apiFetch<T>(

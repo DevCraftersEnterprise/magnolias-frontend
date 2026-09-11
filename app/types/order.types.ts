@@ -229,6 +229,19 @@ export type OrderPayment = {
     createdAt: string;
 }
 
+// Registro de qué persona (empleado con PIN) realizó una acción del pedido
+// cuando se hizo desde una cuenta compartida de sucursal. createdBy/updatedBy
+// solo identifican esa cuenta compartida (p.ej. "Sucursal Morelos"), no a la
+// persona real — para eso está este arreglo.
+export type OrderEmployeeActionType = 'CREATED' | 'UPDATED' | 'DELIVERED' | 'CANCELED';
+
+export type OrderEmployeeActionItem = {
+    id: string;
+    action: OrderEmployeeActionType;
+    performedAt: string;
+    employee: { id: string; name: string; lastname: string };
+}
+
 export type OrderDetail = {
     id: string;
     isEvento: boolean;
@@ -273,6 +286,7 @@ export type OrderDetail = {
     details: OrderDetailItem[];
     orderFlowers: any[];
     payments?: OrderPayment[];
+    employeeActions?: OrderEmployeeActionItem[];
 }
 
 export type OrderDetailTierPayload = {

@@ -70,7 +70,7 @@ export const manualSections: ManualSection[] = [
                 tableRows: [
                     ['SUPER', 'Superadministrador', 'Acceso completo a todo el sistema'],
                     ['ADMIN', 'Administrador', 'Acceso completo a todo el sistema'],
-                    ['EMPLOYEE', 'Empleado', 'Pedidos y Clientes'],
+                    ['EMPLOYEE', 'Sucursal', 'Pedidos y Clientes'],
                     ['BAKER', 'Pastelero', 'Solo pedidos asignados a él/ella'],
                 ],
                 tip: 'Los usuarios con rol Pastelero tienen una vista simplificada del módulo de pedidos. Solo pueden ver los pedidos que les han sido asignados y avanzar su estado de producción.',
@@ -137,7 +137,7 @@ export const manualSections: ManualSection[] = [
                     'Ve al menú lateral y haz clic en "Usuarios".',
                     'Haz clic en el botón "+" junto al título Usuarios.',
                     'Llena los campos: Nombre, Apellido, Usuario (sin espacios), Contraseña y Rol.',
-                    'Para Empleado: selecciona la sucursal única a la que pertenece.',
+                    'Para Sucursal: selecciona la sucursal única a la que pertenece (es una cuenta compartida por el mostrador de esa sucursal, no una persona individual).',
                     'Para Pastelero: puedes asignar varias sucursales, además de su área y especialidad.',
                     'Haz clic en "Guardar" para crear el usuario.',
                 ],
@@ -145,10 +145,10 @@ export const manualSections: ManualSection[] = [
                 tableRows: [
                     ['SUPER', 'Superadministrador', 'Todo el sistema', 'Todas'],
                     ['ADMIN', 'Administrador', 'Todo el sistema', 'Todas'],
-                    ['EMPLOYEE', 'Empleado', 'Pedidos y Clientes', 'Una sola'],
+                    ['EMPLOYEE', 'Sucursal', 'Pedidos y Clientes', 'Una sola'],
                     ['BAKER', 'Pastelero', 'Solo sus pedidos asignados', 'Una o varias'],
                 ],
-                tip: 'Los empleados normalmente pertenecen a una sucursal específica, mientras que los pasteleros pueden pertenecer a varias. Esto permite controlar correctamente los permisos y asignar pedidos de manera eficiente.',
+                tip: 'Las cuentas tipo Sucursal normalmente pertenecen a una sucursal específica y se comparten entre el personal de mostrador, mientras que los pasteleros pueden pertenecer a varias sucursales. Esto permite controlar correctamente los permisos y asignar pedidos de manera eficiente.',
                 warning: 'Antes de capacitar a los empleados, el administrador debe asegurarse de que exista al menos una sucursal activa, que los catálogos principales estén cargados y que cada usuario tenga su rol y sucursal asignados correctamente.',
             },
         ],
@@ -168,7 +168,7 @@ export const manualSections: ManualSection[] = [
                 id: 'dashboard-intro',
                 title: '¿Qué es el Dashboard?',
                 content:
-                    'El Dashboard es la primera pantalla que verás al iniciar sesión como Administrador o Empleado. Desde aquí puedes tener una visión general y rápida del estado actual de los pedidos en el sistema.',
+                    'El Dashboard es la primera pantalla que verás al iniciar sesión como Administrador o con una cuenta tipo Sucursal. Desde aquí puedes tener una visión general y rápida del estado actual de los pedidos en el sistema.',
                 tip: 'Los usuarios con rol Pastelero son redirigidos automáticamente a la sección de Pedidos y no tienen acceso a esta pantalla.',
             },
             {
@@ -241,7 +241,7 @@ export const manualSections: ManualSection[] = [
                     'Paso 4 — Pago: elige la forma de pago (Efectivo, Tarjeta o Transferencia) y el modo (Pago completo o Anticipo). Si eliges Transferencia, ingresa también la cuenta o referencia. Haz clic en "Registrar pedido".',
                 ],
                 warning: 'El sistema solo permite registrar pedidos con hora entre las 8:00 AM y las 7:59 PM. La fecha mínima de entrega es el día siguiente al actual.',
-                tip: 'La cuenta/referencia de transferencia es un dato protegido: una vez guardado no se vuelve a mostrar en el panel (ni en el detalle del pedido ni al editarlo), solo aparece impreso en el PDF del pedido. Si editas un pedido con pago por transferencia y dejas ese campo en blanco, se conserva el valor ya guardado; si escribes uno nuevo, lo reemplaza. Si además inicias sesión con una cuenta de Empleado compartida por la sucursal, el sistema te pedirá tu PIN personal antes de guardar el pedido — ver "Identificación con PIN de empleado" más abajo.',
+                tip: 'La cuenta/referencia de transferencia es un dato protegido: una vez guardado no se vuelve a mostrar en el panel (ni en el detalle del pedido ni al editarlo), solo aparece impreso en el PDF del pedido. Si editas un pedido con pago por transferencia y dejas ese campo en blanco, se conserva el valor ya guardado; si escribes uno nuevo, lo reemplaza. Si además inicias sesión con una cuenta tipo Sucursal compartida por el mostrador, el sistema te pedirá tu PIN personal antes de guardar el pedido — ver "Identificación con PIN de empleado" más abajo.',
             },
             {
                 id: 'pisos-pastel',
@@ -273,14 +273,14 @@ export const manualSections: ManualSection[] = [
                 id: 'pin-empleado',
                 title: '3.2.3 Identificación con PIN de empleado',
                 content:
-                    'Si tu sucursal usa una cuenta de "Empleado" compartida entre varias personas del mostrador, el sistema necesita saber quién realizó cada acción de forma individual. Para eso existe el PIN de empleado (ver también la sección "Empleados de sucursal").',
+                    'Si tu sucursal usa una cuenta tipo "Sucursal" compartida entre varias personas del mostrador, el sistema necesita saber quién realizó cada acción de forma individual. Para eso existe el PIN de empleado (ver también la sección "Empleados de sucursal").',
                 steps: [
-                    'Al crear, editar, entregar o cancelar un pedido con una cuenta de Empleado, aparecerá el modal "Identifícate".',
+                    'Al crear, editar, entregar o cancelar un pedido con una cuenta tipo Sucursal, aparecerá el modal "Identifícate".',
                     'Ingresa tu PIN personal de 4 a 6 dígitos (asignado por el administrador al registrarte como empleado de la sucursal).',
                     'Si el PIN es correcto, la acción continúa y queda registrada con tu nombre como autor.',
                     'El PIN es de un solo uso por sesión de acción: puede volver a pedirse pasado un tiempo o al realizar una acción distinta.',
                 ],
-                warning: 'Los usuarios con cuenta individual (Administrador, Superadministrador o Pastelero) no necesitan PIN — esta identificación solo aplica a cuentas de Empleado compartidas por sucursal.',
+                warning: 'Los usuarios con cuenta individual (Administrador, Superadministrador o Pastelero) no necesitan PIN — esta identificación solo aplica a cuentas tipo Sucursal compartidas por el mostrador.',
             },
             {
                 id: 'canal-origen',
@@ -627,7 +627,7 @@ export const manualSections: ManualSection[] = [
                     ['Rol', 'Sí', 'Tipo de usuario'],
                 ],
                 steps: [
-                    'Para Empleado: selecciona la única sucursal a la que pertenece.',
+                    'Para Sucursal: selecciona la única sucursal a la que pertenece (cuenta compartida por el mostrador).',
                     'Para Pastelero: puedes asignar varias sucursales (selección múltiple), su área y especialidad.',
                 ],
             },
@@ -646,7 +646,7 @@ export const manualSections: ManualSection[] = [
                 tableRows: [
                     ['SUPER', 'Todo el sistema'],
                     ['ADMIN', 'Todo el sistema'],
-                    ['EMPLOYEE', 'Pedidos y Clientes'],
+                    ['EMPLOYEE (Sucursal)', 'Pedidos y Clientes'],
                     ['BAKER', 'Solo sus pedidos asignados (tablero de producción)'],
                 ],
             },
@@ -660,15 +660,15 @@ export const manualSections: ManualSection[] = [
         id: 'empleados-sucursal',
         title: 'Empleados de sucursal y PIN',
         icon: '🪪',
-        description: 'Registra a las personas que operan una cuenta de Empleado compartida, para identificar individualmente quién realiza cada acción sobre un pedido.',
+        description: 'Registra a las personas que operan una cuenta tipo Sucursal compartida, para identificar individualmente quién realiza cada acción sobre un pedido.',
         roleAccess: ['SUPER', 'ADMIN'],
         subsections: [
             {
                 id: 'que-es-empleado-sucursal',
                 title: '9.1 ¿Qué es un empleado de sucursal?',
                 content:
-                    'Es distinto de un "Usuario" del sistema (sección Usuarios). Un empleado de sucursal no tiene usuario ni contraseña propios para iniciar sesión: es simplemente un nombre + apellido + PIN, vinculado a una sucursal, que sirve para identificar a la persona real detrás de una cuenta de Empleado compartida por el mostrador. Se gestiona desde "Empleados" en el menú lateral.',
-                tip: 'Si cada persona de tu equipo ya tiene su propio Usuario individual (por ejemplo, Administradores, Superadministradores o Pasteleros), no necesitas registrarla también como empleado de sucursal — el PIN solo aplica a sesiones con rol Empleado.',
+                    'Es distinto de un "Usuario" del sistema (sección Usuarios). Un empleado de sucursal no tiene usuario ni contraseña propios para iniciar sesión: es simplemente un nombre + apellido + PIN, vinculado a una sucursal, que sirve para identificar a la persona real detrás de una cuenta tipo Sucursal compartida por el mostrador. Se gestiona desde "Empleados" en el menú lateral.',
+                tip: 'Si cada persona de tu equipo ya tiene su propio Usuario individual (por ejemplo, Administradores, Superadministradores o Pasteleros), no necesitas registrarla también como empleado de sucursal — el PIN solo aplica a sesiones con una cuenta tipo Sucursal.',
             },
             {
                 id: 'crear-empleado-sucursal',
@@ -732,7 +732,7 @@ export const manualSections: ManualSection[] = [
                     ['Cubierta', 'Tipo de decoración exterior de un pastel'],
                     ['Manga', 'Estilo de borde decorativo con manga pastelera'],
                     ['Sucursal', 'Punto físico de venta o producción de la pastelería'],
-                    ['Empleado de sucursal', 'Persona identificada por nombre + PIN dentro de una cuenta de Empleado compartida, distinta de un Usuario del sistema'],
+                    ['Empleado de sucursal', 'Persona identificada por nombre + PIN dentro de una cuenta tipo Sucursal compartida, distinta de un Usuario del sistema'],
                     ['PIN de empleado', 'Código de 4 a 6 dígitos que identifica individualmente a un empleado de sucursal al crear, editar, entregar o cancelar un pedido'],
                     ['Descuento autorizado', 'Porcentaje de descuento aplicado a una línea de producto, válido solo tras confirmarse con usuario y contraseña de un Admin o Super'],
                     ['Canal de origen', 'Por dónde se tomó el pedido (WhatsApp, Instagram, Facebook, llamada telefónica o en persona); se captura para futuros reportes de ventas por canal'],
@@ -751,8 +751,8 @@ export const manualSections: ManualSection[] = [
                     ['Creado', 'Verde', 'Registrado, ninguna línea ha iniciado producción', 'Automático al crear el pedido'],
                     ['En proceso', 'Amarillo', 'Al menos una línea de producto ya inició producción', 'Automático en cuanto un pastelero inicia una línea'],
                     ['Finalizado', 'Azul', 'Todas las líneas de producto están listas', 'Automático cuando la última línea queda lista'],
-                    ['Entregado', 'Naranja', 'Fue entregado al cliente', 'Admin / Empleado, manualmente'],
-                    ['Cancelado', 'Rojo', 'Cancelado; requiere motivo', 'Admin / Empleado, manualmente'],
+                    ['Entregado', 'Naranja', 'Fue entregado al cliente', 'Admin / Sucursal, manualmente'],
+                    ['Cancelado', 'Rojo', 'Cancelado; requiere motivo', 'Admin / Sucursal, manualmente'],
                 ],
                 tip: 'Un pedido puede ser cancelado desde cualquier estado antes de ser entregado. Administrador y Superadministrador conservan una opción para forzar manualmente el estado completo del pedido en casos excepcionales.',
             },
@@ -772,8 +772,8 @@ export const manualSections: ManualSection[] = [
                     '¿Puedo eliminar una sucursal, producto o usuario? El sistema no elimina registros permanentemente. Solo puedes desactivarlos, lo que los oculta sin borrar su historial.',
                     '¿Puedo buscar un cliente con solo los últimos 4 dígitos de su teléfono? Sí. Cambia el selector junto al buscador a "Últimos 4" e ingresa exactamente 4 dígitos.',
                     '¿Todos los productos de un pedido los prepara el mismo pastelero? No necesariamente. Cada línea de producto se asigna por separado; un pedido puede tener productos preparados por distintos reposteros.',
-                    '¿Por qué me piden un PIN al crear/editar un pedido? Porque iniciaste sesión con una cuenta de Empleado compartida por tu sucursal; el PIN identifica cuál de las personas que usan esa cuenta realizó la acción. Las cuentas individuales (Admin, Super, Pastelero) no lo requieren.',
-                    '¿Cualquiera puede aplicar un descuento a un producto? No. Se requiere ingresar usuario y contraseña de un Admin o Super para autorizarlo, aunque quien esté armando el pedido sea un Empleado.',
+                    '¿Por qué me piden un PIN al crear/editar un pedido? Porque iniciaste sesión con una cuenta tipo Sucursal compartida por el mostrador; el PIN identifica cuál de las personas que usan esa cuenta realizó la acción. Las cuentas individuales (Admin, Super, Pastelero) no lo requieren.',
+                    '¿Cualquiera puede aplicar un descuento a un producto? No. Se requiere ingresar usuario y contraseña de un Admin o Super para autorizarlo, aunque quien esté armando el pedido use una cuenta tipo Sucursal.',
                     '¿Puedo armar un pastel de varios pisos? Sí, activa "¿Pastel de varios pisos?" al configurar el producto en el Paso 3 del pedido y agrega los pisos que necesites (mínimo 2).',
                 ],
             },
@@ -819,7 +819,7 @@ export const adminChecklist: ChecklistItem[] = [
     {
         id: 'empleados-sucursal',
         label: 'Empleados de sucursal registrados (si aplica)',
-        description: 'Si tu equipo usa cuentas de Empleado compartidas, cada persona tiene su registro con PIN individual.',
+        description: 'Si tu equipo usa cuentas tipo Sucursal compartidas, cada persona tiene su registro con PIN individual.',
         section: 'empleados-sucursal',
     },
     {
@@ -877,7 +877,7 @@ export const roleCards: RoleCard[] = [
     },
     {
         role: 'EMPLOYEE',
-        name: 'Empleado',
+        name: 'Sucursal',
         color: '#0d6efd',
         bgColor: '#e7f1ff',
         icon: '💼',

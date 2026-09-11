@@ -94,12 +94,16 @@ export const UBICACION_OPTIONS = [
     { value: "SIDE", label: "Lado" },
 ];
 
+// Los valores deben coincidir exactamente con el enum PipingLocation del
+// backend (src/common/enums/piping-location.enum.ts); un valor que no
+// coincida hace que el backend rechace el pedido en el paso de creación.
 export const MANGA_OPTIONS = [
     { value: "NONE", label: "Ninguna" },
-    { value: "TOP", label: "Arriba" },
-    { value: "BOTTOM", label: "Abajo" },
-    { value: "BOTH_BORDERS", label: "Ambos bordes" },
-    { value: "FULL", label: "Completa" },
+    { value: "TOP_BORDER", label: "Borde superior" },
+    { value: "BOTTOM_BORDER", label: "Borde inferior" },
+    { value: "FULL_BORDER", label: "Borde completo" },
+    { value: "CENTER", label: "Centro" },
+    { value: "FULL_DESING", label: "Diseño completo" },
 ];
 
 export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; value: string }[]>) {
