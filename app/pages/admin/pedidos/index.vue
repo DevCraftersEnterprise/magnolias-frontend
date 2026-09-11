@@ -1266,13 +1266,13 @@ function onOrderPaymentUpdated(payload: {
                   <div
                     v-for="card in pendingLines"
                     :key="card.orderDetail.id"
-                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    role="button"
-                    tabindex="0"
+                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden hover:ring-black/[0.14] hover:shadow-sm transition"
+                  >
+                  <button
+                    type="button"
+                    class="block w-full text-left cursor-pointer"
                     aria-label="Ver detalle del pedido"
                     @click="goToLineDetail(card)"
-                    @keydown.enter="goToLineDetail(card)"
-                    @keydown.space.prevent="goToLineDetail(card)"
                   >
                     <div class="h-1 bg-amber-400"></div>
                     <div
@@ -1353,9 +1353,9 @@ function onOrderPaymentUpdated(payload: {
                         Saldo pendiente
                       </div>
                     </div>
+                  </button>
                     <div
                       class="border-t border-black/[0.06] px-3 py-2.5"
-                      @click.stop
                     >
                       <button
                         class="w-full rounded-lg bg-amber-50 py-1.5 text-[12px] font-semibold text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
@@ -1399,13 +1399,13 @@ function onOrderPaymentUpdated(payload: {
                   <div
                     v-for="card in inProcessLines"
                     :key="card.orderDetail.id"
-                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    role="button"
-                    tabindex="0"
+                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden hover:ring-black/[0.14] hover:shadow-sm transition"
+                  >
+                  <button
+                    type="button"
+                    class="block w-full text-left cursor-pointer"
                     aria-label="Ver detalle del pedido"
                     @click="goToLineDetail(card)"
-                    @keydown.enter="goToLineDetail(card)"
-                    @keydown.space.prevent="goToLineDetail(card)"
                   >
                     <div class="h-1 bg-violet-400"></div>
                     <div
@@ -1486,9 +1486,9 @@ function onOrderPaymentUpdated(payload: {
                         Saldo pendiente
                       </div>
                     </div>
+                  </button>
                     <div
                       class="border-t border-black/[0.06] px-3 py-2.5"
-                      @click.stop
                     >
                       <button
                         class="w-full rounded-lg bg-violet-50 py-1.5 text-[12px] font-semibold text-violet-700 hover:bg-violet-100 transition disabled:opacity-40"
@@ -1529,16 +1529,13 @@ function onOrderPaymentUpdated(payload: {
                   >
                 </div>
                 <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
-                  <div
+                  <button
                     v-for="card in doneLines"
                     :key="card.orderDetail.id"
-                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    role="button"
-                    tabindex="0"
+                    type="button"
+                    class="block w-full text-left bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
                     aria-label="Ver detalle del pedido"
                     @click="goToLineDetail(card)"
-                    @keydown.enter="goToLineDetail(card)"
-                    @keydown.space.prevent="goToLineDetail(card)"
                   >
                     <div class="h-1 bg-emerald-400"></div>
                     <div
@@ -1613,7 +1610,7 @@ function onOrderPaymentUpdated(payload: {
                         Listo para entregar
                       </div>
                     </div>
-                  </div>
+                  </button>
                   <div
                     v-if="doneLines.length === 0"
                     class="py-10 text-center text-[12px] text-gray-400"

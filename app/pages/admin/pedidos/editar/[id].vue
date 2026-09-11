@@ -1993,15 +1993,15 @@ function next() {
             <div
               v-if="refModal.open"
               class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
-              role="button"
-              tabindex="0"
-              aria-label="Cerrar"
-              @click.self="refModal.open = false"
-              @keydown.enter="refModal.open = false"
-              @keydown.space.prevent="refModal.open = false"
             >
+              <button
+                type="button"
+                class="absolute inset-0 cursor-default"
+                aria-label="Cerrar"
+                @click="refModal.open = false"
+              />
               <div
-                class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
               >
                 <div
                   class="px-5 py-4 border-b border-black/8 flex items-center justify-between"
@@ -2442,13 +2442,13 @@ function next() {
             <div
               v-if="detailModal.open"
               class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-              role="button"
-              tabindex="0"
-              aria-label="Cerrar"
-              @click.self="closeDetailModal"
-              @keydown.enter="closeDetailModal"
-              @keydown.space.prevent="closeDetailModal"
             >
+              <button
+                type="button"
+                class="absolute inset-0 cursor-default"
+                aria-label="Cerrar"
+                @click="closeDetailModal"
+              />
               <div
                 v-if="detailRow"
                 class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden"
