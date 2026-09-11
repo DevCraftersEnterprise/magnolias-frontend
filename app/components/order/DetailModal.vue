@@ -129,6 +129,38 @@ const activeUpdatedBy = computed(
   () => activeData.value?.updatedBy ?? props.order?.updatedBy,
 );
 
+// createdBy/updatedBy solo identifican la cuenta compartida de sucursal
+// (p.ej. "Sucursal Morelos"), no a la persona real detrás del PIN. Cuando el
+// pedido se creó/editó con una de esas cuentas, se prefiere el nombre de la
+// persona identificada en employeeActions.
+const employeeActions = computed(() => activeData.value?.employeeActions ?? []);
+
+function employeeActionName(type: "CREATED" | "NOT_CREATED") {
+  const match =
+    type === "CREATED"
+      ? employeeActions.value.find((a) => a.action === "CREATED")
+      : employeeActions.value.find((a) => a.action !== "CREATED");
+  return match ? `${match.employee.name} ${match.employee.lastname}` : null;
+}
+
+const createdByName = computed(() => {
+  const employeeName = employeeActionName("CREATED");
+  if (employeeName) return employeeName;
+  const u = activeCreatedBy.value;
+  return u ? `${u.name} ${u.lastname}` : null;
+});
+
+const updatedByName = computed(() => {
+  // employeeActions viene ordenado por performedAt DESC: si la acción más
+  // reciente no es CREATED, es la que corresponde a esta última edición.
+  const latest = employeeActions.value[0];
+  if (latest && latest.action !== "CREATED") {
+    return `${latest.employee.name} ${latest.employee.lastname}`;
+  }
+  const u = activeUpdatedBy.value;
+  return u ? `${u.name} ${u.lastname}` : null;
+});
+
 const buildDeliveryAddress = computed(() => {
   const a = activeDeliveryAddress.value;
   if (!a) return "";
@@ -1013,11 +1045,11 @@ async function downloadFormat() {
 
               <!-- ─ Auditoría ─ -->
               <div
-                v-if="activeCreatedBy || activeUpdatedBy"
+                v-if="createdByName || updatedByName"
                 class="rounded-xl bg-[#FAFAFA] border border-black/5 px-4 py-3 space-y-1.5"
               >
                 <div
-                  v-if="activeCreatedBy"
+                  v-if="createdByName"
                   class="flex items-center gap-1.5 text-[11px] text-gray-400"
                 >
                   <svg
@@ -1031,14 +1063,13 @@ async function downloadFormat() {
                     <path d="M12 6v6l4 2" />
                   </svg>
                   Creado por
-                  <span class="font-semibold text-gray-500"
-                    >{{ activeCreatedBy.name }}
-                    {{ activeCreatedBy.lastname }}</span
-                  >
+                  <span class="font-semibold text-gray-500">{{
+                    createdByName
+                  }}</span>
                   · {{ formatDateTime(order.createdAt) }}
                 </div>
                 <div
-                  v-if="activeUpdatedBy && order.updatedAt !== order.createdAt"
+                  v-if="updatedByName && order.updatedAt !== order.createdAt"
                   class="flex items-center gap-1.5 text-[11px] text-gray-400"
                 >
                   <svg
@@ -1056,10 +1087,9 @@ async function downloadFormat() {
                     />
                   </svg>
                   Actualizado por
-                  <span class="font-semibold text-gray-500"
-                    >{{ activeUpdatedBy.name }}
-                    {{ activeUpdatedBy.lastname }}</span
-                  >
+                  <span class="font-semibold text-gray-500">{{
+                    updatedByName
+                  }}</span>
                   · {{ formatDateTime(order.updatedAt) }}
                 </div>
               </div>

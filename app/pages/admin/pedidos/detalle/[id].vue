@@ -364,7 +364,63 @@ function roundLabel(r?: string | null) {
                     >
                   </div>
 
-                  <!-- Atributos: ficha técnica -->
+                  <!-- Pisos (pastel de varios pisos) -->
+                  <div
+                    v-if="detail.tiers && detail.tiers.length > 0"
+                    class="divide-y divide-black/[0.06] border-b border-black/[0.06]"
+                  >
+                    <div
+                      v-for="tier in detail.tiers"
+                      :key="tier.id ?? tier.position"
+                      class="px-6 py-4"
+                    >
+                      <p
+                        class="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2"
+                      >
+                        Piso {{ tier.position }}
+                      </p>
+                      <dl class="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                        <div v-if="tier.productSize || tier.customSize">
+                          <dt class="text-[10px] text-gray-400">Tamaño</dt>
+                          <dd class="text-[13px] font-bold text-[#111827]">
+                            {{
+                              tier.productSize?.toUpperCase() === "CUSTOM"
+                                ? tier.customSize?.toUpperCase()
+                                : (tier.productSize ?? tier.customSize)
+                            }}
+                          </dd>
+                        </div>
+                        <div v-if="tier.filling">
+                          <dt class="text-[10px] text-gray-400">Relleno</dt>
+                          <dd class="text-[13px] font-bold text-[#111827]">
+                            {{ tier.filling.name }}
+                          </dd>
+                        </div>
+                        <div v-if="tier.frosting">
+                          <dt class="text-[10px] text-gray-400">Betún</dt>
+                          <dd class="text-[13px] font-bold text-[#111827]">
+                            {{ tier.frosting.name }}
+                          </dd>
+                        </div>
+                        <div v-if="tier.breadType">
+                          <dt class="text-[10px] text-gray-400">
+                            Tipo de pan
+                          </dt>
+                          <dd class="text-[13px] font-bold text-[#111827]">
+                            {{ tier.breadType.name }}
+                          </dd>
+                        </div>
+                        <div v-if="tier.color">
+                          <dt class="text-[10px] text-gray-400">Color</dt>
+                          <dd class="text-[13px] font-bold text-[#111827]">
+                            {{ tier.color.name }}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+
+                  <!-- Atributos: ficha técnica (pastel de un solo tamaño) -->
                   <dl class="divide-y divide-black/[0.06]">
                     <div
                       v-if="detail.productSize || detail.customSize"
@@ -520,7 +576,7 @@ function roundLabel(r?: string | null) {
                         >
                           <span class="font-semibold">Piping</span>
                           <span class="opacity-40">·</span>
-                          {{ detail.pipingLocation }}
+                          {{ locationLabel(detail.pipingLocation) }}
                         </span>
                       </div>
                     </div>
