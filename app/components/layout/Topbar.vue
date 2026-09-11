@@ -1,10 +1,19 @@
 <script setup lang="ts">
+import { usersService } from "~/services/users.service";
+import type { UserItem } from "~/types/user.types";
+
 defineProps<{ title: string }>();
 defineEmits<{ (e: "toggle"): void; (e: "logout"): void }>();
 const { user, loading } = useAuthUser();
 const { branches, selectedBranch, bakerBranches } = useBranch();
-const { viewAsBaker, canToggleViewAs, effectiveRole, enterViewAsBaker, exitViewAs } =
-  useViewAs();
+const {
+  viewAsBaker,
+  viewAsBakerId,
+  canToggleViewAs,
+  effectiveRole,
+  enterViewAsBaker,
+  exitViewAs,
+} = useViewAs();
 
 const username = computed(() => user.value?.username ?? "...");
 const role = computed(() => user.value?.role ?? "");
@@ -12,6 +21,32 @@ const isBaker = computed(() => effectiveRole.value === "BAKER");
 const canSeeBranchSelect = computed(() =>
   ["ADMIN", "SUPER"].includes(effectiveRole.value),
 );
+
+// Un ADMIN/SUPER no es un pastelero real: para que el kanban de "Ver como
+// pastelero" muestre algo, hay que elegir a cuál pastelero previsualizar.
+const previewBakers = ref<UserItem[]>([]);
+const previewBakersLoading = ref(false);
+
+async function loadPreviewBakers() {
+  if (!selectedBranch.value?.id) {
+    previewBakers.value = [];
+    return;
+  }
+  previewBakersLoading.value = true;
+  try {
+    previewBakers.value = await usersService.getBakersByBranch(
+      selectedBranch.value.id,
+    );
+  } catch {
+    previewBakers.value = [];
+  } finally {
+    previewBakersLoading.value = false;
+  }
+}
+
+watch([viewAsBaker, selectedBranch], () => {
+  if (viewAsBaker.value) loadPreviewBakers();
+});
 
 function onToggleViewAs(e: Event) {
   const checked = (e.target as HTMLInputElement).checked;
@@ -77,8 +112,27 @@ const initials = computed(() => {
         class="flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-xl py-[6px] pl-3 pr-[6px]"
       >
         <span class="text-[12px] font-semibold text-amber-700 whitespace-nowrap"
-          >Viendo como: PASTELERO</span
+          >Viendo como:</span
         >
+        <select
+          v-model="viewAsBakerId"
+          aria-label="Selecciona un pastelero para previsualizar"
+          class="bg-white border border-amber-300 rounded-lg text-[12px] font-semibold text-amber-800 py-[3px] pl-2 pr-6 outline-none max-w-[160px]"
+          :disabled="previewBakersLoading"
+        >
+          <option value="" disabled>
+            {{
+              previewBakersLoading
+                ? "Cargando…"
+                : previewBakers.length
+                  ? "Selecciona un pastelero"
+                  : "Sin reposteros en esta sucursal"
+            }}
+          </option>
+          <option v-for="b in previewBakers" :key="b.id" :value="b.id">
+            {{ b.name }} {{ b.lastname }}
+          </option>
+        </select>
         <button
           type="button"
           class="text-[11px] font-semibold text-amber-700 underline hover:text-amber-900"

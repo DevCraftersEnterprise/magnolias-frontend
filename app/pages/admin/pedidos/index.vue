@@ -13,10 +13,18 @@ import { useToast } from "vue-toastification";
 
 const { user } = useAuthUser();
 const { selectedBranch } = useBranch();
-const { effectiveRole } = useViewAs();
+const { effectiveRole, canToggleViewAs, viewAsBakerId } = useViewAs();
 
 const isBaker = computed(() => effectiveRole.value === "BAKER");
 const toast = useToast();
+
+// Un ADMIN/SUPER que "ve como pastelero" no es un pastelero real: el kanban
+// debe consultarse con el id del pastelero elegido en el Topbar (viewAsBakerId),
+// no con el id de la sesión actual (que siempre sería el del admin y nunca
+// tendría asignaciones propias).
+const kanbanBakerId = computed(() =>
+  canToggleViewAs.value ? viewAsBakerId.value : (user.value?.id ?? ""),
+);
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function typeColor(o: { isEvento?: boolean; isEnTienda?: boolean }) {
@@ -311,14 +319,16 @@ const doneLines = computed(() =>
 
 async function loadKanbanOrders() {
   if (!isBaker.value) return;
-  if (!user.value?.id) {
+  if (!kanbanBakerId.value) {
     kanbanAssignments.value = [];
     kanbanLoading.value = false;
     return;
   }
   kanbanLoading.value = true;
   try {
-    const data = await ordersService.getBakerDetailAssignments(user.value.id);
+    const data = await ordersService.getBakerDetailAssignments(
+      kanbanBakerId.value,
+    );
     kanbanAssignments.value = (data ?? []).filter(
       (c) =>
         c.orderDetail.order.status !== "DELIVERED" &&
@@ -381,7 +391,7 @@ async function confirmAdvanceStatus() {
 // estando ya en /admin/pedidos), por eso se observa de forma reactiva en vez
 // de solo cargar datos en onMounted.
 watch(
-  isBaker,
+  [isBaker, kanbanBakerId],
   () => {
     if (isBaker.value) loadKanbanOrders();
     else loadOrders(true);
@@ -449,6 +459,31 @@ function onOrderPaymentUpdated(payload: {
                   @click="navigateTo('/admin/pedidos/crear')"
                 >
                   <span class="text-[18px] leading-none">+</span>
+                </button>
+                <button
+                  type="button"
+                  class="grid h-9 w-9 place-items-center rounded-xl bg-white ring-1 ring-black/10 text-[#111827] hover:bg-black/5 transition disabled:opacity-40"
+                  title="Actualizar"
+                  aria-label="Actualizar lista de pedidos"
+                  :disabled="loading"
+                  @click="loadOrders(false)"
+                >
+                  <svg
+                    class="h-4 w-4"
+                    :class="{ 'animate-spin': loading }"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M23 4v6h-6" />
+                    <path d="M1 20v-6h6" />
+                    <path
+                      d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                    />
+                  </svg>
                 </button>
               </div>
 
@@ -1180,8 +1215,17 @@ function onOrderPaymentUpdated(payload: {
               </Transition>
             </div>
 
+            <!-- ADMIN/SUPER en "ver como pastelero" sin elegir a quién previsualizar -->
+            <div
+              v-if="canToggleViewAs && !kanbanBakerId"
+              class="py-16 text-center text-[13px] text-gray-500"
+            >
+              Selecciona un pastelero en el aviso "Viendo como" (arriba) para
+              previsualizar su tablero.
+            </div>
+
             <!-- Loading -->
-            <div v-if="kanbanLoading" class="py-16 flex justify-center">
+            <div v-else-if="kanbanLoading" class="py-16 flex justify-center">
               <div
                 class="h-6 w-6 animate-spin rounded-full border-2 border-black/10 border-t-[#C9007C]"
               ></div>

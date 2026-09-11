@@ -72,7 +72,7 @@ function onUserCreated(_user: UserItem) {
 const roleLabels: Record<string, string> = {
   SUPER: "Super",
   ADMIN: "Admin",
-  EMPLOYEE: "Empleado",
+  EMPLOYEE: "Sucursal",
   BAKER: "Pastelero",
 };
 
@@ -122,7 +122,7 @@ function roleBadge(r: string) {
                 >
                   <option value="">Todos los roles</option>
                   <option value="ADMIN">Admin</option>
-                  <option value="EMPLOYEE">Empleado</option>
+                  <option value="EMPLOYEE">Sucursal</option>
                   <option value="BAKER">Pastelero</option>
                 </select>
                 <svg

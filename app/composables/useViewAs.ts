@@ -6,6 +6,11 @@
 export const useViewAs = () => {
     const { user } = useAuthUser()
     const viewAsBaker = useState<boolean>('view_as_baker', () => false)
+    // A qué pastelero se está previsualizando: un ADMIN/SUPER no es un
+    // pastelero real, así que las peticiones que necesitan un bakerId (p.ej.
+    // el kanban de línea asignadas) deben usar este id en vez del id del
+    // usuario autenticado.
+    const viewAsBakerId = useState<string>('view_as_baker_id', () => '')
 
     const canToggleViewAs = computed(
         () => user.value?.role === 'ADMIN' || user.value?.role === 'SUPER',
@@ -23,7 +28,15 @@ export const useViewAs = () => {
 
     function exitViewAs() {
         viewAsBaker.value = false
+        viewAsBakerId.value = ''
     }
 
-    return { viewAsBaker, canToggleViewAs, effectiveRole, enterViewAsBaker, exitViewAs }
+    return {
+        viewAsBaker,
+        viewAsBakerId,
+        canToggleViewAs,
+        effectiveRole,
+        enterViewAsBaker,
+        exitViewAs,
+    }
 }
