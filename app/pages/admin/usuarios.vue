@@ -240,16 +240,13 @@ function roleBadge(r: string) {
 
             <!-- Cards móvil -->
             <div class="sm:hidden space-y-3">
-              <div
+              <button
                 v-for="u in users"
                 :key="u.id"
-                class="rounded-2xl bg-white ring-1 ring-black/10 p-4 cursor-pointer active:bg-black/5 transition"
-                role="button"
-                tabindex="0"
+                type="button"
+                class="block w-full text-left rounded-2xl bg-white ring-1 ring-black/10 p-4 cursor-pointer active:bg-black/5 transition"
                 :aria-label="`Editar usuario ${u.name} ${u.lastname}`"
                 @click="editingUser = u"
-                @keydown.enter="editingUser = u"
-                @keydown.space.prevent="editingUser = u"
               >
                 <div class="flex items-start justify-between gap-2">
                   <div>
@@ -278,7 +275,7 @@ function roleBadge(r: string) {
                     <AdminStatusBadge :is-active="u.isActive" />
                   </div>
                 </div>
-              </div>
+              </button>
               <div
                 v-if="users.length === 0"
                 class="rounded-2xl bg-white ring-1 ring-black/10 p-6 text-center text-[13px] text-gray-500"

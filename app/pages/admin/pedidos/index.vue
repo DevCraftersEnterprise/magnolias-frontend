@@ -1653,14 +1653,11 @@ function onOrderPaymentUpdated(payload: {
         class="fixed inset-0 z-[110] flex items-center justify-center px-4"
       >
         <!-- Backdrop -->
-        <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          role="button"
-          tabindex="0"
+        <button
+          type="button"
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
           aria-label="Cerrar"
           @click="kanbanConfirmTarget = null"
-          @keydown.enter="kanbanConfirmTarget = null"
-          @keydown.space.prevent="kanbanConfirmTarget = null"
         />
 
         <!-- Panel -->
@@ -1770,14 +1767,11 @@ function onOrderPaymentUpdated(payload: {
         v-if="deliverConfirm"
         class="fixed inset-0 z-[110] flex items-center justify-center px-4"
       >
-        <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          role="button"
-          tabindex="0"
+        <button
+          type="button"
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
           aria-label="Cerrar"
           @click="deliverConfirm = false"
-          @keydown.enter="deliverConfirm = false"
-          @keydown.space.prevent="deliverConfirm = false"
         />
         <div
           class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden"
@@ -1858,14 +1852,11 @@ function onOrderPaymentUpdated(payload: {
         v-if="cancelConfirm"
         class="fixed inset-0 z-[110] flex items-center justify-center px-4"
       >
-        <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          role="button"
-          tabindex="0"
+        <button
+          type="button"
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
           aria-label="Cerrar"
           @click="cancelConfirm = false"
-          @keydown.enter="cancelConfirm = false"
-          @keydown.space.prevent="cancelConfirm = false"
         />
         <div
           class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden"

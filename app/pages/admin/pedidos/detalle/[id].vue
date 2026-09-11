@@ -312,16 +312,13 @@ function roundLabel(r?: string | null) {
                     class="grid gap-1"
                     :class="detail.referenceImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'"
                   >
-                    <div
+                    <button
                       v-for="img in detail.referenceImages"
                       :key="img.id"
-                      class="relative cursor-zoom-in group"
-                      role="button"
-                      tabindex="0"
-                      :aria-label="`Ver imagen de referencia en tamaño completo`"
+                      type="button"
+                      class="relative block w-full cursor-zoom-in group"
+                      aria-label="Ver imagen de referencia en tamaño completo"
                       @click="openLightbox(img.imageUrl)"
-                      @keydown.enter="openLightbox(img.imageUrl)"
-                      @keydown.space.prevent="openLightbox(img.imageUrl)"
                     >
                       <img
                         :src="img.imageUrl"
@@ -343,7 +340,7 @@ function roundLabel(r?: string | null) {
                         </svg>
                         Ver foto
                       </span>
-                    </div>
+                    </button>
                   </div>
 
                   <!-- Nombre + cantidad -->
@@ -890,34 +887,32 @@ function roundLabel(r?: string | null) {
         @mouseleave="onMouseup"
       >
         <!-- Cerrar al clickar fondo (solo si no hubo drag) -->
-        <div
-          class="absolute inset-0"
-          role="button"
-          tabindex="0"
+        <button
+          type="button"
+          class="absolute inset-0 cursor-default"
           aria-label="Cerrar imagen ampliada"
           @click.self="closeLightbox"
-          @keydown.enter="closeLightbox"
-          @keydown.space.prevent="closeLightbox"
         />
 
         <!-- Imagen -->
-        <img
-          :src="lightboxSrc"
-          alt="Referencia ampliada"
-          class="relative max-w-[90vw] max-h-[88vh] rounded-xl object-contain select-none shadow-2xl"
-          :style="{
-            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-            cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'zoom-in',
-            transition: dragging ? 'none' : 'transform 0.15s ease',
-          }"
-          draggable="false"
-          role="button"
-          tabindex="0"
+        <button
+          type="button"
+          class="contents"
           aria-label="Alternar zoom de la imagen"
           @click.stop="zoom === 1 ? (zoom = 2) : resetZoom()"
-          @keydown.enter="zoom === 1 ? (zoom = 2) : resetZoom()"
-          @keydown.space.prevent="zoom === 1 ? (zoom = 2) : resetZoom()"
-        />
+        >
+          <img
+            :src="lightboxSrc"
+            alt="Referencia ampliada"
+            class="relative max-w-[90vw] max-h-[88vh] rounded-xl object-contain select-none shadow-2xl"
+            :style="{
+              transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+              cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'zoom-in',
+              transition: dragging ? 'none' : 'transform 0.15s ease',
+            }"
+            draggable="false"
+          />
+        </button>
 
         <!-- Controles -->
         <div
@@ -1015,14 +1010,11 @@ function roundLabel(r?: string | null) {
         class="fixed inset-0 z-50 flex items-center justify-center px-4"
       >
         <!-- Backdrop -->
-        <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          role="button"
-          tabindex="0"
+        <button
+          type="button"
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
           aria-label="Cerrar"
           @click="confirmDetailId = null"
-          @keydown.enter="confirmDetailId = null"
-          @keydown.space.prevent="confirmDetailId = null"
         />
 
         <!-- Panel -->
