@@ -58,7 +58,11 @@ async function mountPage() {
             return () => h(Suspense, null, { default: () => h(DetalleOrderPage) })
         },
     })
-    const wrapper = mount(Wrapper)
+    const wrapper = mount(Wrapper, {
+        // El lightbox usa <Teleport to="body">; se stubea para poder
+        // consultarlo con wrapper.text()/wrapper.find() directamente.
+        global: { stubs: { teleport: true } },
+    })
     await flushPromises()
     await flushPromises()
     return wrapper
@@ -91,10 +95,12 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
                         tiers: [
                             {
                                 position: 1,
-                                productSize: '20P',
+                                productSize: 'CUSTOM',
+                                customSize: '35 personas',
                                 filling: { name: 'Crema pastelera' },
                                 frosting: { name: 'Chocolate' },
                                 color: { name: 'Vainilla' },
+                                breadType: { name: 'Vainilla' },
                             },
                             {
                                 position: 2,
@@ -102,6 +108,7 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
                                 filling: { name: 'Nueces' },
                                 frosting: { name: 'Chocolate' },
                                 color: { name: 'Vainilla' },
+                                breadType: { name: 'Chocolate' },
                             },
                         ],
                     },
@@ -113,8 +120,10 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
 
         expect(wrapper.text()).toContain('Piso 1')
         expect(wrapper.text()).toContain('Piso 2')
+        expect(wrapper.text()).toContain('35 PERSONAS')
         expect(wrapper.text()).toContain('Crema pastelera')
         expect(wrapper.text()).toContain('Nueces')
+        expect(wrapper.text()).toContain('Vainilla')
     })
 
     it('no muestra el desglose de pisos para un producto de un solo tamaño', async () => {
@@ -166,5 +175,32 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
         const wrapper = await mountPage()
 
         expect(wrapper.text()).toContain('No se pudo cargar')
+    })
+
+    it('abre el lightbox al hacer click en una imagen de referencia', async () => {
+        ordersServiceMock.getOrder.mockResolvedValue(
+            baseOrder({
+                details: [
+                    {
+                        id: 'd1',
+                        quantity: 1,
+                        product: { name: 'Personalizado' },
+                        referenceImages: [{ id: 'img-1', imageUrl: 'https://x/img.png' }],
+                    },
+                ],
+            }),
+        )
+
+        const wrapper = await mountPage()
+        await wrapper.find('button.cursor-zoom-in').trigger('click')
+
+        const lightboxImg = wrapper.find('img[alt="Referencia ampliada"]')
+        expect(lightboxImg.exists()).toBe(true)
+
+        // Alterna el zoom haciendo click sobre la imagen ampliada: de 100%
+        // (zoom === 1, valor inicial) pasa a 200%.
+        expect(wrapper.text()).toContain('100%')
+        await lightboxImg.trigger('click')
+        expect(wrapper.text()).toContain('200%')
     })
 })

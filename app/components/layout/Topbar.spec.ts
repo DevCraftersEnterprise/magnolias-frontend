@@ -60,11 +60,15 @@ describe('Topbar', () => {
 
         expect(usersServiceMock.getBakersByBranch).toHaveBeenCalledWith('branch-1')
         expect(wrapper.text()).toContain('Viendo como')
-        const options = wrapper.find('select[aria-label="Selecciona un pastelero para previsualizar"]')
-            .findAll('option')
+        const select = wrapper.find('select[aria-label="Selecciona un pastelero para previsualizar"]')
+        const options = select.findAll('option')
         expect(options.map((o) => o.text())).toEqual(
             expect.arrayContaining(['María García']),
         )
+
+        await select.setValue('b1')
+
+        expect(useViewAs().viewAsBakerId.value).toBe('b1')
     })
 
     it('muestra "Sin reposteros en esta sucursal" si la lista viene vacía', async () => {

@@ -42,7 +42,12 @@ function assignmentCard(overrides: Record<string, unknown> = {}) {
 }
 
 async function mountPage() {
-    const wrapper = mount(PedidosIndexPage)
+    // Los modales de confirmación (entregar/cancelar/avanzar kanban) usan
+    // <Teleport to="body">; se stubea para poder consultarlos con
+    // wrapper.text()/wrapper.find() sin apuntar a document.body.
+    const wrapper = mount(PedidosIndexPage, {
+        global: { stubs: { teleport: true } },
+    })
     await flushPromises()
     return wrapper
 }
@@ -100,6 +105,58 @@ describe('pages/admin/pedidos/index - kanban de pastelero', () => {
 
         expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos/detalle/order-1')
     })
+
+    it('navega al detalle desde una tarjeta en la columna "En proceso"', async () => {
+        useAuthUser().user.value = { id: 'baker-1', username: 'ana', isActive: true, role: 'BAKER' } as any
+        ordersServiceMock.getBakerDetailAssignments.mockResolvedValue([
+            assignmentCard({
+                orderDetail: {
+                    id: 'detail-2',
+                    productionStatus: 'IN_PROCESS',
+                    product: { name: 'Pastel' },
+                    order: {
+                        id: 'order-2',
+                        orderCode: 'PED-0002',
+                        status: 'IN PROCESS',
+                        deliveryDate: new Date(Date.now() + 86400000).toISOString(),
+                    },
+                },
+            }),
+        ])
+
+        const wrapper = await mountPage()
+        const cards = wrapper.findAll('button[aria-label="Ver detalle del pedido"]')
+        expect(cards.length).toBeGreaterThan(0)
+        await cards[0]!.trigger('click')
+
+        expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos/detalle/order-2')
+    })
+
+    it('navega al detalle desde una tarjeta en la columna "Listas"', async () => {
+        useAuthUser().user.value = { id: 'baker-1', username: 'ana', isActive: true, role: 'BAKER' } as any
+        ordersServiceMock.getBakerDetailAssignments.mockResolvedValue([
+            assignmentCard({
+                orderDetail: {
+                    id: 'detail-3',
+                    productionStatus: 'DONE',
+                    product: { name: 'Pastel' },
+                    order: {
+                        id: 'order-3',
+                        orderCode: 'PED-0003',
+                        status: 'DONE',
+                        deliveryDate: new Date(Date.now() + 86400000).toISOString(),
+                    },
+                },
+            }),
+        ])
+
+        const wrapper = await mountPage()
+        const cards = wrapper.findAll('button[aria-label="Ver detalle del pedido"]')
+        expect(cards.length).toBeGreaterThan(0)
+        await cards[0]!.trigger('click')
+
+        expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos/detalle/order-3')
+    })
 })
 
 describe('pages/admin/pedidos/index - tabla y refrescar', () => {
@@ -137,5 +194,78 @@ describe('pages/admin/pedidos/index - tabla y refrescar', () => {
         const wrapper = await mountPage()
 
         expect(wrapper.text()).toContain('Selecciona una sucursal')
+    })
+})
+
+describe('pages/admin/pedidos/index - entregar y cancelar (sesión no-empleado)', () => {
+    beforeEach(() => {
+        navigateToMock.mockReset()
+        ordersServiceMock.markDelivered.mockReset().mockResolvedValue({})
+        ordersServiceMock.cancelOrder.mockReset().mockResolvedValue(undefined)
+        useAuthUser().user.value = { id: 'admin-1', username: 'admin', isActive: true, role: 'ADMIN' } as any
+        useBranch().selectedBranch.value = { id: 'branch-1', name: 'Morelos' } as any
+        useViewAs().viewAsBaker.value = false
+        useViewAs().viewAsBakerId.value = ''
+    })
+
+    it('marca un pedido como entregado sin pedir PIN (no es una sesión de empleado)', async () => {
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                {
+                    id: 'order-1',
+                    orderCode: 'PED-0001',
+                    status: 'DONE',
+                    remainingBalance: '0',
+                    isEvento: false,
+                    isEnTienda: false,
+                },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        await wrapper.find('button[title="Marcar como entregado"]').trigger('click')
+        const confirmBtn = wrapper
+            .findAll('button')
+            .find((b) => b.text() === 'Confirmar entrega')
+        expect(confirmBtn).toBeTruthy()
+        await confirmBtn!.trigger('click')
+        await flushPromises()
+
+        expect(ordersServiceMock.markDelivered).toHaveBeenCalledWith('order-1', undefined)
+    })
+
+    it('cancela un pedido sin pedir PIN (no es una sesión de empleado)', async () => {
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                {
+                    id: 'order-1',
+                    orderCode: 'PED-0001',
+                    status: 'CREATED',
+                    remainingBalance: '0',
+                    isEvento: false,
+                    isEnTienda: false,
+                },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        await wrapper.find('button[title="Cancelar pedido"]').trigger('click')
+        await wrapper.find('textarea').setValue('Cliente canceló')
+        const confirmBtn = wrapper
+            .findAll('button')
+            .find((b) => b.text() === 'Cancelar pedido' && !b.attributes('title'))
+        expect(confirmBtn).toBeTruthy()
+        await confirmBtn!.trigger('click')
+        await flushPromises()
+
+        expect(ordersServiceMock.cancelOrder).toHaveBeenCalledWith(
+            'order-1',
+            'Cliente canceló',
+            undefined,
+        )
     })
 })
