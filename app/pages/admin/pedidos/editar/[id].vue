@@ -1208,6 +1208,7 @@ function next() {
                       v-if="openColorPicker === colorPickerKey('fl', i)"
                       class="absolute z-20 mt-1 left-0 min-w-[140px] rounded-xl bg-white ring-1 ring-black/10 shadow-xl py-1 max-h-48 overflow-y-auto"
                       @click.stop
+                      @keydown.stop
                     >
                       <button
                         type="button"
