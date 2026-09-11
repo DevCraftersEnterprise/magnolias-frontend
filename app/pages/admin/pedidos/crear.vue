@@ -2112,7 +2112,12 @@ function next() {
           <div
             v-if="refModal.open"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+            role="button"
+            tabindex="0"
+            aria-label="Cerrar"
             @click.self="refModal.open = false"
+            @keydown.enter="refModal.open = false"
+            @keydown.space.prevent="refModal.open = false"
           >
             <div
               class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
@@ -2578,7 +2583,12 @@ function next() {
           <div
             v-if="detailModal.open"
             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            role="button"
+            tabindex="0"
+            aria-label="Cerrar"
             @click.self="closeDetailModal"
+            @keydown.enter="closeDetailModal"
+            @keydown.space.prevent="closeDetailModal"
           >
             <div
               v-if="detailRow"

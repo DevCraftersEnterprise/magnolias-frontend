@@ -316,7 +316,12 @@ function roundLabel(r?: string | null) {
                       v-for="img in detail.referenceImages"
                       :key="img.id"
                       class="relative cursor-zoom-in group"
+                      role="button"
+                      tabindex="0"
+                      :aria-label="`Ver imagen de referencia en tamaño completo`"
                       @click="openLightbox(img.imageUrl)"
+                      @keydown.enter="openLightbox(img.imageUrl)"
+                      @keydown.space.prevent="openLightbox(img.imageUrl)"
                     >
                       <img
                         :src="img.imageUrl"
@@ -885,7 +890,15 @@ function roundLabel(r?: string | null) {
         @mouseleave="onMouseup"
       >
         <!-- Cerrar al clickar fondo (solo si no hubo drag) -->
-        <div class="absolute inset-0" @click.self="closeLightbox" />
+        <div
+          class="absolute inset-0"
+          role="button"
+          tabindex="0"
+          aria-label="Cerrar imagen ampliada"
+          @click.self="closeLightbox"
+          @keydown.enter="closeLightbox"
+          @keydown.space.prevent="closeLightbox"
+        />
 
         <!-- Imagen -->
         <img
@@ -898,7 +911,12 @@ function roundLabel(r?: string | null) {
             transition: dragging ? 'none' : 'transform 0.15s ease',
           }"
           draggable="false"
+          role="button"
+          tabindex="0"
+          aria-label="Alternar zoom de la imagen"
           @click.stop="zoom === 1 ? (zoom = 2) : resetZoom()"
+          @keydown.enter="zoom === 1 ? (zoom = 2) : resetZoom()"
+          @keydown.space.prevent="zoom === 1 ? (zoom = 2) : resetZoom()"
         />
 
         <!-- Controles -->
@@ -999,7 +1017,12 @@ function roundLabel(r?: string | null) {
         <!-- Backdrop -->
         <div
           class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          role="button"
+          tabindex="0"
+          aria-label="Cerrar"
           @click="confirmDetailId = null"
+          @keydown.enter="confirmDetailId = null"
+          @keydown.space.prevent="confirmDetailId = null"
         />
 
         <!-- Panel -->

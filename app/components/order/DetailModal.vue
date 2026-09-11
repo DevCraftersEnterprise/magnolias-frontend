@@ -271,7 +271,15 @@ async function downloadFormat() {
         aria-modal="true"
       >
         <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black/60" @click="emit('close')" />
+        <div
+          class="fixed inset-0 bg-black/60"
+          role="button"
+          tabindex="0"
+          aria-label="Cerrar"
+          @click="emit('close')"
+          @keydown.enter="emit('close')"
+          @keydown.space.prevent="emit('close')"
+        />
 
         <!-- Panel -->
         <div class="relative w-full max-w-xl my-4 sm:my-6">

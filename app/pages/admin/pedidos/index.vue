@@ -379,6 +379,10 @@ function refreshKanban() {
   loadKanbanOrders();
 }
 
+function goToLineDetail(card: OrderDetailAssignmentCard) {
+  navigateTo("/admin/pedidos/detalle/" + card.orderDetail.order.id);
+}
+
 // ─── Kanban confirm modal ───────────────────────────────────────────────────
 const kanbanConfirmTarget = ref<OrderDetailAssignmentCard | null>(null);
 function requestAdvanceStatus(card: OrderDetailAssignmentCard) {
@@ -1263,11 +1267,12 @@ function onOrderPaymentUpdated(payload: {
                     v-for="card in pendingLines"
                     :key="card.orderDetail.id"
                     class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    @click="
-                      navigateTo(
-                        '/admin/pedidos/detalle/' + card.orderDetail.order.id,
-                      )
-                    "
+                    role="button"
+                    tabindex="0"
+                    aria-label="Ver detalle del pedido"
+                    @click="goToLineDetail(card)"
+                    @keydown.enter="goToLineDetail(card)"
+                    @keydown.space.prevent="goToLineDetail(card)"
                   >
                     <div class="h-1 bg-amber-400"></div>
                     <div
@@ -1395,11 +1400,12 @@ function onOrderPaymentUpdated(payload: {
                     v-for="card in inProcessLines"
                     :key="card.orderDetail.id"
                     class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    @click="
-                      navigateTo(
-                        '/admin/pedidos/detalle/' + card.orderDetail.order.id,
-                      )
-                    "
+                    role="button"
+                    tabindex="0"
+                    aria-label="Ver detalle del pedido"
+                    @click="goToLineDetail(card)"
+                    @keydown.enter="goToLineDetail(card)"
+                    @keydown.space.prevent="goToLineDetail(card)"
                   >
                     <div class="h-1 bg-violet-400"></div>
                     <div
@@ -1527,11 +1533,12 @@ function onOrderPaymentUpdated(payload: {
                     v-for="card in doneLines"
                     :key="card.orderDetail.id"
                     class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    @click="
-                      navigateTo(
-                        '/admin/pedidos/detalle/' + card.orderDetail.order.id,
-                      )
-                    "
+                    role="button"
+                    tabindex="0"
+                    aria-label="Ver detalle del pedido"
+                    @click="goToLineDetail(card)"
+                    @keydown.enter="goToLineDetail(card)"
+                    @keydown.space.prevent="goToLineDetail(card)"
                   >
                     <div class="h-1 bg-emerald-400"></div>
                     <div
@@ -1648,7 +1655,12 @@ function onOrderPaymentUpdated(payload: {
         <!-- Backdrop -->
         <div
           class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          role="button"
+          tabindex="0"
+          aria-label="Cerrar"
           @click="kanbanConfirmTarget = null"
+          @keydown.enter="kanbanConfirmTarget = null"
+          @keydown.space.prevent="kanbanConfirmTarget = null"
         />
 
         <!-- Panel -->
@@ -1760,7 +1772,12 @@ function onOrderPaymentUpdated(payload: {
       >
         <div
           class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          role="button"
+          tabindex="0"
+          aria-label="Cerrar"
           @click="deliverConfirm = false"
+          @keydown.enter="deliverConfirm = false"
+          @keydown.space.prevent="deliverConfirm = false"
         />
         <div
           class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden"
@@ -1843,7 +1860,12 @@ function onOrderPaymentUpdated(payload: {
       >
         <div
           class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          role="button"
+          tabindex="0"
+          aria-label="Cerrar"
           @click="cancelConfirm = false"
+          @keydown.enter="cancelConfirm = false"
+          @keydown.space.prevent="cancelConfirm = false"
         />
         <div
           class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden"
