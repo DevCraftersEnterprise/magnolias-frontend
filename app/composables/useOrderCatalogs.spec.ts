@@ -91,4 +91,14 @@ describe('useOrderCatalogs', () => {
         expect(locationLabel('rareValue')).toBe('rareValue')
         expect(locationLabel(null)).toBe('')
     })
+
+    it('locationLabel también traduce los valores de PipingLocation (manga)', () => {
+        const { locationLabel } = useOrderCatalogs()
+
+        expect(locationLabel('TOP_BORDER')).toBe('Borde superior')
+        expect(locationLabel('BOTTOM_BORDER')).toBe('Borde inferior')
+        expect(locationLabel('FULL_BORDER')).toBe('Borde completo')
+        expect(locationLabel('FULL_DESING')).toBe('Diseño completo')
+        expect(locationLabel('NONE')).toBe('Ninguna')
+    })
 })

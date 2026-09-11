@@ -55,20 +55,23 @@ describe('UserCreateModal', () => {
         branchesServiceMock.getBranches.mockClear()
     })
 
-    it('no ofrece el rol Empleado al crear un usuario nuevo', async () => {
+    it('ofrece el rol Sucursal (EMPLOYEE) al crear un usuario nuevo', async () => {
         const wrapper = mountModal({ mode: 'create' })
         await flushPromises()
 
-        const values = wrapper
-            .find('select')
-            .findAll('option')
-            .map((o) => o.attributes('value'))
+        const options = wrapper.find('select').findAll('option')
+        const values = options.map((o) => o.attributes('value'))
 
-        expect(values).not.toContain('EMPLOYEE')
-        expect(values).toEqual(expect.arrayContaining(['ADMIN', 'BAKER']))
+        expect(values).toEqual(
+            expect.arrayContaining(['ADMIN', 'EMPLOYEE', 'BAKER']),
+        )
+        const employeeOption = options.find(
+            (o) => o.attributes('value') === 'EMPLOYEE',
+        )
+        expect(employeeOption?.text()).toBe('Sucursal')
     })
 
-    it('sí ofrece el rol Empleado al editar un usuario existente', async () => {
+    it('también ofrece el rol Sucursal al editar un usuario existente', async () => {
         const wrapper = mountModal({
             mode: 'edit',
             user: {

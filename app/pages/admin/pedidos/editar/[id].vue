@@ -186,6 +186,7 @@ const {
   employeeActionToken,
   openModal: openEmployeePinModal,
   verifyPin: verifyEmployeePin,
+  reset: resetEmployeePin,
 } = useEmployeePin();
 
 async function onEmployeePinSubmit(pin: string) {
@@ -698,6 +699,9 @@ async function submitOrder() {
       employeeActionToken: employeeActionToken.value || undefined,
     };
 
+    // Token de un solo uso: ver nota equivalente en crear.vue.
+    if (isEmployeeSession.value) resetEmployeePin();
+
     await ordersService.updateOrder(payload);
     toast.success("Pedido actualizado correctamente.");
     router.push("/admin/pedidos");
@@ -1204,6 +1208,7 @@ function next() {
                       v-if="openColorPicker === colorPickerKey('fl', i)"
                       class="absolute z-20 mt-1 left-0 min-w-[140px] rounded-xl bg-white ring-1 ring-black/10 shadow-xl py-1 max-h-48 overflow-y-auto"
                       @click.stop
+                      @keydown.stop
                     >
                       <button
                         type="button"
@@ -1989,10 +1994,15 @@ function next() {
             <div
               v-if="refModal.open"
               class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
-              @click.self="refModal.open = false"
             >
+              <button
+                type="button"
+                class="absolute inset-0 cursor-default"
+                aria-label="Cerrar"
+                @click="refModal.open = false"
+              />
               <div
-                class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
               >
                 <div
                   class="px-5 py-4 border-b border-black/8 flex items-center justify-between"
@@ -2433,8 +2443,13 @@ function next() {
             <div
               v-if="detailModal.open"
               class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-              @click.self="closeDetailModal"
             >
+              <button
+                type="button"
+                class="absolute inset-0 cursor-default"
+                aria-label="Cerrar"
+                @click="closeDetailModal"
+              />
               <div
                 v-if="detailRow"
                 class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden"

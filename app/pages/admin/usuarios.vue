@@ -72,7 +72,7 @@ function onUserCreated(_user: UserItem) {
 const roleLabels: Record<string, string> = {
   SUPER: "Super",
   ADMIN: "Admin",
-  EMPLOYEE: "Empleado",
+  EMPLOYEE: "Sucursal",
   BAKER: "Pastelero",
 };
 
@@ -122,7 +122,7 @@ function roleBadge(r: string) {
                 >
                   <option value="">Todos los roles</option>
                   <option value="ADMIN">Admin</option>
-                  <option value="EMPLOYEE">Empleado</option>
+                  <option value="EMPLOYEE">Sucursal</option>
                   <option value="BAKER">Pastelero</option>
                 </select>
                 <svg
@@ -240,10 +240,12 @@ function roleBadge(r: string) {
 
             <!-- Cards móvil -->
             <div class="sm:hidden space-y-3">
-              <div
+              <button
                 v-for="u in users"
                 :key="u.id"
-                class="rounded-2xl bg-white ring-1 ring-black/10 p-4 cursor-pointer active:bg-black/5 transition"
+                type="button"
+                class="block w-full text-left rounded-2xl bg-white ring-1 ring-black/10 p-4 cursor-pointer active:bg-black/5 transition"
+                :aria-label="`Editar usuario ${u.name} ${u.lastname}`"
                 @click="editingUser = u"
               >
                 <div class="flex items-start justify-between gap-2">
@@ -273,7 +275,7 @@ function roleBadge(r: string) {
                     <AdminStatusBadge :is-active="u.isActive" />
                   </div>
                 </div>
-              </div>
+              </button>
               <div
                 v-if="users.length === 0"
                 class="rounded-2xl bg-white ring-1 ring-black/10 p-6 text-center text-[13px] text-gray-500"

@@ -312,10 +312,12 @@ function roundLabel(r?: string | null) {
                     class="grid gap-1"
                     :class="detail.referenceImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'"
                   >
-                    <div
+                    <button
                       v-for="img in detail.referenceImages"
                       :key="img.id"
-                      class="relative cursor-zoom-in group"
+                      type="button"
+                      class="relative block w-full cursor-zoom-in group"
+                      aria-label="Ver imagen de referencia en tamaño completo"
                       @click="openLightbox(img.imageUrl)"
                     >
                       <img
@@ -338,7 +340,7 @@ function roundLabel(r?: string | null) {
                         </svg>
                         Ver foto
                       </span>
-                    </div>
+                    </button>
                   </div>
 
                   <!-- Nombre + cantidad -->
@@ -364,7 +366,63 @@ function roundLabel(r?: string | null) {
                     >
                   </div>
 
-                  <!-- Atributos: ficha técnica -->
+                  <!-- Pisos (pastel de varios pisos) -->
+                  <div
+                    v-if="detail.tiers && detail.tiers.length > 0"
+                    class="divide-y divide-black/[0.06] border-b border-black/[0.06]"
+                  >
+                    <div
+                      v-for="tier in detail.tiers"
+                      :key="tier.id ?? tier.position"
+                      class="px-6 py-4"
+                    >
+                      <p
+                        class="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2"
+                      >
+                        Piso {{ tier.position }}
+                      </p>
+                      <dl class="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                        <div v-if="tier.productSize || tier.customSize">
+                          <dt class="text-[10px] text-gray-400">Tamaño</dt>
+                          <dd class="text-[13px] font-bold text-[#111827]">
+                            {{
+                              tier.productSize?.toUpperCase() === "CUSTOM"
+                                ? tier.customSize?.toUpperCase()
+                                : (tier.productSize ?? tier.customSize)
+                            }}
+                          </dd>
+                        </div>
+                        <div v-if="tier.filling">
+                          <dt class="text-[10px] text-gray-400">Relleno</dt>
+                          <dd class="text-[13px] font-bold text-[#111827]">
+                            {{ tier.filling.name }}
+                          </dd>
+                        </div>
+                        <div v-if="tier.frosting">
+                          <dt class="text-[10px] text-gray-400">Betún</dt>
+                          <dd class="text-[13px] font-bold text-[#111827]">
+                            {{ tier.frosting.name }}
+                          </dd>
+                        </div>
+                        <div v-if="tier.breadType">
+                          <dt class="text-[10px] text-gray-400">
+                            Tipo de pan
+                          </dt>
+                          <dd class="text-[13px] font-bold text-[#111827]">
+                            {{ tier.breadType.name }}
+                          </dd>
+                        </div>
+                        <div v-if="tier.color">
+                          <dt class="text-[10px] text-gray-400">Color</dt>
+                          <dd class="text-[13px] font-bold text-[#111827]">
+                            {{ tier.color.name }}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+
+                  <!-- Atributos: ficha técnica (pastel de un solo tamaño) -->
                   <dl class="divide-y divide-black/[0.06]">
                     <div
                       v-if="detail.productSize || detail.customSize"
@@ -520,7 +578,7 @@ function roundLabel(r?: string | null) {
                         >
                           <span class="font-semibold">Piping</span>
                           <span class="opacity-40">·</span>
-                          {{ detail.pipingLocation }}
+                          {{ locationLabel(detail.pipingLocation) }}
                         </span>
                       </div>
                     </div>
@@ -829,21 +887,32 @@ function roundLabel(r?: string | null) {
         @mouseleave="onMouseup"
       >
         <!-- Cerrar al clickar fondo (solo si no hubo drag) -->
-        <div class="absolute inset-0" @click.self="closeLightbox" />
+        <button
+          type="button"
+          class="absolute inset-0 cursor-default"
+          aria-label="Cerrar imagen ampliada"
+          @click.self="closeLightbox"
+        />
 
         <!-- Imagen -->
-        <img
-          :src="lightboxSrc"
-          alt="Referencia ampliada"
-          class="relative max-w-[90vw] max-h-[88vh] rounded-xl object-contain select-none shadow-2xl"
-          :style="{
-            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-            cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'zoom-in',
-            transition: dragging ? 'none' : 'transform 0.15s ease',
-          }"
-          draggable="false"
+        <button
+          type="button"
+          class="contents"
+          aria-label="Alternar zoom de la imagen"
           @click.stop="zoom === 1 ? (zoom = 2) : resetZoom()"
-        />
+        >
+          <img
+            :src="lightboxSrc"
+            alt="Referencia ampliada"
+            class="relative max-w-[90vw] max-h-[88vh] rounded-xl object-contain select-none shadow-2xl"
+            :style="{
+              transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+              cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'zoom-in',
+              transition: dragging ? 'none' : 'transform 0.15s ease',
+            }"
+            draggable="false"
+          />
+        </button>
 
         <!-- Controles -->
         <div
@@ -941,8 +1010,10 @@ function roundLabel(r?: string | null) {
         class="fixed inset-0 z-50 flex items-center justify-center px-4"
       >
         <!-- Backdrop -->
-        <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        <button
+          type="button"
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
+          aria-label="Cerrar"
           @click="confirmDetailId = null"
         />
 

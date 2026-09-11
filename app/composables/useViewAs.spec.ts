@@ -20,6 +20,7 @@ describe('useViewAs', () => {
     beforeEach(() => {
         navigateToMock.mockReset()
         useViewAs().viewAsBaker.value = false
+        useViewAs().viewAsBakerId.value = ''
         setUserRole(null)
     })
 
@@ -89,6 +90,17 @@ describe('useViewAs', () => {
 
             expect(viewAsBaker.value).toBe(false)
             expect(navigateToMock).not.toHaveBeenCalled()
+        })
+
+        it('limpia el pastelero seleccionado para previsualizar', async () => {
+            setUserRole('ADMIN')
+            const { enterViewAsBaker, exitViewAs, viewAsBakerId } = useViewAs()
+            await enterViewAsBaker()
+            viewAsBakerId.value = 'baker-1'
+
+            exitViewAs()
+
+            expect(viewAsBakerId.value).toBe('')
         })
     })
 })

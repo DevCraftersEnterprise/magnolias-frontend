@@ -43,7 +43,7 @@ const form = reactive({
 const roleSubtitles: Record<string, string> = {
   SUPER: "Acceso total al sistema",
   ADMIN: "Administración general",
-  EMPLOYEE: "Asignado a una sucursal y área",
+  EMPLOYEE: "Cuenta compartida del mostrador de una sucursal",
   BAKER: "Puede pertenecer a varias sucursales",
 };
 
@@ -247,7 +247,7 @@ async function onSubmit() {
           >
             <option value="" disabled>Selecciona un rol</option>
             <option value="ADMIN">Admin</option>
-            <option v-if="mode === 'edit'" value="EMPLOYEE">Empleado</option>
+            <option value="EMPLOYEE">Sucursal</option>
             <option value="BAKER">Pastelero</option>
           </select>
           <svg
