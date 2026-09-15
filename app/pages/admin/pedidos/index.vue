@@ -205,7 +205,6 @@ async function executeCancel() {
 }
 
 // ─── Kanban state ───────────────────────────────────────────────────────────
-type KanbanTab = "tomorrow" | "dayAfter" | "all" | "range";
 // Cliente #6: filtro por tipo de pedido, además de las pestañas de fecha.
 // Genérico para cualquier tipo (aunque el cliente solo pidió eventos).
 type KanbanTypeFilter = "all" | "evento" | "enTienda" | "domicilio";
@@ -214,104 +213,30 @@ const PRODUCTION_STATUS_LABELS: Record<OrderDetailProductionStatus, string> = {
   IN_PROCESS: "En proceso",
   DONE: "Listo",
 };
-const kanbanTab = ref<KanbanTab>("tomorrow");
 const kanbanTypeFilter = ref<KanbanTypeFilter>("all");
 const kanbanLoading = ref(true);
 const kanbanAssignments = ref<OrderDetailAssignmentCard[]>([]);
 const updatingId = ref<string | null>(null);
-const rangeFrom = ref("");
-const rangeTo = ref("");
-
-const tomorrowStr = computed(() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return isoDate(d);
-});
-
-const dayAfterStr = computed(() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 2);
-  return isoDate(d);
-});
-
-const tomorrowLabel = computed(() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toLocaleDateString("es-MX", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-  });
-});
-
-const dayAfterLabel = computed(() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 2);
-  return d.toLocaleDateString("es-MX", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-  });
-});
-
-// Filtra por fecha de entrega (comparando solo la parte de fecha del ISO)
-function deliveryDateStr(iso: string) {
-  if (!iso) return "";
-  return iso.split("T")[0];
-}
 
 // Cliente #11: el kanban ahora es por línea de producto asignada, no por
 // pedido completo - un solo fetch (getBakerDetailAssignments) trae todas las
 // líneas activas del repostero y las 4 pestañas (mañana/pasado/todas/rango)
-// son simples filtros locales sobre ese mismo arreglo.
-const tomorrowAssignments = computed(() =>
-  kanbanAssignments.value.filter(
-    (c) =>
-      deliveryDateStr(c.orderDetail.order.deliveryDate) === tomorrowStr.value,
-  ),
+// son simples filtros locales sobre ese mismo arreglo (compartidas con la
+// lista de reparto del repartidor, Cliente #8, via useDeliveryDateTabs).
+const {
+  tab: kanbanTab,
+  rangeFrom,
+  rangeTo,
+  tomorrowLabel,
+  dayAfterLabel,
+  tomorrowItems: tomorrowAssignments,
+  dayAfterItems: dayAfterAssignments,
+  rangeItems: rangeAssignments,
+  activeItems: activeKanbanAssignments,
+} = useDeliveryDateTabs(
+  kanbanAssignments,
+  (c) => c.orderDetail.order.deliveryDate,
 );
-const dayAfterAssignments = computed(() =>
-  kanbanAssignments.value.filter(
-    (c) =>
-      deliveryDateStr(c.orderDetail.order.deliveryDate) === dayAfterStr.value,
-  ),
-);
-
-const rangeError = computed(() => {
-  if (rangeFrom.value && rangeTo.value && rangeTo.value < rangeFrom.value)
-    return "La fecha de término no puede ser menor a la fecha de inicio.";
-  return "";
-});
-
-watch(rangeError, (newVal, oldVal) => {
-  if (newVal && !oldVal) toast.error(newVal);
-});
-
-const rangeAssignments = computed(() => {
-  if (rangeError.value) return [];
-  if (!rangeFrom.value && !rangeTo.value) return [];
-  return kanbanAssignments.value.filter((c) => {
-    const d = deliveryDateStr(c.orderDetail.order.deliveryDate);
-    if (rangeFrom.value && d < rangeFrom.value) return false;
-    if (rangeTo.value && d > rangeTo.value) return false;
-    return true;
-  });
-});
-
-const activeKanbanAssignments = computed(() => {
-  switch (kanbanTab.value) {
-    case "tomorrow":
-      return tomorrowAssignments.value;
-    case "dayAfter":
-      return dayAfterAssignments.value;
-    case "all":
-      return kanbanAssignments.value;
-    case "range":
-      return rangeAssignments.value;
-    default:
-      return tomorrowAssignments.value;
-  }
-});
 
 function lineStatus(card: OrderDetailAssignmentCard): OrderDetailProductionStatus {
   return card.orderDetail.productionStatus ?? "PENDING";
@@ -1236,51 +1161,11 @@ function onOrderPaymentUpdated(payload: {
               </div>
 
               <!-- Fila 2: date range picker (no afecta el layout de arriba) -->
-              <Transition
-                enter-active-class="transition duration-150"
-                enter-from-class="opacity-0 -translate-y-1"
-                enter-to-class="opacity-100 translate-y-0"
-              >
-                <div
-                  v-if="kanbanTab === 'range'"
-                  class="mt-3 flex flex-wrap items-center gap-2"
-                >
-                  <div class="flex items-center gap-1.5">
-                    <label
-                      class="text-[11px] font-semibold text-gray-400 whitespace-nowrap"
-                      >Desde</label
-                    >
-                    <input
-                      v-model="rangeFrom"
-                      type="date"
-                      class="rounded-lg border border-black/10 bg-gray-50 px-3 py-1.5 text-[13px] text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#C9007C]/30"
-                    />
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <label
-                      class="text-[11px] font-semibold text-gray-400 whitespace-nowrap"
-                      >Hasta</label
-                    >
-                    <input
-                      v-model="rangeTo"
-                      type="date"
-                      class="rounded-lg border border-black/10 bg-gray-50 px-3 py-1.5 text-[13px] text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#C9007C]/30"
-                    />
-                  </div>
-                  <button
-                    v-if="rangeFrom || rangeTo"
-                    type="button"
-                    class="rounded-lg bg-gray-100 px-3 py-1.5 text-[12px] text-gray-500 hover:bg-gray-200 transition"
-                    @click="
-                      rangeFrom = '';
-                      rangeTo = '';
-                    "
-                  >
-                    Limpiar
-                  </button>
-                  <!-- Validation error removed: now shown via toast -->
-                </div>
-              </Transition>
+              <OrderDeliveryDateRangePicker
+                v-model:from="rangeFrom"
+                v-model:to="rangeTo"
+                :visible="kanbanTab === 'range'"
+              />
             </div>
 
             <!-- ADMIN/SUPER en "ver como pastelero" sin elegir a quién previsualizar -->

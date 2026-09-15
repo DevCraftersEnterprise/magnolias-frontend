@@ -18,100 +18,24 @@ const driverId = computed(() =>
   canToggleViewAs.value ? viewAsDriverId.value : (user.value?.id ?? ""),
 );
 
-type DeliveryTab = "tomorrow" | "dayAfter" | "all" | "range";
-const activeTab = ref<DeliveryTab>("tomorrow");
 const loading = ref(true);
 const assignments = ref<OrderDeliveryAssignmentCard[]>([]);
-const rangeFrom = ref("");
-const rangeTo = ref("");
 
 const deliverTarget = ref<OrderDeliveryAssignmentCard | null>(null);
 const deliverConfirm = ref(false);
 const delivering = ref(false);
 
-const tomorrowStr = computed(() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return isoDate(d);
-});
-
-const dayAfterStr = computed(() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 2);
-  return isoDate(d);
-});
-
-const tomorrowLabel = computed(() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toLocaleDateString("es-MX", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-  });
-});
-
-const dayAfterLabel = computed(() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 2);
-  return d.toLocaleDateString("es-MX", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-  });
-});
-
-function deliveryDateStr(iso: string) {
-  if (!iso) return "";
-  return iso.split("T")[0];
-}
-
-const tomorrowAssignments = computed(() =>
-  assignments.value.filter(
-    (c) => deliveryDateStr(c.order.deliveryDate) === tomorrowStr.value,
-  ),
-);
-const dayAfterAssignments = computed(() =>
-  assignments.value.filter(
-    (c) => deliveryDateStr(c.order.deliveryDate) === dayAfterStr.value,
-  ),
-);
-
-const rangeError = computed(() => {
-  if (rangeFrom.value && rangeTo.value && rangeTo.value < rangeFrom.value)
-    return "La fecha de término no puede ser menor a la fecha de inicio.";
-  return "";
-});
-
-watch(rangeError, (newVal, oldVal) => {
-  if (newVal && !oldVal) toast.error(newVal);
-});
-
-const rangeAssignments = computed(() => {
-  if (rangeError.value) return [];
-  if (!rangeFrom.value && !rangeTo.value) return [];
-  return assignments.value.filter((c) => {
-    const d = deliveryDateStr(c.order.deliveryDate);
-    if (rangeFrom.value && d < rangeFrom.value) return false;
-    if (rangeTo.value && d > rangeTo.value) return false;
-    return true;
-  });
-});
-
-const activeAssignments = computed(() => {
-  switch (activeTab.value) {
-    case "tomorrow":
-      return tomorrowAssignments.value;
-    case "dayAfter":
-      return dayAfterAssignments.value;
-    case "all":
-      return assignments.value;
-    case "range":
-      return rangeAssignments.value;
-    default:
-      return tomorrowAssignments.value;
-  }
-});
+const {
+  tab: activeTab,
+  rangeFrom,
+  rangeTo,
+  tomorrowLabel,
+  dayAfterLabel,
+  tomorrowItems: tomorrowAssignments,
+  dayAfterItems: dayAfterAssignments,
+  rangeItems: rangeAssignments,
+  activeItems: activeAssignments,
+} = useDeliveryDateTabs(assignments, (c) => c.order.deliveryDate);
 
 async function loadAssignments() {
   if (!driverId.value) {
@@ -268,43 +192,11 @@ watch([driverId, selectedBranch], () => loadAssignments(), { immediate: true });
             </button>
           </div>
 
-          <Transition
-            enter-active-class="transition duration-150"
-            enter-from-class="opacity-0 -translate-y-1"
-            enter-to-class="opacity-100 translate-y-0"
-          >
-            <div
-              v-if="activeTab === 'range'"
-              class="mt-3 flex flex-wrap items-center gap-2"
-            >
-              <div class="flex items-center gap-1.5">
-                <label
-                  for="reparto-range-from"
-                  class="text-[11px] font-semibold text-gray-400 whitespace-nowrap"
-                  >Desde</label
-                >
-                <input
-                  id="reparto-range-from"
-                  v-model="rangeFrom"
-                  type="date"
-                  class="rounded-lg border border-black/10 bg-gray-50 px-3 py-1.5 text-[13px] text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#C9007C]/30"
-                />
-              </div>
-              <div class="flex items-center gap-1.5">
-                <label
-                  for="reparto-range-to"
-                  class="text-[11px] font-semibold text-gray-400 whitespace-nowrap"
-                  >Hasta</label
-                >
-                <input
-                  id="reparto-range-to"
-                  v-model="rangeTo"
-                  type="date"
-                  class="rounded-lg border border-black/10 bg-gray-50 px-3 py-1.5 text-[13px] text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#C9007C]/30"
-                />
-              </div>
-            </div>
-          </Transition>
+          <OrderDeliveryDateRangePicker
+            v-model:from="rangeFrom"
+            v-model:to="rangeTo"
+            :visible="activeTab === 'range'"
+          />
         </div>
 
         <!-- ADMIN/SUPER en "ver como repartidor" sin elegir a quién previsualizar -->
