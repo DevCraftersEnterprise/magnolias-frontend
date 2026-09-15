@@ -6,6 +6,7 @@ import { type CatalogEditPayload } from "~/components/catalog/EditModal.vue";
 import { type ColorEditPayload } from "~/components/color/EditModal.vue";
 import { catalogsService } from "~/services/catalogs.service";
 import type { BreadTypeItem, ColorItem } from "~/types/catalog.types";
+import type { ProductSize } from "~/types/order.types";
 
 // ─── Types & constants ──────────────────────────────────────────────────────
 type BlockKey =
@@ -122,6 +123,7 @@ type AnyItem = {
   description?: string;
   value?: string;
   price?: string;
+  applicableSizes?: ProductSize[];
 };
 
 const editOpen = ref(false);
@@ -161,6 +163,7 @@ function openEdit(block: BlockKey, item: AnyItem) {
     name: item.name,
     description: item.description ?? "",
     price: item.price !== undefined ? moneyToNumber(item.price) : undefined,
+    applicableSizes: item.applicableSizes,
   };
   editOpen.value = true;
 }
@@ -247,6 +250,7 @@ type SavedCatalogPayload = {
   name: string;
   description: string;
   price?: number;
+  applicableSizes?: ProductSize[];
 };
 
 const catalogSaveHandlers: Partial<
@@ -313,6 +317,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
     name: payload.name,
     description: payload.description ?? "",
     price: payload.price,
+    applicableSizes: payload.applicableSizes,
   };
 
   if (isEdit) {
@@ -595,6 +600,7 @@ const cards = [
       :mode="editMode"
       :model="editModel"
       :title="modalTitle"
+      :show-applicable-sizes="editBlock === 'estilo'"
       @save="onSaveEdit"
     />
 

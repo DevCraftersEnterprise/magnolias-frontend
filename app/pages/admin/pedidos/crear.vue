@@ -1617,6 +1617,7 @@ function next() {
                         <select
                           v-model="row.sizeId"
                           class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                          @change="resetIncompatibleStyle(row, styles)"
                         >
                           <option value="">—</option>
                           <option value="10P">10 P</option>
@@ -1649,6 +1650,42 @@ function next() {
                         placeholder="ej. 100 personas"
                         class="w-28 rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60"
                       />
+                    </div>
+                    <!-- Cliente #5: Forma junto a Tamaño, filtrada por applicableSizes -->
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                        >Forma</span
+                      >
+                      <div class="relative">
+                        <select
+                          v-model="row.styleId"
+                          aria-label="Forma"
+                          class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                        >
+                          <option value="">—</option>
+                          <option
+                            v-for="s in filterStylesForSize(styles, row.sizeId)"
+                            :key="s.id"
+                            :value="s.id"
+                          >
+                            {{ s.name }}
+                          </option>
+                        </select>
+                        <svg
+                          class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2.5"
+                        >
+                          <path
+                            d="M6 9l6 6 6-6"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </div>
                     </div>
                     <div class="flex items-center gap-2">
                       <span
@@ -1832,36 +1869,6 @@ function next() {
                         </div>
                       </div>
                     </template>
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                        >Forma</span
-                      >
-                      <div class="relative">
-                        <select
-                          v-model="row.styleId"
-                          class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
-                        >
-                          <option value="">—</option>
-                          <option v-for="s in styles" :key="s.id" :value="s.id">
-                            {{ s.name }}
-                          </option>
-                        </select>
-                        <svg
-                          class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                        >
-                          <path
-                            d="M6 9l6 6 6-6"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </div>
                     <div class="flex items-center gap-2">
                       <span
                         class="text-[12px] font-medium text-gray-500 flex-shrink-0"
