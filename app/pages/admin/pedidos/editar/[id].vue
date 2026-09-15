@@ -19,6 +19,7 @@ import OrderDeliveryAddressForm from "~/components/order/OrderDeliveryAddressFor
 import OrderEventServicesAndDetails from "~/components/order/OrderEventServicesAndDetails.vue";
 import OrderProductTiersEditor from "~/components/order/OrderProductTiersEditor.vue";
 import OrderDetailTiersSummary from "~/components/order/OrderDetailTiersSummary.vue";
+import OrderDetailCatalogPriceCheck from "~/components/order/OrderDetailCatalogPriceCheck.vue";
 
 const router = useRouter();
 const routeP = useRoute();
@@ -39,7 +40,6 @@ const {
   colorName,
   colorHex,
   catalogLabel,
-  catalogPrice,
 } = useOrderCatalogs();
 
 const {
@@ -113,18 +113,14 @@ const { step4, serviceCost, subtotal, orderTotal, remaining, PAYMENT_TYPES } =
 
 // ─── Precio sugerido de catálogo (paso 4: verificar/ajustar el precio) ───────
 // Cliente #1: los catálogos ahora tienen precio; se muestra la suma de lo
-// elegido (relleno, frosting, forma, tipo de pan) junto al precio capturado
-// manualmente para que el empleado lo verifique antes de confirmar. No se
-// autosuma al precio de la línea.
-const detailRowCatalogPriceSum = computed(() => {
-  const row = detailRow.value;
-  if (!row) return 0;
-  return (
-    catalogPrice(breadTypes.value, row.breadId) +
-    catalogPrice(fillings.value, row.fillingId) +
-    catalogPrice(frostings.value, row.frostingId) +
-    catalogPrice(styles.value, row.styleId)
-  );
+// elegido junto al precio capturado manualmente para que el empleado lo
+// verifique antes de confirmar. No se autosuma al precio de la línea. Cálculo
+// compartido con crear.vue vía useCatalogPriceSum (evita duplicar lógica).
+const detailRowCatalogPriceSum = useCatalogPriceSum(detailRow, {
+  breadTypes,
+  fillings,
+  frostings,
+  styles,
 });
 
 // ─── Descuentos por producto (requiere autorización de admin/super) ───────────
@@ -2624,25 +2620,11 @@ function next() {
                     </div>
                   </div>
 
-                  <div
-                    v-if="!detailRow.hasTiers && detailRowCatalogPriceSum > 0"
-                    class="flex justify-between py-2"
-                  >
-                    <span class="text-[12px] text-gray-500"
-                      >Precio sugerido de catálogo</span
-                    >
-                    <span class="text-[12px] font-semibold text-[#C9007C]">{{
-                      formatMXN(detailRowCatalogPriceSum)
-                    }}</span>
-                  </div>
-                  <div class="flex justify-between py-2">
-                    <span class="text-[12px] text-gray-500"
-                      >Precio capturado (línea)</span
-                    >
-                    <span class="text-[12px] font-semibold text-[#111827]">{{
-                      formatMXN(detailRow.price)
-                    }}</span>
-                  </div>
+                  <OrderDetailCatalogPriceCheck
+                    :has-tiers="detailRow.hasTiers"
+                    :price="detailRow.price"
+                    :catalog-price-sum="detailRowCatalogPriceSum"
+                  />
                 </div>
                 <div
                   class="px-5 py-3 border-t border-black/10 flex justify-end"

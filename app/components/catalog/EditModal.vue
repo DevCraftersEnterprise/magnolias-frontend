@@ -80,10 +80,13 @@ function submit() {
       </div>
 
       <div>
-        <label class="block text-[12px] font-semibold text-gray-600 mb-1"
+        <label
+          for="catalog-price"
+          class="block text-[12px] font-semibold text-gray-600 mb-1"
           >Precio</label
         >
         <input
+          id="catalog-price"
           v-model.number="local.price"
           type="number"
           min="0"
