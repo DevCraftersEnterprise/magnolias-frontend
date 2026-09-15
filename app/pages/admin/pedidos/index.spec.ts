@@ -157,6 +157,57 @@ describe('pages/admin/pedidos/index - kanban de pastelero', () => {
 
         expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos/detalle/order-3')
     })
+
+    it('filtra el kanban por tipo de pedido (cliente #6)', async () => {
+        useAuthUser().user.value = { id: 'baker-1', username: 'ana', isActive: true, role: 'BAKER' } as any
+        ordersServiceMock.getBakerDetailAssignments.mockResolvedValue([
+            assignmentCard({
+                orderDetail: {
+                    id: 'detail-evento',
+                    productionStatus: 'PENDING',
+                    product: { name: 'Pastel evento' },
+                    order: {
+                        id: 'order-evento',
+                        orderCode: 'PED-0001',
+                        status: 'CREATED',
+                        deliveryDate: new Date(Date.now() + 86400000).toISOString(),
+                        isEvento: true,
+                        isEnTienda: false,
+                    },
+                },
+            }),
+            assignmentCard({
+                orderDetail: {
+                    id: 'detail-domicilio',
+                    productionStatus: 'PENDING',
+                    product: { name: 'Pastel domicilio' },
+                    order: {
+                        id: 'order-domicilio',
+                        orderCode: 'PED-0002',
+                        status: 'CREATED',
+                        deliveryDate: new Date(Date.now() + 86400000).toISOString(),
+                        isEvento: false,
+                        isEnTienda: false,
+                    },
+                },
+            }),
+        ])
+
+        const wrapper = await mountPage()
+
+        expect(wrapper.text()).toContain('Pastel evento')
+        expect(wrapper.text()).toContain('Pastel domicilio')
+
+        await wrapper.find('#kanban-type-filter').setValue('evento')
+
+        expect(wrapper.text()).toContain('Pastel evento')
+        expect(wrapper.text()).not.toContain('Pastel domicilio')
+
+        await wrapper.find('#kanban-type-filter').setValue('domicilio')
+
+        expect(wrapper.text()).not.toContain('Pastel evento')
+        expect(wrapper.text()).toContain('Pastel domicilio')
+    })
 })
 
 describe('pages/admin/pedidos/index - tabla y refrescar', () => {
