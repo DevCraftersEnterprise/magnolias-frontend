@@ -17,6 +17,8 @@ export type BreadTypeItem = CatalogItem;
 export type FillingItem = CatalogItem;
 export type FrostingItem = CatalogItem;
 export type StyleItem = CatalogItem;
+export type DecorationItem = CatalogItem;
+export type FruitItem = CatalogItem;
 export type FlowerItem = CatalogItem & {
     createdAt: string;
     updatedAt: string

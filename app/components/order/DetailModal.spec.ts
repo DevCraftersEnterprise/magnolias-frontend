@@ -16,6 +16,8 @@ const catalogsServiceMock = vi.hoisted(() => ({
     getStyles: vi.fn().mockResolvedValue({ items: [] }),
     getFlowers: vi.fn().mockResolvedValue({ items: [] }),
     getColors: vi.fn().mockResolvedValue([]),
+    getDecorations: vi.fn().mockResolvedValue({ items: [] }),
+    getFruits: vi.fn().mockResolvedValue({ items: [] }),
 }))
 const addressesServiceMock = vi.hoisted(() => ({
     getAddresses: vi.fn().mockResolvedValue([]),

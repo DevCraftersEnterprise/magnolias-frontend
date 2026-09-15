@@ -149,6 +149,8 @@ export type OrderDetailItem = {
     filling?: OrderDetailCatalogItem;
     frosting?: OrderDetailCatalogItem;
     style?: OrderDetailCatalogItem;
+    decoration?: OrderDetailCatalogItem;
+    fruit?: OrderDetailCatalogItem;
     tiers?: OrderDetailTier[];
     assignments?: OrderLineAssignment[];
     productionStatus?: OrderDetailProductionStatus;
@@ -316,6 +318,8 @@ export type UpdateOrderDetailPayload = {
     fillingId?: string;
     frostingId?: string;
     styleId?: string;
+    decorationId?: string;
+    fruitId?: string;
     referenceFiles?: File[];
     discountPercent?: number;
     tiers?: OrderDetailTierPayload[];
@@ -375,6 +379,8 @@ export type CreateOrderDetail = {
     fillingId?: string;
     frostingId?: string;
     styleId?: string;
+    decorationId?: string;
+    fruitId?: string;
     referenceFiles?: File[];
     discountPercent?: number;
     tiers?: OrderDetailTierPayload[];
