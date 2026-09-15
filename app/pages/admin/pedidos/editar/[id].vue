@@ -410,11 +410,10 @@ function populateFromOrder(order: OrderDetail) {
   if (order.isEvento) {
     step2.eventGuestCount = order.guestCount ?? "";
     step2.eventResponsibleName = order.setupPersonName ?? "";
-    const svc = order.eventServices ?? [];
-    step2.eventServices.dessertTable = svc.includes("DESSERT_TABLE");
-    step2.eventServices.cake = svc.includes("CAKE");
-    step2.eventServices.cheeseTable = svc.includes("CHEESE_TABLE");
-    step2.eventServices.plated = svc.includes("PLATED");
+    Object.assign(
+      step2.eventServices,
+      parseEventServicesPayload(order.eventServices),
+    );
     if (order.setupTime) {
       const { h, m, p } = parseTime24(order.setupTime);
       exitTimeParts.h = h;
@@ -618,13 +617,9 @@ async function submitOrder() {
         ? orderTotal.value
         : step4.depositAmount || 0;
 
-    const eventServices: string[] = [];
-    if (isEvento) {
-      if (step2.eventServices.dessertTable) eventServices.push("DESSERT_TABLE");
-      if (step2.eventServices.cake) eventServices.push("CAKE");
-      if (step2.eventServices.cheeseTable) eventServices.push("CHEESE_TABLE");
-      if (step2.eventServices.plated) eventServices.push("PLATED");
-    }
+    const eventServices: string[] = isEvento
+      ? buildEventServicesPayload(step2.eventServices)
+      : [];
 
     let deliveryAddress: CreateOrderDeliveryAddress | undefined;
     if (!isVitrina) {

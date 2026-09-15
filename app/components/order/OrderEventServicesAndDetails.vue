@@ -1,13 +1,10 @@
 <script setup lang="ts">
+import { EVENT_SERVICE_OPTIONS, type EventServicesFlags } from "~/utils/eventServices";
+
 defineProps<{
   step2: {
     deliveryDate: string;
-    eventServices: {
-      dessertTable: boolean;
-      cake: boolean;
-      cheeseTable: boolean;
-      plated: boolean;
-    };
+    eventServices: EventServicesFlags;
     eventGuestCount: number | "";
     eventResponsibleName: string;
   };
@@ -27,37 +24,17 @@ defineProps<{
     <div
       class="flex flex-wrap items-center gap-4 rounded-xl border border-black/10 bg-white px-5 py-4"
     >
-      <label class="flex items-center gap-2 cursor-pointer select-none">
+      <label
+        v-for="opt in EVENT_SERVICE_OPTIONS"
+        :key="opt.key"
+        class="flex items-center gap-2 cursor-pointer select-none"
+      >
         <input
-          v-model="step2.eventServices.dessertTable"
+          v-model="step2.eventServices[opt.key]"
           type="checkbox"
           class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
         />
-        <span class="text-[13px] text-gray-700">Mesa de Postres</span>
-      </label>
-      <label class="flex items-center gap-2 cursor-pointer select-none">
-        <input
-          v-model="step2.eventServices.cake"
-          type="checkbox"
-          class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-        />
-        <span class="text-[13px] text-gray-700">Pastel</span>
-      </label>
-      <label class="flex items-center gap-2 cursor-pointer select-none">
-        <input
-          v-model="step2.eventServices.cheeseTable"
-          type="checkbox"
-          class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-        />
-        <span class="text-[13px] text-gray-700">Mesa de Quesos</span>
-      </label>
-      <label class="flex items-center gap-2 cursor-pointer select-none">
-        <input
-          v-model="step2.eventServices.plated"
-          type="checkbox"
-          class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
-        />
-        <span class="text-[13px] text-gray-700">Platillos</span>
+        <span class="text-[13px] text-gray-700">{{ opt.label }}</span>
       </label>
     </div>
   </fieldset>

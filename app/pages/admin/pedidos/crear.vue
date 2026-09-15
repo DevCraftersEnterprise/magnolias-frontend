@@ -329,15 +329,9 @@ async function submitOrder() {
         ? orderTotal.value
         : step4.depositAmount || 0;
 
-    const eventServicesList: string[] = [];
-    if (isEvento) {
-      if (step2.eventServices.dessertTable)
-        eventServicesList.push("DESSERT_TABLE");
-      if (step2.eventServices.cake) eventServicesList.push("CAKE");
-      if (step2.eventServices.cheeseTable)
-        eventServicesList.push("CHEESE_TABLE");
-      if (step2.eventServices.plated) eventServicesList.push("PLATED");
-    }
+    const eventServicesList: string[] = isEvento
+      ? buildEventServicesPayload(step2.eventServices)
+      : [];
 
     let deliveryAddress: CreateOrderPayload["deliveryAddress"] | undefined;
     if (!isVitrina) {
