@@ -1870,6 +1870,7 @@ function next() {
                       <div class="relative">
                         <select
                           v-model="row.decorationId"
+                          aria-label="Decoración"
                           class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
                         >
                           <option value="">—</option>
@@ -1904,6 +1905,7 @@ function next() {
                       <div class="relative">
                         <select
                           v-model="row.fruitId"
+                          aria-label="Fruta"
                           class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
                         >
                           <option value="">—</option>
@@ -2001,6 +2003,7 @@ function next() {
                     <div class="relative">
                       <select
                         v-model="row.mangaStyle"
+                        aria-label="Decoración con manga"
                         class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
                       >
                         <option value="">—</option>
@@ -2339,6 +2342,7 @@ function next() {
             <div class="relative">
               <select
                 v-model="step4.paymentType"
+                aria-label="Tipo de Pago"
                 class="w-full appearance-none rounded-xl bg-[#F3F3F4] pl-4 pr-9 py-2.5 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
               >
                 <option

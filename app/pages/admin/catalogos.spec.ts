@@ -12,11 +12,16 @@ const catalogsServiceMock = vi.hoisted(() => ({
         items: [{ id: 'de-1', name: 'PERLAS DORADAS', description: '', isActive: true, price: '$8.00' }],
         pagination: {},
     }),
-    getFruits: vi.fn().mockResolvedValue({ items: [], pagination: {} }),
+    getFruits: vi.fn().mockResolvedValue({
+        items: [{ id: 'fu-1', name: 'FRESA', description: '', isActive: true, price: '$12.00' }],
+        pagination: {},
+    }),
     createDecoration: vi.fn().mockResolvedValue({}),
     patchDecoration: vi.fn().mockResolvedValue({}),
+    deleteDecoration: vi.fn().mockResolvedValue(undefined),
     createFruit: vi.fn().mockResolvedValue({}),
     patchFruit: vi.fn().mockResolvedValue({}),
+    deleteFruit: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('~/services/catalogs.service', () => ({ catalogsService: catalogsServiceMock }))
@@ -44,7 +49,12 @@ describe('pages/admin/catalogos', () => {
             items: [{ id: 'de-1', name: 'PERLAS DORADAS', description: '', isActive: true, price: '$8.00' }],
             pagination: {},
         })
-        catalogsServiceMock.getFruits.mockResolvedValue({ items: [], pagination: {} })
+        catalogsServiceMock.getFruits.mockResolvedValue({
+            items: [{ id: 'fu-1', name: 'FRESA', description: '', isActive: true, price: '$12.00' }],
+            pagination: {},
+        })
+        catalogsServiceMock.deleteDecoration.mockResolvedValue(undefined)
+        catalogsServiceMock.deleteFruit.mockResolvedValue(undefined)
     })
 
     it('crea una decoración nueva con su precio', async () => {
@@ -81,6 +91,22 @@ describe('pages/admin/catalogos', () => {
         )
     })
 
+    it('elimina una decoración (desactiva) tras confirmar', async () => {
+        const wrapper = await mountPage()
+
+        const deleteButtons = wrapper.findAll('button[aria-label="Eliminar"]')
+        expect(deleteButtons.length).toBeGreaterThan(0)
+        await deleteButtons[0]!.trigger('click')
+
+        const confirmBtn = wrapper.findAll('button').find((b) => b.text() === 'Aceptar')
+        expect(confirmBtn).toBeTruthy()
+        await confirmBtn!.trigger('click')
+        await flushPromises()
+
+        expect(catalogsServiceMock.deleteDecoration).toHaveBeenCalledWith('de-1')
+        expect(catalogsServiceMock.getDecorations).toHaveBeenCalled()
+    })
+
     it('crea una fruta nueva con su precio', async () => {
         const wrapper = await mountPage()
 
@@ -96,5 +122,21 @@ describe('pages/admin/catalogos', () => {
         expect(catalogsServiceMock.createFruit).toHaveBeenCalledWith(
             expect.objectContaining({ name: 'Mango', price: 9.5 }),
         )
+    })
+
+    it('elimina una fruta (desactiva) tras confirmar', async () => {
+        const wrapper = await mountPage()
+
+        const deleteButtons = wrapper.findAll('button[aria-label="Eliminar"]')
+        const frutaDeleteButton = deleteButtons[1]! // de-1 es el primer elemento (decoraciones), fu-1 el segundo (frutas)
+        await frutaDeleteButton.trigger('click')
+
+        const confirmBtn = wrapper.findAll('button').find((b) => b.text() === 'Aceptar')
+        expect(confirmBtn).toBeTruthy()
+        await confirmBtn!.trigger('click')
+        await flushPromises()
+
+        expect(catalogsServiceMock.deleteFruit).toHaveBeenCalledWith('fu-1')
+        expect(catalogsServiceMock.getFruits).toHaveBeenCalled()
     })
 })
