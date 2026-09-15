@@ -267,6 +267,7 @@ export type OrderDetail = {
     paidAmount?: string;
     dessertsTotal?: string;
     setupServiceCost?: string;
+    specialRoundCost?: string;
     hasPhotoReference?: boolean;
     ticketNumber?: string | null;
     settlementTicketNumber?: string | null;
@@ -351,6 +352,7 @@ export type UpdateOrderPayload = {
     guestCount?: number;
     dessertsTotal?: number;
     setupServiceCost?: number;
+    specialRoundCost?: number;
     hasPhotoReference?: boolean;
     requiresInvoice?: boolean;
     isCustomerPickup?: boolean;
@@ -442,6 +444,7 @@ export type CreateOrderPayload = {
     guestCount?: number;
     dessertsTotal?: number;
     setupServiceCost?: number;
+    specialRoundCost?: number;
     // misc
     hasPhotoReference?: boolean;
     requiresInvoice?: boolean;

@@ -61,6 +61,7 @@ export const DELIVERY_ROUND_LABELS: Record<string, string> = {
     ROUND_2: 'Ronda 2',
     ROUND_3: 'Ronda 3',
     ROUND_4: 'Ronda 4',
+    RONDA_ESPECIAL: 'Ronda especial',
 }
 
 export const ORDER_SOURCE_LABELS: Record<string, string> = {
