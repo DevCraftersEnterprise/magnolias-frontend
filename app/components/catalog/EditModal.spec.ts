@@ -49,4 +49,55 @@ describe('CatalogEditModal', () => {
             price: undefined,
         })
     })
+
+    it('no muestra "Tamaños aplicables" cuando showApplicableSizes es false', () => {
+        const wrapper = mountModal({ model: { name: '', description: '' } })
+
+        expect(wrapper.text()).not.toContain('Tamaños aplicables')
+    })
+
+    it('muestra y precarga los tamaños aplicables cuando showApplicableSizes es true (cliente #5)', () => {
+        const wrapper = mountModal({
+            showApplicableSizes: true,
+            mode: 'edit',
+            model: { id: 'st-1', name: 'Rústico', applicableSizes: ['20P'] },
+        })
+
+        expect(wrapper.text()).toContain('Tamaños aplicables')
+        const checkboxes = wrapper.findAll('input[type="checkbox"]')
+        const checked = checkboxes.filter((c) => (c.element as HTMLInputElement).checked)
+        expect(checked).toHaveLength(1)
+    })
+
+    it('emite save con los tamaños aplicables elegidos', async () => {
+        const wrapper = mountModal({
+            showApplicableSizes: true,
+            model: { name: '', description: '' },
+        })
+
+        await wrapper.find('input[type="text"]').setValue('Rústico')
+        const checkboxes = wrapper.findAll('input[type="checkbox"]')
+        await checkboxes[0]!.setValue(true)
+        await wrapper.find('button.bg-\\[\\#1F1F1F\\]').trigger('click')
+
+        expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({
+            name: 'Rústico',
+            applicableSizes: ['10P'],
+        })
+    })
+
+    it('omite applicableSizes cuando ninguno fue elegido', async () => {
+        const wrapper = mountModal({
+            showApplicableSizes: true,
+            model: { name: '', description: '' },
+        })
+
+        await wrapper.find('input[type="text"]').setValue('Moderno')
+        await wrapper.find('button.bg-\\[\\#1F1F1F\\]').trigger('click')
+
+        expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({
+            name: 'Moderno',
+            applicableSizes: undefined,
+        })
+    })
 })
