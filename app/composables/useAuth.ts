@@ -71,12 +71,5 @@ export function useAuth() {
     return false;
   }
 
-  function logout() {
-    access.value = null;
-    refresh.value = null;
-    clearUser();
-    return navigateTo('/login')
-  }
-
-  return { access, refresh, user, loading, isAuthed, login, logout, ensureSession };
+  return { access, refresh, user, loading, isAuthed, login, ensureSession };
 }
