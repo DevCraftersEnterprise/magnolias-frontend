@@ -206,12 +206,16 @@ async function executeCancel() {
 
 // ─── Kanban state ───────────────────────────────────────────────────────────
 type KanbanTab = "tomorrow" | "dayAfter" | "all" | "range";
+// Cliente #6: filtro por tipo de pedido, además de las pestañas de fecha.
+// Genérico para cualquier tipo (aunque el cliente solo pidió eventos).
+type KanbanTypeFilter = "all" | "evento" | "enTienda" | "domicilio";
 const PRODUCTION_STATUS_LABELS: Record<OrderDetailProductionStatus, string> = {
   PENDING: "Pendiente",
   IN_PROCESS: "En proceso",
   DONE: "Listo",
 };
 const kanbanTab = ref<KanbanTab>("tomorrow");
+const kanbanTypeFilter = ref<KanbanTypeFilter>("all");
 const kanbanLoading = ref(true);
 const kanbanAssignments = ref<OrderDetailAssignmentCard[]>([]);
 const updatingId = ref<string | null>(null);
@@ -313,14 +317,34 @@ function lineStatus(card: OrderDetailAssignmentCard): OrderDetailProductionStatu
   return card.orderDetail.productionStatus ?? "PENDING";
 }
 
+// Cliente #6: filtro por tipo de pedido, aplicado sobre las pestañas de
+// fecha ya elegidas (activeKanbanAssignments), antes de separar por estado.
+function matchesTypeFilter(card: OrderDetailAssignmentCard): boolean {
+  const order = card.orderDetail.order;
+  switch (kanbanTypeFilter.value) {
+    case "evento":
+      return !!order.isEvento;
+    case "enTienda":
+      return !!order.isEnTienda;
+    case "domicilio":
+      return !order.isEvento && !order.isEnTienda;
+    default:
+      return true;
+  }
+}
+
+const typeFilteredAssignments = computed(() =>
+  activeKanbanAssignments.value.filter(matchesTypeFilter),
+);
+
 const pendingLines = computed(() =>
-  activeKanbanAssignments.value.filter((c) => lineStatus(c) === "PENDING"),
+  typeFilteredAssignments.value.filter((c) => lineStatus(c) === "PENDING"),
 );
 const inProcessLines = computed(() =>
-  activeKanbanAssignments.value.filter((c) => lineStatus(c) === "IN_PROCESS"),
+  typeFilteredAssignments.value.filter((c) => lineStatus(c) === "IN_PROCESS"),
 );
 const doneLines = computed(() =>
-  activeKanbanAssignments.value.filter((c) => lineStatus(c) === "DONE"),
+  typeFilteredAssignments.value.filter((c) => lineStatus(c) === "DONE"),
 );
 
 async function loadKanbanOrders() {
@@ -1175,6 +1199,40 @@ function onOrderPaymentUpdated(payload: {
                   </svg>
                   Actualizar
                 </button>
+              </div>
+
+              <!-- Fila 1.5: filtro por tipo de pedido (cliente #6) -->
+              <div class="mt-3 flex items-center gap-2">
+                <label
+                  for="kanban-type-filter"
+                  class="text-[11px] font-semibold text-gray-400 whitespace-nowrap"
+                  >Tipo de pedido</label
+                >
+                <div class="relative">
+                  <select
+                    id="kanban-type-filter"
+                    v-model="kanbanTypeFilter"
+                    class="appearance-none rounded-lg border border-black/10 bg-gray-50 pl-3 pr-8 py-1.5 text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#C9007C]/30 cursor-pointer"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="evento">Evento</option>
+                    <option value="enTienda">En tienda</option>
+                    <option value="domicilio">Domicilio</option>
+                  </select>
+                  <svg
+                    class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                  >
+                    <path
+                      d="M6 9l6 6 6-6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </div>
               </div>
 
               <!-- Fila 2: date range picker (no afecta el layout de arriba) -->
