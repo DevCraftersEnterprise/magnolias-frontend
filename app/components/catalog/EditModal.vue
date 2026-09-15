@@ -3,6 +3,7 @@ export type CatalogEditPayload = {
   id?: string;
   name: string;
   description?: string;
+  price?: number;
 };
 
 const open = defineModel<boolean>({ required: true });
@@ -21,6 +22,7 @@ const local = reactive<CatalogEditPayload>({
   id: undefined,
   name: "",
   description: "",
+  price: undefined,
 });
 
 watch(
@@ -29,6 +31,7 @@ watch(
     local.id = m?.id;
     local.name = m?.name ?? "";
     local.description = m?.description ?? "";
+    local.price = m?.price;
   },
   { immediate: true },
 );
@@ -38,6 +41,7 @@ function submit() {
     id: local.id,
     name: local.name,
     description: local.description,
+    price: local.price,
   });
 }
 </script>
@@ -72,6 +76,20 @@ function submit() {
           rows="4"
           class="w-full rounded-xl bg-gray-100 px-4 py-3 text-[14px] outline-none ring-2 ring-transparent focus:ring-black/10 resize-none"
           placeholder="Descripción"
+        />
+      </div>
+
+      <div>
+        <label class="block text-[12px] font-semibold text-gray-600 mb-1"
+          >Precio</label
+        >
+        <input
+          v-model.number="local.price"
+          type="number"
+          min="0"
+          step="0.01"
+          class="w-full h-11 rounded-xl bg-gray-100 px-4 text-[14px] outline-none ring-2 ring-transparent focus:ring-black/10"
+          placeholder="0.00"
         />
       </div>
     </div>

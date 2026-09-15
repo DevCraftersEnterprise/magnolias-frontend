@@ -10,6 +10,7 @@ export type CatalogItem = {
     name: string;
     description: string;
     isActive: boolean;
+    price?: string;
 }
 
 export type BreadTypeItem = CatalogItem;
@@ -24,12 +25,14 @@ export type FlowerItem = CatalogItem & {
 export type CreateCatalogPayload = {
     name: string;
     description: string;
+    price?: number;
 }
 
 export type UpdateCatalogPayload = Partial<{
     name: string;
     description: string;
     isActive: boolean;
+    price: number;
 }>
 
 export type CreateColorPayload = {

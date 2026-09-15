@@ -39,6 +39,7 @@ const {
   colorName,
   colorHex,
   catalogLabel,
+  catalogPrice,
 } = useOrderCatalogs();
 
 const {
@@ -109,6 +110,22 @@ async function removeExistingRefImage(rowIndex: number, imageId: string) {
 
 const { step4, serviceCost, subtotal, orderTotal, remaining, PAYMENT_TYPES } =
   useOrderPayment(orderProducts);
+
+// ─── Precio sugerido de catálogo (paso 4: verificar/ajustar el precio) ───────
+// Cliente #1: los catálogos ahora tienen precio; se muestra la suma de lo
+// elegido (relleno, frosting, forma, tipo de pan) junto al precio capturado
+// manualmente para que el empleado lo verifique antes de confirmar. No se
+// autosuma al precio de la línea.
+const detailRowCatalogPriceSum = computed(() => {
+  const row = detailRow.value;
+  if (!row) return 0;
+  return (
+    catalogPrice(breadTypes.value, row.breadId) +
+    catalogPrice(fillings.value, row.fillingId) +
+    catalogPrice(frostings.value, row.frostingId) +
+    catalogPrice(styles.value, row.styleId)
+  );
+});
 
 // ─── Descuentos por producto (requiere autorización de admin/super) ───────────
 const {
@@ -2605,6 +2622,26 @@ function next() {
                         class="w-full aspect-square object-cover rounded-lg ring-1 ring-black/10"
                       />
                     </div>
+                  </div>
+
+                  <div
+                    v-if="!detailRow.hasTiers && detailRowCatalogPriceSum > 0"
+                    class="flex justify-between py-2"
+                  >
+                    <span class="text-[12px] text-gray-500"
+                      >Precio sugerido de catálogo</span
+                    >
+                    <span class="text-[12px] font-semibold text-[#C9007C]">{{
+                      formatMXN(detailRowCatalogPriceSum)
+                    }}</span>
+                  </div>
+                  <div class="flex justify-between py-2">
+                    <span class="text-[12px] text-gray-500"
+                      >Precio capturado (línea)</span
+                    >
+                    <span class="text-[12px] font-semibold text-[#111827]">{{
+                      formatMXN(detailRow.price)
+                    }}</span>
                   </div>
                 </div>
                 <div

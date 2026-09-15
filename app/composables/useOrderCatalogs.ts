@@ -1,5 +1,6 @@
 import { addressesService } from "~/services/addresses.service";
 import { catalogsService } from "~/services/catalogs.service";
+import { moneyToNumber } from "~/utils/currency";
 import type { CommonAddress } from "~/types/address.types";
 import type {
     BreadTypeItem,
@@ -41,6 +42,11 @@ export function useOrderCatalogs() {
         return arr.find(x => x.id === id)?.name ?? '-';
     }
 
+    /** Precio del elemento de catálogo elegido, para verificar el total en el paso 4. */
+    function catalogPrice(arr: { id: string; price?: string }[], id: string) {
+        return moneyToNumber(arr.find(x => x.id === id)?.price);
+    }
+
     function locationLabel(val?: string | null) {
         if (!val) return "";
         return LOCATION_LABELS[val.toUpperCase()] ?? val;
@@ -48,6 +54,6 @@ export function useOrderCatalogs() {
 
     return {
         breadTypes, fillings, frostings, styles, flowerCatalog, colorCatalog, commonAddresses,
-        colorName, colorHex, catalogLabel, locationLabel
+        colorName, colorHex, catalogLabel, catalogPrice, locationLabel
     };
 }

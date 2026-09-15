@@ -106,6 +106,7 @@ type AnyItem = {
   name: string;
   description?: string;
   value?: string;
+  price?: string;
 };
 
 const editOpen = ref(false);
@@ -144,6 +145,7 @@ function openEdit(block: BlockKey, item: AnyItem) {
     id: item.id,
     name: item.name,
     description: item.description ?? "",
+    price: item.price !== undefined ? moneyToNumber(item.price) : undefined,
   };
   editOpen.value = true;
 }
@@ -224,6 +226,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       await catalogsService.createBreadType({
         name: payload.name,
         description: payload.description ?? "",
+        price: payload.price,
       });
       await loadBreadTypes();
       return;
@@ -233,6 +236,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       await catalogsService.createFilling({
         name: payload.name,
         description: payload.description ?? "",
+        price: payload.price,
       });
       await fillingsBlock.reset();
       return;
@@ -242,6 +246,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       await catalogsService.createFrosting({
         name: payload.name,
         description: payload.description ?? "",
+        price: payload.price,
       });
       await frostingsBlock.reset();
       return;
@@ -251,6 +256,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       await catalogsService.createStyle({
         name: payload.name,
         description: payload.description ?? "",
+        price: payload.price,
       });
       await stylesBlock.reset();
       return;
@@ -260,6 +266,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       await catalogsService.createFlower({
         name: payload.name,
         description: payload.description ?? "",
+        price: payload.price,
       });
       await flowersBlock.reset();
       return;
@@ -274,6 +281,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       name: payload.name,
       description: payload.description ?? "",
       isActive: true,
+      price: payload.price,
     });
     await loadBreadTypes();
     return;
@@ -284,6 +292,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       name: payload.name,
       description: payload.description ?? "",
       isActive: true,
+      price: payload.price,
     });
     await fillingsBlock.reset();
     return;
@@ -294,6 +303,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       name: payload.name,
       description: payload.description ?? "",
       isActive: true,
+      price: payload.price,
     });
     await frostingsBlock.reset();
     return;
@@ -304,6 +314,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       name: payload.name,
       description: payload.description ?? "",
       isActive: true,
+      price: payload.price,
     });
     await stylesBlock.reset();
     return;
@@ -314,6 +325,7 @@ async function onSaveEdit(payload: CatalogEditPayload) {
       name: payload.name,
       description: payload.description ?? "",
       isActive: true,
+      price: payload.price,
     });
     await flowersBlock.reset();
     return;
@@ -413,6 +425,11 @@ const cards = [
                   <span class="truncate text-[12px] text-[#6B7280]">{{
                     it.description
                   }}</span>
+                  <span
+                    v-if="moneyToNumber(it.price) > 0"
+                    class="text-[11px] font-medium text-[#C9007C]"
+                    >{{ formatMXN(moneyToNumber(it.price)) }}</span
+                  >
                 </div>
 
                 <!-- Acciones (hover) -->
