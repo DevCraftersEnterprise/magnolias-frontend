@@ -5,9 +5,11 @@ const ordersServiceMock = vi.hoisted(() => ({
     getOrder: vi.fn(),
     updateOrder: vi.fn(),
     assignOrderDetail: vi.fn(),
+    assignOrderDelivery: vi.fn(),
 }))
 const usersServiceMock = vi.hoisted(() => ({
     getBakersByBranch: vi.fn().mockResolvedValue([]),
+    getDriversByBranch: vi.fn().mockResolvedValue([]),
 }))
 const catalogsServiceMock = vi.hoisted(() => ({
     getBreadTypes: vi.fn().mockResolvedValue({ items: [] }),
@@ -35,6 +37,7 @@ vi.mock('vue-toastification', async (importOriginal) => {
 
 import DetailModal from './DetailModal.vue'
 import type { OrderItem } from '~/types/order.types'
+import { useAuthUser } from '~/composables/useAuthUser'
 
 const baseOrder = {
     id: 'order-1',
@@ -177,5 +180,63 @@ describe('DetailModal - autoría (createdBy/updatedBy)', () => {
         const wrapper = await mountModal()
 
         expect(wrapper.text()).toContain('Sucursal Morelos')
+    })
+})
+
+describe('DetailModal - repartidor asignado (Cliente #8)', () => {
+    beforeEach(() => {
+        ordersServiceMock.getOrder.mockReset()
+        ordersServiceMock.assignOrderDelivery.mockReset()
+        usersServiceMock.getDriversByBranch.mockReset().mockResolvedValue([])
+        useAuthUser().user.value = null
+    })
+
+    it('no muestra la sección "Reparto" para un usuario que no es ADMIN/SUPER', async () => {
+        useAuthUser().user.value = { id: 'u1', username: 'x', isActive: true, role: 'EMPLOYEE' } as any
+        ordersServiceMock.getOrder.mockResolvedValue(baseDetail())
+
+        const wrapper = await mountModal()
+
+        expect(wrapper.text()).not.toContain('Reparto')
+    })
+
+    it('muestra el selector de repartidor y carga los repartidores de la sucursal para un ADMIN', async () => {
+        useAuthUser().user.value = { id: 'u1', username: 'x', isActive: true, role: 'ADMIN' } as any
+        usersServiceMock.getDriversByBranch.mockResolvedValue([
+            { id: 'driver-1', name: 'Luis', lastname: 'Pérez' },
+        ])
+        ordersServiceMock.getOrder.mockResolvedValue(baseDetail())
+
+        const wrapper = await mountModal()
+
+        expect(usersServiceMock.getDriversByBranch).toHaveBeenCalledWith('branch-1')
+        expect(wrapper.text()).toContain('Reparto')
+        expect(wrapper.text()).toContain('Luis Pérez')
+    })
+
+    it('asigna un repartidor y actualiza la asignación mostrada', async () => {
+        useAuthUser().user.value = { id: 'u1', username: 'x', isActive: true, role: 'SUPER' } as any
+        usersServiceMock.getDriversByBranch.mockResolvedValue([
+            { id: 'driver-1', name: 'Luis', lastname: 'Pérez' },
+        ])
+        ordersServiceMock.getOrder.mockResolvedValue(baseDetail())
+        const assignment = {
+            id: 'da1',
+            driver: { id: 'driver-1', name: 'Luis', lastname: 'Pérez' },
+            assignedDate: '2026-09-01T00:00:00Z',
+        }
+        ordersServiceMock.assignOrderDelivery.mockResolvedValue(assignment)
+
+        const wrapper = await mountModal()
+        await wrapper.find('select[id^="assignment-driver-"]').setValue('driver-1')
+        await flushPromises()
+
+        expect(ordersServiceMock.assignOrderDelivery).toHaveBeenCalledWith(
+            'order-1',
+            'driver-1',
+        )
+        expect(
+            (wrapper.find('select[id^="assignment-driver-"]').element as HTMLSelectElement).value,
+        ).toBe('driver-1')
     })
 })

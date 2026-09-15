@@ -92,4 +92,49 @@ describe('UserCreateModal', () => {
 
         expect(values).toContain('EMPLOYEE')
     })
+
+    it('ofrece el rol Repartidor (DRIVER) y muestra el selector de sucursales múltiples (cliente #8)', async () => {
+        const wrapper = mountModal({ mode: 'create' })
+        await flushPromises()
+
+        const options = wrapper.find('select').findAll('option')
+        const values = options.map((o) => o.attributes('value'))
+        expect(values).toContain('DRIVER')
+
+        await wrapper.find('select').setValue('DRIVER')
+        await flushPromises()
+
+        expect(wrapper.find('input[type="checkbox"]').exists()).toBe(false)
+        // Sin sucursales cargadas, se muestra el mensaje de carga en vez del
+        // checkbox — igual que para BAKER.
+        expect(wrapper.text()).toContain('Cargando sucursales')
+        // No debe mostrar los campos exclusivos de BAKER (Área/Especialidad).
+        expect(wrapper.text()).not.toContain('Especialidad');
+    })
+
+    it('envía branchIds al crear un DRIVER (sin area/specialty)', async () => {
+        branchesServiceMock.getBranches.mockResolvedValueOnce([
+            { id: 'b1', name: 'Sucursal Centro' },
+        ])
+        usersServiceMock.createUser.mockResolvedValueOnce({ id: 'u1' })
+        const wrapper = mountModal({ mode: 'create' })
+        await flushPromises()
+
+        await wrapper.find('select').setValue('DRIVER')
+        await flushPromises()
+
+        await wrapper.find('input[type="checkbox"]').setValue(true)
+        await wrapper.find('form').trigger('submit.prevent')
+        await flushPromises()
+
+        expect(usersServiceMock.createUser).toHaveBeenCalledWith(
+            expect.objectContaining({
+                role: 'DRIVER',
+                branchIds: ['b1'],
+            }),
+        )
+        expect(usersServiceMock.createUser).toHaveBeenCalledWith(
+            expect.not.objectContaining({ area: expect.anything() }),
+        )
+    })
 })

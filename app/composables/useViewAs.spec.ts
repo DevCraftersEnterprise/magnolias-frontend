@@ -21,6 +21,8 @@ describe('useViewAs', () => {
         navigateToMock.mockReset()
         useViewAs().viewAsBaker.value = false
         useViewAs().viewAsBakerId.value = ''
+        useViewAs().viewAsDriver.value = false
+        useViewAs().viewAsDriverId.value = ''
         setUserRole(null)
     })
 
@@ -101,6 +103,67 @@ describe('useViewAs', () => {
             exitViewAs()
 
             expect(viewAsBakerId.value).toBe('')
+        })
+    })
+
+    describe('vista simulada de repartidor (cliente #8)', () => {
+        it('retorna DRIVER cuando un ADMIN activa la vista simulada de repartidor', async () => {
+            setUserRole('ADMIN')
+            const { enterViewAsDriver, effectiveRole } = useViewAs()
+
+            await enterViewAsDriver()
+
+            expect(effectiveRole.value).toBe('DRIVER')
+        })
+
+        it('activa viewAsDriver y navega a /admin/pedidos/reparto cuando el rol lo permite', async () => {
+            setUserRole('SUPER')
+            const { enterViewAsDriver, viewAsDriver } = useViewAs()
+
+            await enterViewAsDriver()
+
+            expect(viewAsDriver.value).toBe(true)
+            expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos/reparto')
+        })
+
+        it('no hace nada si el rol real no puede simular', async () => {
+            setUserRole('DRIVER')
+            const { enterViewAsDriver, viewAsDriver } = useViewAs()
+
+            await enterViewAsDriver()
+
+            expect(viewAsDriver.value).toBe(false)
+            expect(navigateToMock).not.toHaveBeenCalled()
+        })
+
+        it('activar la vista de repartidor apaga la de pastelero, y viceversa', async () => {
+            setUserRole('ADMIN')
+            const { enterViewAsBaker, enterViewAsDriver, viewAsBaker, viewAsDriver } =
+                useViewAs()
+
+            await enterViewAsBaker()
+            expect(viewAsBaker.value).toBe(true)
+
+            await enterViewAsDriver()
+            expect(viewAsDriver.value).toBe(true)
+            expect(viewAsBaker.value).toBe(false)
+
+            await enterViewAsBaker()
+            expect(viewAsBaker.value).toBe(true)
+            expect(viewAsDriver.value).toBe(false)
+        })
+
+        it('exitViewAs limpia también el repartidor seleccionado', async () => {
+            setUserRole('ADMIN')
+            const { enterViewAsDriver, exitViewAs, viewAsDriver, viewAsDriverId } =
+                useViewAs()
+            await enterViewAsDriver()
+            viewAsDriverId.value = 'driver-1'
+
+            exitViewAs()
+
+            expect(viewAsDriver.value).toBe(false)
+            expect(viewAsDriverId.value).toBe('')
         })
     })
 })

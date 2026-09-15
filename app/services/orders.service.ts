@@ -1,5 +1,5 @@
 import { apiFetch } from '~/services/api.client'
-import type { CreateOrderPayload, OrderDetail, OrderDetailAssignmentCard, OrderDetailItem, OrderDetailProductionStatus, OrderFilters, OrderItem, OrderLineAssignment, OrdersResponse, OrderStatus, UpdateOrderPayload } from '~/types/order.types';
+import type { CreateOrderPayload, OrderDeliveryAssignment, OrderDeliveryAssignmentCard, OrderDetail, OrderDetailAssignmentCard, OrderDetailItem, OrderDetailProductionStatus, OrderFilters, OrderItem, OrderLineAssignment, OrdersResponse, OrderStatus, UpdateOrderPayload } from '~/types/order.types';
 
 // ─── Service ───────────────────────────────────────────────────────────────
 export const ordersService = {
@@ -114,6 +114,22 @@ export const ordersService = {
   getBakerDetailAssignments(bakerId: string) {
     return apiFetch<OrderDetailAssignmentCard[]>(
       `/api/orders/details/assignments/${bakerId}`,
+      { method: 'GET', auth: true },
+    )
+  },
+
+  /** Asigna (o reasigna) un repartidor a un pedido completo (Cliente #8). */
+  assignOrderDelivery(orderId: string, driverId: string, notes?: string) {
+    return apiFetch<OrderDeliveryAssignment>(
+      `/api/orders/${orderId}/delivery/assign`,
+      { method: 'POST', auth: true, body: JSON.stringify({ driverId, ...(notes ? { notes } : {}) }) },
+    )
+  },
+
+  /** Pedidos asignados a un repartidor (para su lista de reparto). */
+  getDriverAssignments(driverId: string) {
+    return apiFetch<OrderDeliveryAssignmentCard[]>(
+      `/api/orders/delivery/assignments/${driverId}`,
       { method: 'GET', auth: true },
     )
   },

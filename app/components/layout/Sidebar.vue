@@ -13,6 +13,7 @@ const itemsBase = [
     adminOnly: true,
   },
   { label: "Pedidos", to: "/admin/pedidos", key: "pedidos" },
+  { label: "Reparto", to: "/admin/pedidos/reparto", key: "reparto" },
   {
     label: "Sucursales",
     to: "/admin/sucursales",
@@ -47,10 +48,25 @@ const items = computed(() => {
   switch (role) {
     case "BAKER":
       return itemsBase.filter((i) => i.key === "pedidos");
+    case "DRIVER":
+      return itemsBase.filter((i) => i.key === "reparto");
     default:
       return itemsBase.filter(
-        (i) => !i.adminOnly || role === "ADMIN" || role === "SUPER",
+        (i) =>
+          i.key !== "reparto" &&
+          (!i.adminOnly || role === "ADMIN" || role === "SUPER"),
       );
+  }
+});
+
+const logoLink = computed(() => {
+  switch (effectiveRole.value) {
+    case "BAKER":
+      return "/admin/pedidos";
+    case "DRIVER":
+      return "/admin/pedidos/reparto";
+    default:
+      return "/admin";
   }
 });
 </script>
@@ -58,7 +74,7 @@ const items = computed(() => {
 <template>
   <div class="sticky top-0 h-screen py-[18px] px-3 overflow-y-auto">
     <div class="grid place-items-center pt-[14px] pb-[26px]">
-      <NuxtLink :to="effectiveRole === 'BAKER' ? '/admin/pedidos' : '/admin'">
+      <NuxtLink :to="logoLink">
         <img
           src="/img/magnolias-logo.png"
           alt="Magnolias"
