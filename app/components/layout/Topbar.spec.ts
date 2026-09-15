@@ -1,14 +1,24 @@
 import { mount, flushPromises } from '@vue/test-utils'
+import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const usersServiceMock = vi.hoisted(() => ({
     getBakersByBranch: vi.fn(),
     getDriversByBranch: vi.fn(),
 }))
+const { navigateToMock } = vi.hoisted(() => ({
+    navigateToMock: vi.fn(),
+}))
 
 vi.mock('~/services/users.service', () => ({
     usersService: usersServiceMock,
 }))
+
+// enterViewAsBaker/enterViewAsDriver llaman a navigateTo() real de Nuxt: sin
+// mockear, la navegación queda pendiente tras terminar el test y puede
+// resolverse ya con el entorno jsdom del archivo desmontado ("history is not
+// defined"), rompiendo la suite completa de forma intermitente en CI.
+mockNuxtImport('navigateTo', () => navigateToMock)
 
 import Topbar from './Topbar.vue'
 import { useAuthUser } from '~/composables/useAuthUser'
@@ -34,6 +44,7 @@ describe('Topbar', () => {
     beforeEach(() => {
         usersServiceMock.getBakersByBranch.mockReset().mockResolvedValue([])
         usersServiceMock.getDriversByBranch.mockReset().mockResolvedValue([])
+        navigateToMock.mockReset()
         useAuthUser().user.value = null
         useBranch().branches.value = []
         useBranch().selectedBranch.value = null
