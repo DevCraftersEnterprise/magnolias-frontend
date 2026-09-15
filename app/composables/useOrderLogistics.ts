@@ -63,7 +63,7 @@ export function useOrderLogistics(
         eventMontageDate: "", eventExitTime: "",
         eventGuestCount: "" as number | "",
         eventResponsibleName: "",
-        eventServices: { dessertTable: false, cake: false, cheeseTable: false, plated: false },
+        eventServices: defaultEventServicesFlags(),
         useCommonAddr: false, commonAddrId: "",
         saveAsCommonAddr: false, commonAddrName: "",
     });
