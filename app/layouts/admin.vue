@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { loadUserFromToken, clearUser } = useAuthUser();
-const { loadBranches } = useBranch();
+const { loadBranches, resetBranch } = useBranch();
+const { exitViewAs } = useViewAs();
 
 const drawerOpen = ref(false);
 const collapsed = ref(false);
@@ -37,6 +38,8 @@ async function logout() {
   useCookie("access_token").value = null;
   useCookie("refresh_token").value = null;
   clearUser();
+  resetBranch();
+  exitViewAs();
   await navigateTo("/login");
 }
 </script>
