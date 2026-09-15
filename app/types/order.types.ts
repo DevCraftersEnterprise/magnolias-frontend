@@ -183,6 +183,43 @@ export type OrderDetailAssignmentCard = {
     };
 }
 
+// Asignación de repartidor a nivel de pedido completo (Cliente #8) - a
+// diferencia de OrderLineAssignment (por línea de producto).
+export type OrderDeliveryAssignedDriver = {
+    id: string;
+    name: string;
+    lastname: string;
+    role?: string;
+    phone?: string | null;
+}
+
+export type OrderDeliveryAssignment = {
+    id: string;
+    driver: OrderDeliveryAssignedDriver;
+    assignedDate: string;
+    notes?: string | null;
+}
+
+// Tarjeta de la lista de reparto (GET /api/orders/delivery/assignments/:driverId)
+export type OrderDeliveryAssignmentCard = {
+    id: string;
+    assignedDate: string;
+    notes?: string | null;
+    order: {
+        id: string;
+        orderCode: string;
+        deliveryDate: string;
+        deliveryTime?: string | null;
+        status: OrderStatus;
+        isEvento?: boolean;
+        isEnTienda?: boolean;
+        remainingBalance?: string;
+        branch?: { id: string; name: string };
+        customer?: { fullName: string };
+        details?: { product?: { name: string } | null }[];
+    };
+}
+
 export type OrderDetailCustomer = {
     id: string;
     fullName: string;
@@ -290,6 +327,7 @@ export type OrderDetail = {
     orderFlowers: any[];
     payments?: OrderPayment[];
     employeeActions?: OrderEmployeeActionItem[];
+    deliveryAssignments?: OrderDeliveryAssignment[];
 }
 
 export type OrderDetailTierPayload = {

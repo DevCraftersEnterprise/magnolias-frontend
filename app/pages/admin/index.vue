@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
   layout: "admin",
-  middleware: ["baker-redirect"],
+  middleware: ["baker-redirect", "driver-redirect"],
   pageTitle: "Panel Administrativo",
 });
 useHead({ title: "Panel · Magnolias" });

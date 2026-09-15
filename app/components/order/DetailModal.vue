@@ -3,6 +3,7 @@ import { ordersService } from "~/services/orders.service";
 import type { OrderDetail, OrderItem } from "~/types/order.types";
 import { useToast } from "vue-toastification";
 import { useOrderDetailAssignment } from "~/composables/useOrderDetailAssignment";
+import { useOrderDeliveryAssignment } from "~/composables/useOrderDeliveryAssignment";
 
 const props = defineProps<{
   open: boolean;
@@ -25,6 +26,17 @@ const loadingDetail = ref(false);
 const { bakers, bakersLoading, assigningDetailId, loadBakers, assignBaker } =
   useOrderDetailAssignment();
 
+// ── Asignación de repartidor a nivel de pedido (Cliente #8) ─────────────────
+// canToggleViewAs ya equivale a "es un ADMIN/SUPER real" (ver useViewAs.ts).
+const { canToggleViewAs: canAssignDriver } = useViewAs();
+const {
+  drivers,
+  driversLoading,
+  assigningOrderId,
+  loadDrivers,
+  assignDriver,
+} = useOrderDeliveryAssignment();
+
 watch(
   () => props.open,
   async (v) => {
@@ -37,6 +49,7 @@ watch(
       activeData.value = await ordersService.getOrder(props.order.id);
       if (activeData.value?.branch?.id) {
         loadBakers(activeData.value.branch.id);
+        if (canAssignDriver.value) loadDrivers(activeData.value.branch.id);
       }
     } catch {
       activeData.value = null; // fall back to list data
@@ -55,6 +68,18 @@ async function onAssignBaker(detailId: string, bakerId: string) {
     toast.success("Repostero asignado correctamente.");
   } catch (e: any) {
     toast.error(e?.message || "No se pudo asignar el repostero.");
+  }
+}
+
+async function onAssignDriver(driverId: string) {
+  if (!props.order) return;
+  try {
+    const assignment = await assignDriver(props.order.id, driverId);
+    if (!activeData.value) return;
+    activeData.value.deliveryAssignments = [assignment];
+    toast.success("Repartidor asignado correctamente.");
+  } catch (e: any) {
+    toast.error(e?.message || "No se pudo asignar el repartidor.");
   }
 }
 
@@ -592,6 +617,24 @@ async function downloadFormat() {
                       </p>
                     </template>
                   </div>
+                </div>
+              </div>
+
+              <!-- ─ Repartidor asignado (Cliente #8, solo ADMIN/SUPER) ─ -->
+              <div v-if="canAssignDriver && activeData">
+                <p
+                  class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400"
+                >
+                  Reparto
+                </p>
+                <div class="rounded-xl bg-[#F8F8F9] px-4 py-3">
+                  <OrderDeliveryAssignmentRow
+                    :order-id="activeData.id"
+                    :assignment="activeData.deliveryAssignments?.[0]"
+                    :drivers="drivers"
+                    :loading="driversLoading || assigningOrderId === activeData.id"
+                    @assign="onAssignDriver"
+                  />
                 </div>
               </div>
 
