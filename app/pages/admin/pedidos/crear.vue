@@ -87,8 +87,15 @@ const {
   MIN_TIERS,
 } = useProductBuilder(colorCatalog);
 
-const { step4, serviceCost, subtotal, orderTotal, remaining, PAYMENT_TYPES } =
-  useOrderPayment(orderProducts);
+const {
+  step4,
+  serviceCost,
+  specialRoundCost,
+  subtotal,
+  orderTotal,
+  remaining,
+  PAYMENT_TYPES,
+} = useOrderPayment(orderProducts);
 
 // ─── Precio sugerido de catálogo (paso 4: verificar/ajustar el precio) ───────
 // Cliente #1: los catálogos ahora tienen precio; se muestra la suma de lo
@@ -305,6 +312,7 @@ async function submitOrder() {
       "1": "ROUND_1",
       "2": "ROUND_2",
       "3": "ROUND_3",
+      especial: "RONDA_ESPECIAL",
     };
     const deliveryRound = step2.deliveryRound
       ? (roundMap[step2.deliveryRound] ?? step2.deliveryRound)
@@ -424,6 +432,7 @@ async function submitOrder() {
       eventServices:
         isEvento && eventServicesList.length ? eventServicesList : undefined,
       setupServiceCost: serviceCost.value || undefined,
+      specialRoundCost: specialRoundCost.value || undefined,
       hasPhotoReference: orderProducts.value.some((r) => r.referenceFiles.length > 0),
       requiresInvoice: step4.requiresInvoice || undefined,
       transferAccount:
@@ -1093,6 +1102,8 @@ function next() {
           <template v-if="needsDelivery">
             <OrderDeliveryTimingDetails
               :step2="step2"
+              :special-round-cost="specialRoundCost"
+              @update:special-round-cost="specialRoundCost = $event"
               :delivery-time-parts="deliveryTimeParts"
               :exit-time-parts="exitTimeParts"
               :min-delivery-date="minDeliveryDate"

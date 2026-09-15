@@ -110,8 +110,15 @@ async function removeExistingRefImage(rowIndex: number, imageId: string) {
   }
 }
 
-const { step4, serviceCost, subtotal, orderTotal, remaining, PAYMENT_TYPES } =
-  useOrderPayment(orderProducts);
+const {
+  step4,
+  serviceCost,
+  specialRoundCost,
+  subtotal,
+  orderTotal,
+  remaining,
+  PAYMENT_TYPES,
+} = useOrderPayment(orderProducts);
 
 // ─── Precio sugerido de catálogo (paso 4: verificar/ajustar el precio) ───────
 // Cliente #1: los catálogos ahora tienen precio; se muestra la suma de lo
@@ -369,6 +376,7 @@ function populateFromOrder(order: OrderDetail) {
     ROUND_1: "1",
     ROUND_2: "2",
     ROUND_3: "3",
+    RONDA_ESPECIAL: "especial",
   };
   if (order.deliveryRound)
     step2.deliveryRound = roundRev[order.deliveryRound] ?? "";
@@ -494,6 +502,9 @@ function populateFromOrder(order: OrderDetail) {
     serviceCost.value = derived > 0 ? derived : 0;
   }
 
+  // Special round cost (cliente #3)
+  specialRoundCost.value = parseMoney(order.specialRoundCost);
+
   // Flowers
   if (order.orderFlowers && order.orderFlowers.length > 0) {
     flowerRows.value = order.orderFlowers.map((f: any) => ({
@@ -590,6 +601,7 @@ async function submitOrder() {
       "1": "ROUND_1",
       "2": "ROUND_2",
       "3": "ROUND_3",
+      especial: "RONDA_ESPECIAL",
     };
     const deliveryRound = step2.deliveryRound
       ? (roundMap[step2.deliveryRound] ?? step2.deliveryRound)
@@ -703,6 +715,7 @@ async function submitOrder() {
         eventServices: eventServices.length ? eventServices : undefined,
       }),
       setupServiceCost: serviceCost.value || undefined,
+      specialRoundCost: specialRoundCost.value || undefined,
       requiresInvoice: step4.requiresInvoice || undefined,
       // Vacío = conservar el valor ya guardado (ver populateFromOrder: el
       // backend nunca devuelve este dato, así que el campo siempre arranca
@@ -1108,6 +1121,8 @@ function next() {
             <template v-if="needsDelivery">
               <OrderDeliveryTimingDetails
                 :step2="step2"
+                :special-round-cost="specialRoundCost"
+                @update:special-round-cost="specialRoundCost = $event"
                 :delivery-time-parts="deliveryTimeParts"
                 :exit-time-parts="exitTimeParts"
                 :min-delivery-date="minDeliveryDate"
