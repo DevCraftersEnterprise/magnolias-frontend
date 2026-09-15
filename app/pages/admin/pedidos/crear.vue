@@ -13,6 +13,7 @@ import OrderDeliveryAddressForm from "~/components/order/OrderDeliveryAddressFor
 import OrderEventServicesAndDetails from "~/components/order/OrderEventServicesAndDetails.vue";
 import OrderProductTiersEditor from "~/components/order/OrderProductTiersEditor.vue";
 import OrderDetailTiersSummary from "~/components/order/OrderDetailTiersSummary.vue";
+import OrderDetailCatalogPriceCheck from "~/components/order/OrderDetailCatalogPriceCheck.vue";
 
 const router = useRouter();
 const toast = useToast();
@@ -86,6 +87,18 @@ const {
 
 const { step4, serviceCost, subtotal, orderTotal, remaining, PAYMENT_TYPES } =
   useOrderPayment(orderProducts);
+
+// ─── Precio sugerido de catálogo (paso 4: verificar/ajustar el precio) ───────
+// Cliente #1: los catálogos ahora tienen precio; se muestra la suma de lo
+// elegido junto al precio capturado manualmente para que el empleado lo
+// verifique antes de confirmar. No se autosuma al precio de la línea. Cálculo
+// compartido con editar.vue vía useCatalogPriceSum (evita duplicar lógica).
+const detailRowCatalogPriceSum = useCatalogPriceSum(detailRow, {
+  breadTypes,
+  fillings,
+  frostings,
+  styles,
+});
 
 // ─── Descuentos por producto (requiere autorización de admin/super) ───────────
 const {
@@ -2785,6 +2798,12 @@ function next() {
                     />
                   </div>
                 </div>
+
+                <OrderDetailCatalogPriceCheck
+                  :has-tiers="detailRow.hasTiers"
+                  :price="detailRow.price"
+                  :catalog-price-sum="detailRowCatalogPriceSum"
+                />
               </div>
 
               <!-- Footer -->
