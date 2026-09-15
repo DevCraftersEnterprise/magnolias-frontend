@@ -9,6 +9,10 @@ defineProps<{
     eventResponsibleName: string;
   };
 }>();
+
+const emit = defineEmits<{
+  (e: "update:eventService", key: keyof EventServicesFlags, value: boolean): void;
+}>();
 </script>
 
 <template>
@@ -30,9 +34,16 @@ defineProps<{
         class="flex items-center gap-2 cursor-pointer select-none"
       >
         <input
-          v-model="step2.eventServices[opt.key]"
+          :checked="step2.eventServices[opt.key]"
           type="checkbox"
           class="h-4 w-4 rounded border-gray-300 text-[#FC9AD3] focus:ring-[#FC9AD3]/50"
+          @change="
+            emit(
+              'update:eventService',
+              opt.key,
+              ($event.target as HTMLInputElement).checked,
+            )
+          "
         />
         <span class="text-[13px] text-gray-700">{{ opt.label }}</span>
       </label>

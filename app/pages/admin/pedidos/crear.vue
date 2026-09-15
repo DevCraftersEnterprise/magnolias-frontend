@@ -1294,7 +1294,13 @@ function next() {
           </fieldset>
 
           <!-- ── Servicios y Detalles del Evento ─────────────────────────── -->
-          <OrderEventServicesAndDetails v-if="step2.isEvento" :step2="step2" />
+          <OrderEventServicesAndDetails
+            v-if="step2.isEvento"
+            :step2="step2"
+            @update:event-service="
+              (key, value) => (step2.eventServices[key] = value)
+            "
+          />
         </div>
       </div>
 

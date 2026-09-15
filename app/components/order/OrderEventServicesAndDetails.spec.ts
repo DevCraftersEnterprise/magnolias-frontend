@@ -28,21 +28,27 @@ describe('OrderEventServicesAndDetails — Charolas y Mesa de bocadillos (client
         expect(wrapper.findAll('input[type="checkbox"]')).toHaveLength(6)
     })
 
-    it('marcar el checkbox de Charolas actualiza step2.eventServices.trays', async () => {
-        const { wrapper, step2 } = mountComponent()
+    it('marcar el checkbox de Charolas emite update:eventService con "trays"', async () => {
+        const { wrapper } = mountComponent()
 
         const checkboxes = wrapper.findAll('input[type="checkbox"]')
         await checkboxes[4]!.setValue(true) // orden de EVENT_SERVICE_OPTIONS: ...plated, trays, snackTable
 
-        expect(step2.eventServices.trays).toBe(true)
+        expect(wrapper.emitted('update:eventService')?.[0]).toEqual([
+            'trays',
+            true,
+        ])
     })
 
-    it('marcar el checkbox de Mesa de bocadillos actualiza step2.eventServices.snackTable', async () => {
-        const { wrapper, step2 } = mountComponent()
+    it('marcar el checkbox de Mesa de bocadillos emite update:eventService con "snackTable"', async () => {
+        const { wrapper } = mountComponent()
 
         const checkboxes = wrapper.findAll('input[type="checkbox"]')
         await checkboxes[5]!.setValue(true)
 
-        expect(step2.eventServices.snackTable).toBe(true)
+        expect(wrapper.emitted('update:eventService')?.[0]).toEqual([
+            'snackTable',
+            true,
+        ])
     })
 })
