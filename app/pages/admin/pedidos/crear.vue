@@ -28,6 +28,8 @@ const {
   flowerCatalog,
   colorCatalog,
   commonAddresses,
+  decorations,
+  fruits,
   colorName,
   colorHex,
   catalogLabel,
@@ -98,6 +100,8 @@ const detailRowCatalogPriceSum = useCatalogPriceSum(detailRow, {
   fillings,
   frostings,
   styles,
+  decorations,
+  fruits,
 });
 
 // ─── Descuentos por producto (requiere autorización de admin/super) ───────────
@@ -1858,6 +1862,72 @@ function next() {
                         </svg>
                       </div>
                     </div>
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                        >Decoración</span
+                      >
+                      <div class="relative">
+                        <select
+                          v-model="row.decorationId"
+                          aria-label="Decoración"
+                          class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                        >
+                          <option value="">—</option>
+                          <option
+                            v-for="d in decorations"
+                            :key="d.id"
+                            :value="d.id"
+                          >
+                            {{ d.name }}
+                          </option>
+                        </select>
+                        <svg
+                          class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2.5"
+                        >
+                          <path
+                            d="M6 9l6 6 6-6"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                        >Fruta</span
+                      >
+                      <div class="relative">
+                        <select
+                          v-model="row.fruitId"
+                          aria-label="Fruta"
+                          class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                        >
+                          <option value="">—</option>
+                          <option v-for="fr in fruits" :key="fr.id" :value="fr.id">
+                            {{ fr.name }}
+                          </option>
+                        </select>
+                        <svg
+                          class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2.5"
+                        >
+                          <path
+                            d="M6 9l6 6 6-6"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
 
                   <!-- Row 3: Texto -->
@@ -1933,6 +2003,7 @@ function next() {
                     <div class="relative">
                       <select
                         v-model="row.mangaStyle"
+                        aria-label="Decoración con manga"
                         class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
                       >
                         <option value="">—</option>
@@ -2271,6 +2342,7 @@ function next() {
             <div class="relative">
               <select
                 v-model="step4.paymentType"
+                aria-label="Tipo de Pago"
                 class="w-full appearance-none rounded-xl bg-[#F3F3F4] pl-4 pr-9 py-2.5 text-[13px] text-[#111827] outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
               >
                 <option
@@ -2750,6 +2822,21 @@ function next() {
                   <span class="text-[12px] text-gray-500">Forma</span>
                   <span class="text-[12px] font-semibold text-[#111827]">{{
                     catalogLabel(styles, detailRow.styleId)
+                  }}</span>
+                </div>
+                <div
+                  v-if="detailRow.decorationId"
+                  class="flex justify-between py-2"
+                >
+                  <span class="text-[12px] text-gray-500">Decoración</span>
+                  <span class="text-[12px] font-semibold text-[#111827]">{{
+                    catalogLabel(decorations, detailRow.decorationId)
+                  }}</span>
+                </div>
+                <div v-if="detailRow.fruitId" class="flex justify-between py-2">
+                  <span class="text-[12px] text-gray-500">Fruta</span>
+                  <span class="text-[12px] font-semibold text-[#111827]">{{
+                    catalogLabel(fruits, detailRow.fruitId)
                   }}</span>
                 </div>
                 <div

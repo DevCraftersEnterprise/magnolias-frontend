@@ -457,6 +457,8 @@ function baseRow(overrides: Partial<OrderProductRow> = {}): OrderProductRow {
         fillingId: '',
         frostingId: '',
         styleId: '',
+        decorationId: '',
+        fruitId: '',
         withText: false,
         text: '',
         textLocation: 'TOP',
@@ -548,6 +550,15 @@ describe('buildOrderDetailPayload', () => {
         )
 
         expect(result.styleId).toBe('style-1');
+    })
+
+    it('mapea decorationId/fruitId (catálogos nuevos, a nivel de fila)', () => {
+        const result = buildOrderDetailPayload(
+            baseRow({ decorationId: 'decoration-1', fruitId: 'fruit-1' }),
+        )
+
+        expect(result.decorationId).toBe('decoration-1');
+        expect(result.fruitId).toBe('fruit-1');
     })
 
     it('no incluye discountPercent (cada página lo agrega con su propia regla)', () => {

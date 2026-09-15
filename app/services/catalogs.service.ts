@@ -1,5 +1,5 @@
 import { apiFetch } from '~/services/api.client'
-import type { BreadTypeItem, ColorItem, CreateCatalogPayload, CreateColorPayload, FillingItem, FlowerItem, FrostingItem, StyleItem, UpdateCatalogPayload } from '~/types/catalog.types';
+import type { BreadTypeItem, ColorItem, CreateCatalogPayload, CreateColorPayload, DecorationItem, FillingItem, FlowerItem, FrostingItem, FruitItem, StyleItem, UpdateCatalogPayload } from '~/types/catalog.types';
 
 
 export const catalogsService = {
@@ -43,6 +43,20 @@ export const catalogsService = {
     )
   },
 
+  getDecorations(limit: number = 10, offset: number = 0, isActive: boolean = true) {
+    return apiFetch<{ items: DecorationItem[]; total: number; pagination: { limit: number; offset: number; totalPages: number; currentPage: number } }>(
+      withPagination('/api/decorations', limit, offset, { isActive }),
+      { method: 'GET', auth: true }
+    )
+  },
+
+  getFruits(limit: number = 10, offset: number = 0, isActive: boolean = true) {
+    return apiFetch<{ items: FruitItem[]; total: number; pagination: { limit: number; offset: number; totalPages: number; currentPage: number } }>(
+      withPagination('/api/fruits', limit, offset, { isActive }),
+      { method: 'GET', auth: true }
+    )
+  },
+
   /** ===== POST (Create) ===== */
   createBreadType(payload: CreateCatalogPayload) {
     return apiFetch<BreadTypeItem>('/api/bread-types', { method: 'POST', auth: true, body: payload })
@@ -58,6 +72,12 @@ export const catalogsService = {
   },
   createFlower(payload: CreateCatalogPayload) {
     return apiFetch<FlowerItem>('/api/flowers', { method: 'POST', auth: true, body: payload })
+  },
+  createDecoration(payload: CreateCatalogPayload) {
+    return apiFetch<DecorationItem>('/api/decorations', { method: 'POST', auth: true, body: payload })
+  },
+  createFruit(payload: CreateCatalogPayload) {
+    return apiFetch<FruitItem>('/api/fruits', { method: 'POST', auth: true, body: payload })
   },
   createColor(payload: CreateColorPayload) {
     return apiFetch<ColorItem>('/api/colors', { method: 'POST', auth: true, body: payload })
@@ -79,6 +99,12 @@ export const catalogsService = {
   patchFlower(id: string, payload: UpdateCatalogPayload) {
     return apiFetch<FlowerItem>(`/api/flowers/${id}`, { method: 'PATCH', auth: true, body: payload })
   },
+  patchDecoration(id: string, payload: UpdateCatalogPayload) {
+    return apiFetch<DecorationItem>(`/api/decorations/${id}`, { method: 'PATCH', auth: true, body: payload })
+  },
+  patchFruit(id: string, payload: UpdateCatalogPayload) {
+    return apiFetch<FruitItem>(`/api/fruits/${id}`, { method: 'PATCH', auth: true, body: payload })
+  },
 
   /** ===== DELETE (Soft delete) ===== */
   deleteBreadType(id: string) {
@@ -95,6 +121,12 @@ export const catalogsService = {
   },
   deleteFlower(id: string) {
     return apiFetch<void>(`/api/flowers/${id}`, { method: 'DELETE', auth: true })
+  },
+  deleteDecoration(id: string) {
+    return apiFetch<void>(`/api/decorations/${id}`, { method: 'DELETE', auth: true })
+  },
+  deleteFruit(id: string) {
+    return apiFetch<void>(`/api/fruits/${id}`, { method: 'DELETE', auth: true })
   },
   deleteColor(id: string) {
     return apiFetch<void>(`/api/colors/${id}`, { method: 'DELETE', auth: true })

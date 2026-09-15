@@ -17,6 +17,7 @@ export type OrderProductRow = {
     qty: number; price: number;
     sizeId: ProductSize | ''; colorId: string; breadId: string;
     fillingId: string; frostingId: string; styleId: string;
+    decorationId: string; fruitId: string;
     withText: boolean; text: string; textLocation: string;
     mangaStyle: string; mangaNotes: string;
     customSize: string; notes: string;
@@ -75,6 +76,8 @@ export function buildOrderDetailPayload(row: OrderProductRow) {
         fillingId: row.hasTiers ? undefined : row.fillingId || undefined,
         frostingId: row.hasTiers ? undefined : row.frostingId || undefined,
         styleId: row.styleId || undefined,
+        decorationId: row.decorationId || undefined,
+        fruitId: row.fruitId || undefined,
         referenceFiles:
             row.referenceFiles.length > 0 ? row.referenceFiles : undefined,
         tiers: row.hasTiers
@@ -143,6 +146,7 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
             product: p, qty: 1, price: 0,
             sizeId: "", colorId: "", breadId: "",
             fillingId: "", frostingId: "", styleId: "",
+            decorationId: "", fruitId: "",
             withText: false, text: "", textLocation: "TOP",
             mangaStyle: "", mangaNotes: "", customSize: "", notes: "",
             withReference: false, referenceFiles: [], referencePreviews: [],

@@ -8,6 +8,8 @@ function catalogs() {
         fillings: ref([{ id: 'fi-1', price: '$20.00' }]),
         frostings: ref([{ id: 'fr-1', price: '$5.00' }]),
         styles: ref([{ id: 'st-1', price: '$15.00' }]),
+        decorations: ref([{ id: 'de-1', price: '$8.00' }]),
+        fruits: ref([{ id: 'fu-1', price: '$12.00' }]),
     }
 }
 
@@ -25,10 +27,12 @@ describe('useCatalogPriceSum', () => {
             fillingId: 'fi-1',
             frostingId: 'fr-1',
             styleId: 'st-1',
+            decorationId: 'de-1',
+            fruitId: 'fu-1',
         })
         const sum = useCatalogPriceSum(row, catalogs())
 
-        expect(sum.value).toBe(50)
+        expect(sum.value).toBe(70)
     })
 
     it('ignora selecciones vacías o que no existen en el catálogo', () => {
