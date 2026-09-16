@@ -716,26 +716,26 @@ function onOrderPaymentUpdated(payload: {
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
                                 :class="
-                                  ['DELIVERED', 'CANCELED'].includes(
+                                  NON_EDITABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   )
                                     ? 'text-gray-200 cursor-not-allowed'
                                     : 'text-gray-400 hover:bg-purple-50 hover:text-[#7C00C9]'
                                 "
                                 :title="
-                                  ['DELIVERED', 'CANCELED'].includes(
+                                  NON_EDITABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   )
                                     ? 'No se puede asignar en este estado'
                                     : 'Asignar reposteros por línea'
                                 "
                                 :disabled="
-                                  ['DELIVERED', 'CANCELED'].includes(
+                                  NON_EDITABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   )
                                 "
                                 @click.stop="
-                                  !['DELIVERED', 'CANCELED'].includes(
+                                  !NON_EDITABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   ) && openDetail(order)
                                 "
@@ -804,26 +804,26 @@ function onOrderPaymentUpdated(payload: {
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
                                 :class="
-                                  ['DELIVERED', 'CANCELED'].includes(
+                                  NON_EDITABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   )
                                     ? 'text-gray-200 cursor-not-allowed'
                                     : 'text-gray-400 hover:bg-orange-50 hover:text-orange-500'
                                 "
                                 :title="
-                                  ['DELIVERED', 'CANCELED'].includes(
+                                  NON_EDITABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   )
                                     ? 'No se puede cancelar un pedido entregado o ya cancelado'
                                     : 'Cancelar pedido'
                                 "
                                 :disabled="
-                                  ['DELIVERED', 'CANCELED'].includes(
+                                  NON_EDITABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   )
                                 "
                                 @click="
-                                  !['DELIVERED', 'CANCELED'].includes(
+                                  !NON_EDITABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   ) && confirmCancel(order)
                                 "

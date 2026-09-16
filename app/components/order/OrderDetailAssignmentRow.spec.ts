@@ -54,6 +54,17 @@ describe('OrderDetailAssignmentRow', () => {
         expect(wrapper.find('select').attributes('disabled')).toBeDefined()
     })
 
+    it('deshabilita el select y no emite assign cuando readOnly es true (cliente: no reasignar tras entregado/cancelado)', async () => {
+        const wrapper = mountRow({ readOnly: true })
+
+        const select = wrapper.find('select')
+        expect(select.attributes('disabled')).toBeDefined()
+
+        await select.setValue('baker-1')
+
+        expect(wrapper.emitted('assign')).toBeUndefined()
+    })
+
     it('lista todos los reposteros recibidos como opciones', () => {
         const wrapper = mountRow()
 

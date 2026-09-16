@@ -657,6 +657,7 @@ async function downloadFormat() {
                     :assignment="activeData.deliveryAssignments?.[0]"
                     :drivers="drivers"
                     :loading="driversLoading || assigningOrderId === activeData.id"
+                    :read-only="NON_EDITABLE_ORDER_STATUSES.includes(activeData.status)"
                     @assign="onAssignDriver"
                   />
                 </div>
@@ -812,6 +813,7 @@ async function downloadFormat() {
                         :assignment="detail.assignments?.[0]"
                         :bakers="bakers"
                         :loading="bakersLoading || assigningDetailId === detail.id"
+                        :read-only="NON_EDITABLE_ORDER_STATUSES.includes(activeData.status)"
                         @assign="(bakerId) => onAssignBaker(detail.id, bakerId)"
                       />
                       <!-- Pisos (pastel de 2+ pisos) -->
