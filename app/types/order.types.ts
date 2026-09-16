@@ -1,4 +1,4 @@
-export type OrderStatus = 'CREATED' | 'IN PROCESS' | 'DONE' | 'DELIVERED' | 'CANCELED';
+export type OrderStatus = 'CREATED' | 'IN PROCESS' | 'DONE' | 'IN DELIVERY' | 'DELIVERED' | 'CANCELED';
 export type ProductSize = '10P' | '15P' | '20P' | '25P' | '30P' | '40P' | '50P' | 'CUSTOM';
 
 export type OrderDeliveryAddress = {

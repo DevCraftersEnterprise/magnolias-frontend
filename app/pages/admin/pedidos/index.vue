@@ -292,6 +292,7 @@ async function loadKanbanOrders() {
     );
     kanbanAssignments.value = (data ?? []).filter(
       (c) =>
+        c.orderDetail.order.status !== "IN DELIVERY" &&
         c.orderDetail.order.status !== "DELIVERED" &&
         c.orderDetail.order.status !== "CANCELED",
     );
@@ -469,7 +470,8 @@ function onOrderPaymentUpdated(payload: {
                   <option value="">Estado: Todos</option>
                   <option value="CREATED">Creado</option>
                   <option value="IN PROCESS">En proceso</option>
-                  <option value="DONE">Finalizado</option>
+                  <option value="DONE">Listo</option>
+                  <option value="IN DELIVERY">En proceso de entrega</option>
                   <option value="DELIVERED">Entregado</option>
                   <option value="CANCELED">Cancelado</option>
                 </select>
@@ -755,12 +757,12 @@ function onOrderPaymentUpdated(payload: {
                                   <line x1="22" y1="11" x2="16" y2="11" />
                                 </svg>
                               </button>
-                              <!-- Marcar como entregado (solo DONE + saldo en cero) -->
+                              <!-- Marcar como entregado (solo IN DELIVERY + saldo en cero) -->
                               <button
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
                                 :class="
-                                  order.status === 'DONE' &&
+                                  order.status === 'IN DELIVERY' &&
                                   parseFloat(
                                     (order.remainingBalance ?? '0').replace(
                                       /[^0-9.-]/g,
@@ -771,8 +773,8 @@ function onOrderPaymentUpdated(payload: {
                                     : 'text-gray-200 cursor-not-allowed'
                                 "
                                 :title="
-                                  order.status !== 'DONE'
-                                    ? 'Solo se pueden entregar pedidos listos'
+                                  order.status !== 'IN DELIVERY'
+                                    ? 'El pedido debe estar en proceso de entrega'
                                     : parseFloat(
                                           (
                                             order.remainingBalance ?? '0'
@@ -782,7 +784,7 @@ function onOrderPaymentUpdated(payload: {
                                       : 'Marcar como entregado'
                                 "
                                 :disabled="
-                                  order.status !== 'DONE' ||
+                                  order.status !== 'IN DELIVERY' ||
                                   parseFloat(
                                     (order.remainingBalance ?? '0').replace(
                                       /[^0-9.-]/g,
@@ -791,7 +793,7 @@ function onOrderPaymentUpdated(payload: {
                                   ) > 0
                                 "
                                 @click="
-                                  order.status === 'DONE' &&
+                                  order.status === 'IN DELIVERY' &&
                                   parseFloat(
                                     (order.remainingBalance ?? '0').replace(
                                       /[^0-9.-]/g,

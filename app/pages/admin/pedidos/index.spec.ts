@@ -265,7 +265,7 @@ describe('pages/admin/pedidos/index - entregar y cancelar (sesión no-empleado)'
                 {
                     id: 'order-1',
                     orderCode: 'PED-0001',
-                    status: 'DONE',
+                    status: 'IN DELIVERY',
                     remainingBalance: '0',
                     isEvento: false,
                     isEnTienda: false,
@@ -327,7 +327,7 @@ describe('pages/admin/pedidos/index - entregar y cancelar (sesión no-empleado)'
                 {
                     id: 'order-1',
                     orderCode: 'PED-0001',
-                    status: 'DONE',
+                    status: 'IN DELIVERY',
                     remainingBalance: '0',
                     isEvento: false,
                     isEnTienda: false,

@@ -278,10 +278,10 @@ watch([driverId, selectedBranch], () => loadAssignments(), { immediate: true });
               <div class="border-t border-black/[0.06] px-3 py-2.5">
                 <button
                   class="w-full rounded-lg bg-green-50 py-1.5 text-[12px] font-semibold text-green-700 hover:bg-green-100 transition disabled:opacity-40"
-                  :disabled="card.order.status !== 'DONE'"
+                  :disabled="card.order.status !== 'IN DELIVERY'"
                   :title="
-                    card.order.status !== 'DONE'
-                      ? 'Solo se pueden entregar pedidos listos'
+                    card.order.status !== 'IN DELIVERY'
+                      ? 'El pedido debe estar en proceso de entrega'
                       : 'Marcar como entregado'
                   "
                   @click="confirmDeliver(card)"

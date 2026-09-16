@@ -225,7 +225,7 @@ export const manualSections: ManualSection[] = [
                     'Al ingresar a la sección Pedidos desde el menú lateral, verás una tabla con todos los pedidos registrados en la sucursal seleccionada. Cada fila muestra: código del pedido, tipo, nombre del cliente y teléfono, total y saldo pendiente, estado actual, pastelero asignado, y fechas de creación y actualización.',
                 steps: [
                     'Usa la barra de búsqueda para filtrar por nombre del cliente en tiempo real.',
-                    'Usa el selector de Estado para filtrar: Todos, Creado, En proceso, Finalizado, Entregado o Cancelado.',
+                    'Usa el selector de Estado para filtrar: Todos, Creado, En proceso, Listo, En proceso de entrega, Entregado o Cancelado.',
                     'Si hay más de 15 pedidos, usa los botones Anterior y Siguiente para navegar entre páginas.',
                 ],
             },
@@ -322,7 +322,7 @@ export const manualSections: ManualSection[] = [
                     'Selecciona al repostero disponible en la sucursal; la asignación se guarda de inmediato.',
                     'Una línea sin asignar sigue siendo visible y puede ser tomada por cualquier pastelero de la sucursal desde su propio tablero.',
                 ],
-                tip: 'El estado general del pedido (Creado / En proceso / Finalizado) ya no se cambia manualmente: se calcula automáticamente a partir del avance de producción de cada línea — pasa a "En proceso" en cuanto una línea inicia, y a "Finalizado" solo cuando todas las líneas están listas.',
+                tip: 'El estado general del pedido (Creado / En proceso / Listo) ya no se cambia manualmente: se calcula automáticamente a partir del avance de producción de cada línea — pasa a "En proceso" en cuanto una línea inicia, y a "Listo" solo cuando todas las líneas están listas.',
                 warning: 'Administrador y Superadministrador conservan la opción de forzar manualmente el estado completo del pedido (por ejemplo, para corregir un caso excepcional), pero el uso normal del día a día es por línea.',
             },
             {
@@ -745,13 +745,14 @@ export const manualSections: ManualSection[] = [
             {
                 id: 'estados-pedido',
                 title: '10.2 Estados de un pedido',
-                content: 'Un pedido pasa por los siguientes estados. Creado, En proceso y Finalizado ya no se marcan a mano: se calculan automáticamente a partir del avance de producción de cada línea de producto (ver "Asignación de repostero por producto" en la sección Pedidos).',
+                content: 'Un pedido pasa por los siguientes estados. Creado, En proceso y Listo ya no se marcan a mano: se calculan automáticamente a partir del avance de producción de cada línea de producto (ver "Asignación de repostero por producto" en la sección Pedidos).',
                 tableHeaders: ['Estado', 'Color', 'Descripción', '¿Cómo se llega a él?'],
                 tableRows: [
                     ['Creado', 'Verde', 'Registrado, ninguna línea ha iniciado producción', 'Automático al crear el pedido'],
                     ['En proceso', 'Amarillo', 'Al menos una línea de producto ya inició producción', 'Automático en cuanto un pastelero inicia una línea'],
-                    ['Finalizado', 'Azul', 'Todas las líneas de producto están listas', 'Automático cuando la última línea queda lista'],
-                    ['Entregado', 'Naranja', 'Fue entregado al cliente', 'Admin / Sucursal, manualmente'],
+                    ['Listo', 'Azul', 'Todas las líneas de producto están listas', 'Automático cuando la última línea queda lista'],
+                    ['En proceso de entrega', 'Morado', 'Un repartidor tomó el pedido y lo lleva en camino', 'Automático cuando un repartidor toma el pedido'],
+                    ['Entregado', 'Naranja', 'Fue entregado al cliente', 'Repartidor, manualmente (exige saldo en cero)'],
                     ['Cancelado', 'Rojo', 'Cancelado; requiere motivo', 'Admin / Sucursal, manualmente'],
                 ],
                 tip: 'Un pedido puede ser cancelado desde cualquier estado antes de ser entregado. Administrador y Superadministrador conservan una opción para forzar manualmente el estado completo del pedido en casos excepcionales.',
