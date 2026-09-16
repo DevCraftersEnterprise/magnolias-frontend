@@ -109,6 +109,9 @@ async function executeDeliver() {
 
   if (isEmployeeSession.value && !employeeActionToken.value) {
     pendingEmployeeAction.value = "deliver";
+    // El modal de confirmación de entrega debe cerrarse antes de abrir el de
+    // PIN: si no, ambos quedan superpuestos (cliente).
+    deliverConfirm.value = false;
     openEmployeePinModal();
     return;
   }
@@ -177,6 +180,9 @@ async function executeCancel() {
 
   if (isEmployeeSession.value && !employeeActionToken.value) {
     pendingEmployeeAction.value = "cancel";
+    // Mismo caso que en executeDeliver: cerrar el modal de confirmación
+    // antes de abrir el de PIN para que no queden apilados.
+    cancelConfirm.value = false;
     openEmployeePinModal();
     return;
   }
