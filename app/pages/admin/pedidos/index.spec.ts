@@ -319,4 +319,71 @@ describe('pages/admin/pedidos/index - entregar y cancelar (sesión no-empleado)'
             undefined,
         )
     })
+
+    it('cierra el modal de confirmación de entrega al pedir el PIN de empleado (cliente: quedaban apilados)', async () => {
+        useAuthUser().user.value = { id: 'emp-1', username: 'sucursal', isActive: true, role: 'EMPLOYEE' } as any
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                {
+                    id: 'order-1',
+                    orderCode: 'PED-0001',
+                    status: 'DONE',
+                    remainingBalance: '0',
+                    isEvento: false,
+                    isEnTienda: false,
+                },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        await wrapper.find('button[title="Marcar como entregado"]').trigger('click')
+        const confirmBtn = wrapper
+            .findAll('button')
+            .find((b) => b.text() === 'Confirmar entrega')
+        await confirmBtn!.trigger('click')
+        await flushPromises()
+
+        expect(wrapper.text()).toContain('Identifícate')
+        expect(
+            wrapper.findAll('button').find((b) => b.text() === 'Confirmar entrega'),
+        ).toBeUndefined()
+        expect(ordersServiceMock.markDelivered).not.toHaveBeenCalled()
+    })
+
+    it('cierra el modal de confirmación de cancelación al pedir el PIN de empleado', async () => {
+        useAuthUser().user.value = { id: 'emp-1', username: 'sucursal', isActive: true, role: 'EMPLOYEE' } as any
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                {
+                    id: 'order-1',
+                    orderCode: 'PED-0001',
+                    status: 'CREATED',
+                    remainingBalance: '0',
+                    isEvento: false,
+                    isEnTienda: false,
+                },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        await wrapper.find('button[title="Cancelar pedido"]').trigger('click')
+        await wrapper.find('textarea').setValue('Cliente canceló')
+        const confirmBtn = wrapper
+            .findAll('button')
+            .find((b) => b.text() === 'Cancelar pedido' && !b.attributes('title'))
+        await confirmBtn!.trigger('click')
+        await flushPromises()
+
+        expect(wrapper.text()).toContain('Identifícate')
+        expect(
+            wrapper
+                .findAll('button')
+                .find((b) => b.text() === 'Cancelar pedido' && !b.attributes('title')),
+        ).toBeUndefined()
+        expect(ordersServiceMock.cancelOrder).not.toHaveBeenCalled()
+    })
 })
