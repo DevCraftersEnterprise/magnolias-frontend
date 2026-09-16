@@ -129,6 +129,39 @@ describe('OrderProductTiersEditor', () => {
         )
     })
 
+    it('actualiza tier.styleId al elegir una forma en el select del piso', async () => {
+        const t = tier()
+        const wrapper = mountEditor([t])
+
+        const styleSelect = wrapper.find('select[id^="tier-style-"]')
+        await styleSelect.setValue('style-1')
+
+        expect(t.styleId).toBe('style-1')
+    })
+
+    it('limpia la forma del piso al cambiar a un tamaño con el que ya no es compatible', async () => {
+        const t = tier({ sizeId: '20P', styleId: 'style-1' })
+        const wrapper = mount(OrderProductTiersEditor, {
+            props: {
+                hasTiers: true,
+                tiers: [t],
+                colorCatalog: [],
+                breadTypes: [],
+                fillings: [],
+                frostings: [],
+                styles: [
+                    { id: 'style-1', name: 'Redondo', applicableSizes: ['20P'] },
+                ],
+                minTiers: 2,
+            },
+        })
+
+        const sizeSelect = wrapper.find('select[id^="tier-size-"]')
+        await sizeSelect.setValue('30P')
+
+        expect(t.styleId).toBe('')
+    })
+
     it('filtra las formas del piso según applicableSizes del tamaño elegido', () => {
         const wrapper = mount(OrderProductTiersEditor, {
             props: {
