@@ -217,6 +217,7 @@ export type OrderDeliveryAssignmentCard = {
         branch?: { id: string; name: string };
         customer?: { fullName: string };
         details?: { product?: { name: string } | null }[];
+        deliveryAddress?: OrderDetailDeliveryAddress;
     };
 }
 
