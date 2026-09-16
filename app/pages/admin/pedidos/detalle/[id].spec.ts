@@ -86,6 +86,29 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
         expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos', { replace: true })
     })
 
+    it('no muestra la descripción del producto (cliente: innecesaria en la vista de pastelero)', async () => {
+        ordersServiceMock.getOrder.mockResolvedValue(
+            baseOrder({
+                details: [
+                    {
+                        id: 'd1',
+                        quantity: 1,
+                        product: {
+                            name: 'Personalizado',
+                            description: 'Descripción detallada del producto',
+                        },
+                        productSize: '20P',
+                    },
+                ],
+            }),
+        )
+
+        const wrapper = await mountPage()
+
+        expect(wrapper.text()).toContain('Personalizado')
+        expect(wrapper.text()).not.toContain('Descripción detallada del producto')
+    })
+
     it('muestra el desglose de cada piso para un pastel de varios niveles', async () => {
         ordersServiceMock.getOrder.mockResolvedValue(
             baseOrder({
