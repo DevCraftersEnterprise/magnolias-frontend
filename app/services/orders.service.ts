@@ -1,5 +1,5 @@
 import { apiFetch } from '~/services/api.client'
-import type { CreateOrderPayload, OrderDeliveryAssignment, OrderDeliveryAssignmentCard, OrderDetail, OrderDetailAssignmentCard, OrderDetailItem, OrderDetailProductionStatus, OrderFilters, OrderItem, OrderLineAssignment, OrdersResponse, OrderStatus, UpdateOrderPayload } from '~/types/order.types';
+import type { CreateOrderPayload, OrderAvailableDeliveryOrder, OrderDeliveryAssignment, OrderDeliveryAssignmentCard, OrderDetail, OrderDetailAssignmentCard, OrderDetailItem, OrderDetailProductionStatus, OrderFilters, OrderItem, OrderLineAssignment, OrdersResponse, OrderStatus, UpdateOrderPayload } from '~/types/order.types';
 
 // ─── Service ───────────────────────────────────────────────────────────────
 export const ordersService = {
@@ -131,6 +131,22 @@ export const ordersService = {
     return apiFetch<OrderDeliveryAssignmentCard[]>(
       `/api/orders/delivery/assignments/${driverId}`,
       { method: 'GET', auth: true },
+    )
+  },
+
+  /** Pedidos "Listos" de la sucursal del repartidor, sin repartidor asignado. */
+  getAvailableDeliveries() {
+    return apiFetch<OrderAvailableDeliveryOrder[]>(
+      `/api/orders/delivery/available`,
+      { method: 'GET', auth: true },
+    )
+  },
+
+  /** El repartidor autenticado toma un pedido disponible (self-assign). */
+  claimDelivery(orderId: string, notes?: string) {
+    return apiFetch<OrderDeliveryAssignment>(
+      `/api/orders/${orderId}/delivery/claim`,
+      { method: 'POST', auth: true, body: JSON.stringify(notes ? { notes } : {}) },
     )
   },
 
