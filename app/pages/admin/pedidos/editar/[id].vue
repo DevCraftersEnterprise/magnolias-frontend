@@ -1575,6 +1575,7 @@ function next() {
                       :bread-types="breadTypes"
                       :fillings="fillings"
                       :frostings="frostings"
+                      :styles="styles"
                       :min-tiers="MIN_TIERS"
                       @update:has-tiers="(v) => setHasTiers(i, v)"
                       @add-tier="addTier(i)"
