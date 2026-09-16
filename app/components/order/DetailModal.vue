@@ -177,6 +177,10 @@ async function saveAbono() {
   }
 }
 
+// Precio de catálogo actual (referencia) - cliente: no se sumaban los
+// precios de pan/relleno/cobertura/decoración/fruta/flores en el detalle.
+const catalogPriceTotal = useOrderCatalogPriceTotal(activeData);
+
 // ── Computed from detail (fallback to list data) ────────────────────────────
 const activeDeliveryAddress = computed(
   () => activeData.value?.deliveryAddress ?? props.order?.deliveryAddress,
@@ -936,6 +940,21 @@ async function downloadFormat() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <!-- Precio de catálogo actual (referencia, no snapshot histórico) -->
+                <div
+                  v-if="catalogPriceTotal > 0"
+                  class="mt-2 flex items-center justify-between rounded-xl bg-[#F8F8F9] px-4 py-2.5 text-[12px]"
+                >
+                  <span
+                    class="text-gray-400"
+                    title="Suma del precio ACTUAL de pan, relleno, cobertura, decoración, fruta y flores del pedido. Puede no coincidir con lo cobrado si el precio del catálogo cambió después."
+                    >Precio de catálogo (referencia)</span
+                  >
+                  <span class="font-semibold text-[#111827]">{{
+                    formatMXN(catalogPriceTotal)
+                  }}</span>
                 </div>
               </div>
 
