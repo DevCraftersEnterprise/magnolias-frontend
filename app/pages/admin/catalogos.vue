@@ -601,6 +601,7 @@ const cards = [
       :model="editModel"
       :title="modalTitle"
       :show-applicable-sizes="editBlock === 'estilo'"
+      :hide-price="editBlock === 'estilo'"
       @save="onSaveEdit"
     />
 

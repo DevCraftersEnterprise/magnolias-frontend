@@ -5,16 +5,17 @@ type PricedRow = {
     breadId?: string;
     fillingId?: string;
     frostingId?: string;
-    styleId?: string;
     decorationId?: string;
     fruitId?: string;
 };
 
 /**
  * Suma los precios de catálogo elegidos en una línea de producto (relleno,
- * frosting, forma, tipo de pan, decoración, fruta), para verificar/ajustar
- * el precio capturado manualmente en el paso 4. Compartido entre crear.vue
- * y editar.vue para no duplicar este cálculo en ambas páginas del wizard.
+ * frosting, tipo de pan, decoración, fruta), para verificar/ajustar el
+ * precio capturado manualmente en el paso 4. Compartido entre crear.vue y
+ * editar.vue para no duplicar este cálculo en ambas páginas del wizard.
+ * Forma (Style) no se incluye: el cliente decidió que forma y tamaño no
+ * deben manejar precio.
  */
 export function useCatalogPriceSum(
     row: Ref<PricedRow | null>,
@@ -22,7 +23,6 @@ export function useCatalogPriceSum(
         breadTypes: Ref<PricedCatalogItem[]>;
         fillings: Ref<PricedCatalogItem[]>;
         frostings: Ref<PricedCatalogItem[]>;
-        styles: Ref<PricedCatalogItem[]>;
         decorations: Ref<PricedCatalogItem[]>;
         fruits: Ref<PricedCatalogItem[]>;
     },
@@ -34,7 +34,6 @@ export function useCatalogPriceSum(
             catalogPrice(catalogs.breadTypes.value, r.breadId ?? "") +
             catalogPrice(catalogs.fillings.value, r.fillingId ?? "") +
             catalogPrice(catalogs.frostings.value, r.frostingId ?? "") +
-            catalogPrice(catalogs.styles.value, r.styleId ?? "") +
             catalogPrice(catalogs.decorations.value, r.decorationId ?? "") +
             catalogPrice(catalogs.fruits.value, r.fruitId ?? "")
         );
