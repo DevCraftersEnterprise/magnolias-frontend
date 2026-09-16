@@ -271,6 +271,9 @@ watch([driverId, selectedBranch], () => loadAssignments(), { immediate: true });
                     >{{ STATUS_LABELS[card.order.status] ?? card.order.status }}</span
                   >
                 </div>
+                <div v-if="card.order.deliveryAddress" class="px-3.5 pb-3">
+                  <OrderDeliveryAddressSummary :address="card.order.deliveryAddress" />
+                </div>
               </button>
               <div class="border-t border-black/[0.06] px-3 py-2.5">
                 <button
