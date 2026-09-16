@@ -96,6 +96,28 @@ const abonoSaving = ref(false);
 const toast = useToast();
 const abonoSuccess = ref(false);
 
+// ── Autoría de empleado (cuenta compartida de sucursal, Cliente #11) ────────
+// El backend exige employeeActionToken en cualquier updateOrder hecho por una
+// sesión EMPLOYEE; antes este modal no lo pedía y el abono fallaba con un
+// error genérico sin llegar a mostrar el modal de PIN.
+const { user } = useAuthUser();
+const isEmployeeSession = computed(() => user.value?.role === "EMPLOYEE");
+const {
+  modalOpen: employeePinModalOpen,
+  loading: employeePinLoading,
+  error: employeePinError,
+  employeeActionToken,
+  openModal: openEmployeePinModal,
+  verifyPin: verifyEmployeePin,
+  reset: resetEmployeePin,
+} = useEmployeePin();
+
+async function onEmployeePinSubmit(pin: string) {
+  const ok = await verifyEmployeePin(pin);
+  if (!ok) return;
+  await saveAbono();
+}
+
 const remainingParsed = computed(() => {
   const raw =
     activeData.value?.remainingBalance ?? props.order?.remainingBalance ?? "";
@@ -118,10 +140,25 @@ watch(
 async function saveAbono() {
   const amount = Number(abonoAmount.value);
   if (!amount || amount <= 0 || !props.order) return;
+
+  if (isEmployeeSession.value && !employeeActionToken.value) {
+    openEmployeePinModal();
+    return;
+  }
+
   abonoSaving.value = true;
   abonoSuccess.value = false;
+  // Token de un solo uso: se consume aquí para que el siguiente abono (en
+  // este mismo pedido u otro) vuelva a pedir el PIN, en vez de asumir que
+  // sigue siendo el mismo compañero frente al mostrador.
+  const actionToken = employeeActionToken.value || undefined;
+  if (isEmployeeSession.value) resetEmployeePin();
   try {
-    await ordersService.updateOrder({ id: props.order.id, payment: amount });
+    await ordersService.updateOrder({
+      id: props.order.id,
+      payment: amount,
+      employeeActionToken: actionToken,
+    });
     activeData.value = await ordersService.getOrder(props.order.id);
     abonoAmount.value = "";
     abonoSuccess.value = true;
@@ -1148,4 +1185,12 @@ async function downloadFormat() {
       </div>
     </Transition>
   </Teleport>
+
+  <OrderEmployeePinModal
+    v-model="employeePinModalOpen"
+    :loading="employeePinLoading"
+    :error="employeePinError"
+    action-label="registrar el abono"
+    @submit="onEmployeePinSubmit"
+  />
 </template>
