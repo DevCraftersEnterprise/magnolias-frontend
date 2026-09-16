@@ -763,43 +763,24 @@ function onOrderPaymentUpdated(payload: {
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
                                 :class="
                                   order.status === 'IN DELIVERY' &&
-                                  parseFloat(
-                                    (order.remainingBalance ?? '0').replace(
-                                      /[^0-9.-]/g,
-                                      '',
-                                    ),
-                                  ) <= 0
+                                  moneyToNumber(order.remainingBalance) <= 0
                                     ? 'text-gray-400 hover:bg-green-50 hover:text-green-600'
                                     : 'text-gray-200 cursor-not-allowed'
                                 "
                                 :title="
                                   order.status !== 'IN DELIVERY'
                                     ? 'El pedido debe estar en proceso de entrega'
-                                    : parseFloat(
-                                          (
-                                            order.remainingBalance ?? '0'
-                                          ).replace(/[^0-9.-]/g, ''),
-                                        ) > 0
+                                    : moneyToNumber(order.remainingBalance) > 0
                                       ? 'El pedido tiene saldo pendiente de pago'
                                       : 'Marcar como entregado'
                                 "
                                 :disabled="
                                   order.status !== 'IN DELIVERY' ||
-                                  parseFloat(
-                                    (order.remainingBalance ?? '0').replace(
-                                      /[^0-9.-]/g,
-                                      '',
-                                    ),
-                                  ) > 0
+                                  moneyToNumber(order.remainingBalance) > 0
                                 "
                                 @click="
                                   order.status === 'IN DELIVERY' &&
-                                  parseFloat(
-                                    (order.remainingBalance ?? '0').replace(
-                                      /[^0-9.-]/g,
-                                      '',
-                                    ),
-                                  ) <= 0 &&
+                                  moneyToNumber(order.remainingBalance) <= 0 &&
                                   confirmDeliver(order)
                                 "
                               >
