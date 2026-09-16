@@ -51,6 +51,14 @@ export const STATUS_COLORS: Record<OrderStatus, { bg: string; text: string }> = 
     'CANCELED': { bg: '#FFD9D9', text: '#C90000' },
 }
 
+// Estados sobre los que ya no se puede reasignar pastelero/repartidor
+// (cliente: una vez entregado o cancelado el pedido, esas asignaciones
+// quedan fijas).
+export const NON_EDITABLE_ORDER_STATUSES: OrderStatus[] = [
+    'DELIVERED',
+    'CANCELED',
+]
+
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
     CASH: 'Efectivo',
     TRANSFER: 'Transferencia',
