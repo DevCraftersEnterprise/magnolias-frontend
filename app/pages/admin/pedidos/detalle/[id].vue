@@ -353,12 +353,6 @@ function roundLabel(r?: string | null) {
                       >
                         {{ detail.product?.name ?? `Producto ${i + 1}` }}
                       </p>
-                      <p
-                        v-if="detail.product?.description"
-                        class="mt-1 text-[13px] text-gray-400"
-                      >
-                        {{ detail.product.description }}
-                      </p>
                     </div>
                     <span
                       class="shrink-0 rounded-xl bg-[#F5E6FA] px-4 py-2 text-[16px] font-bold text-[#7C00C9]"
