@@ -205,20 +205,24 @@ export type OrderDeliveryAssignmentCard = {
     id: string;
     assignedDate: string;
     notes?: string | null;
-    order: {
-        id: string;
-        orderCode: string;
-        deliveryDate: string;
-        deliveryTime?: string | null;
-        status: OrderStatus;
-        isEvento?: boolean;
-        isEnTienda?: boolean;
-        remainingBalance?: string;
-        branch?: { id: string; name: string };
-        customer?: { fullName: string };
-        details?: { product?: { name: string } | null }[];
-        deliveryAddress?: OrderDetailDeliveryAddress;
-    };
+    order: OrderAvailableDeliveryOrder;
+}
+
+// Pedido "Listo" (DONE) sin repartidor asignado, disponible para que un
+// repartidor lo tome (cliente: self-assign en vez de asignación por admin).
+export type OrderAvailableDeliveryOrder = {
+    id: string;
+    orderCode: string;
+    deliveryDate: string;
+    deliveryTime?: string | null;
+    status: OrderStatus;
+    isEvento?: boolean;
+    isEnTienda?: boolean;
+    remainingBalance?: string;
+    branch?: { id: string; name: string };
+    customer?: { fullName: string };
+    details?: { product?: { name: string } | null }[];
+    deliveryAddress?: OrderDetailDeliveryAddress;
 }
 
 export type OrderDetailCustomer = {
