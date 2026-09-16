@@ -28,6 +28,8 @@ const props = defineProps<{
   title?: string; // ✅ NUEVO
   // Cliente #5: solo el catálogo de Forma (estilo) restringe tamaños.
   showApplicableSizes?: boolean;
+  // Cliente: forma y tamaño no deben manejar precio.
+  hidePrice?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -66,7 +68,7 @@ function submit() {
     id: local.id,
     name: local.name,
     description: local.description,
-    price: local.price,
+    price: props.hidePrice ? undefined : local.price,
     applicableSizes:
       props.showApplicableSizes && local.applicableSizes?.length
         ? local.applicableSizes
@@ -108,7 +110,7 @@ function submit() {
         />
       </div>
 
-      <div>
+      <div v-if="!hidePrice">
         <label
           for="catalog-price"
           class="block text-[12px] font-semibold text-gray-600 mb-1"

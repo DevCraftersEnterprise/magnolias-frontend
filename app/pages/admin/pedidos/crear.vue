@@ -106,7 +106,6 @@ const detailRowCatalogPriceSum = useCatalogPriceSum(detailRow, {
   breadTypes,
   fillings,
   frostings,
-  styles,
   decorations,
   fruits,
 });

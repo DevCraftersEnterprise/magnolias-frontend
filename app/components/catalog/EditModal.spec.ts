@@ -50,6 +50,30 @@ describe('CatalogEditModal', () => {
         })
     })
 
+    it('no muestra el input de precio cuando hidePrice es true (Forma no maneja precio)', () => {
+        const wrapper = mountModal({
+            hidePrice: true,
+            model: { name: '', description: '' },
+        })
+
+        expect(wrapper.find('input[type="number"]').exists()).toBe(false)
+    })
+
+    it('emite save sin price aunque el model ya tuviera uno, cuando hidePrice es true', async () => {
+        const wrapper = mountModal({
+            hidePrice: true,
+            mode: 'edit',
+            model: { id: 'st-1', name: 'Rústico', price: 50 },
+        })
+
+        await wrapper.find('button.bg-\\[\\#1F1F1F\\]').trigger('click')
+
+        expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({
+            name: 'Rústico',
+            price: undefined,
+        })
+    })
+
     it('no muestra "Tamaños aplicables" cuando showApplicableSizes es false', () => {
         const wrapper = mountModal({ model: { name: '', description: '' } })
 
