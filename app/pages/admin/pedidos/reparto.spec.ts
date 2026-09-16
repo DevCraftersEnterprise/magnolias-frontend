@@ -33,6 +33,22 @@ function availableOrder(overrides: Record<string, unknown> = {}) {
     }
 }
 
+function assignmentCard(overrides: Record<string, unknown> = {}) {
+    return {
+        id: 'assignment-1',
+        assignedDate: new Date().toISOString(),
+        order: {
+            id: 'order-1',
+            orderCode: 'PED-0001',
+            status: 'IN DELIVERY',
+            deliveryDate: new Date().toISOString(),
+            isEvento: false,
+            isEnTienda: false,
+            ...overrides,
+        },
+    }
+}
+
 async function mountPage() {
     const wrapper = mount(RepartoPage, {
         global: { stubs: { teleport: true }, mocks: { navigateTo: navigateToMock } },
@@ -97,6 +113,33 @@ describe('pages/admin/pedidos/reparto - pestaña Disponibles (cliente: self-assi
         expect(toastMock.success).toHaveBeenCalled()
         expect(ordersServiceMock.getAvailableDeliveries).toHaveBeenCalledTimes(2)
         expect(ordersServiceMock.getDriverAssignments).toHaveBeenCalled()
+    })
+
+    it('no deja marcar como entregado un pedido IN DELIVERY con saldo pendiente (cliente: no entregar con saldo pendiente)', async () => {
+        ordersServiceMock.getDriverAssignments.mockResolvedValue([
+            assignmentCard({ remainingBalance: '150.00' }),
+        ])
+
+        const wrapper = await mountPage()
+        const allTab = wrapper.findAll('button').find((b) => b.text().includes('Todas'))
+        await allTab!.trigger('click')
+
+        const deliverBtn = wrapper.findAll('button').find((b) => b.text() === 'Marcar como entregado')
+        expect(deliverBtn).toBeTruthy()
+        expect(deliverBtn!.attributes('disabled')).toBeDefined()
+    })
+
+    it('permite marcar como entregado un pedido IN DELIVERY con saldo en cero', async () => {
+        ordersServiceMock.getDriverAssignments.mockResolvedValue([
+            assignmentCard({ remainingBalance: '0.00' }),
+        ])
+
+        const wrapper = await mountPage()
+        const allTab = wrapper.findAll('button').find((b) => b.text().includes('Todas'))
+        await allTab!.trigger('click')
+
+        const deliverBtn = wrapper.findAll('button').find((b) => b.text() === 'Marcar como entregado')
+        expect(deliverBtn!.attributes('disabled')).toBeUndefined()
     })
 
     it('muestra un error y refresca la lista si el pedido ya fue tomado por otro repartidor (409)', async () => {

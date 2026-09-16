@@ -352,11 +352,16 @@ watch([driverId, selectedBranch], () => loadAssignments(), { immediate: true });
                 <div class="border-t border-black/[0.06] px-3 py-2.5">
                   <button
                     class="w-full rounded-lg bg-green-50 py-1.5 text-[12px] font-semibold text-green-700 hover:bg-green-100 transition disabled:opacity-40"
-                    :disabled="card.order.status !== 'IN DELIVERY'"
+                    :disabled="
+                      card.order.status !== 'IN DELIVERY' ||
+                      moneyToNumber(card.order.remainingBalance) > 0
+                    "
                     :title="
                       card.order.status !== 'IN DELIVERY'
                         ? 'El pedido debe estar en proceso de entrega'
-                        : 'Marcar como entregado'
+                        : moneyToNumber(card.order.remainingBalance) > 0
+                          ? 'El pedido tiene saldo pendiente de pago'
+                          : 'Marcar como entregado'
                     "
                     @click="confirmDeliver(card)"
                   >
