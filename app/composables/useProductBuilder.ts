@@ -10,6 +10,7 @@ export type TierRow = {
     sizeId: ProductSize | ''; customSize: string;
     colorId: string; breadId: string;
     fillingId: string; frostingId: string;
+    styleId: string;
 };
 
 export type OrderProductRow = {
@@ -44,6 +45,7 @@ export function mapTierToPayload(tier: TierRow, index: number) {
         fillingId: tier.fillingId || undefined,
         frostingId: tier.frostingId || undefined,
         colorId: tier.colorId || undefined,
+        styleId: tier.styleId || undefined,
     };
 }
 
@@ -165,6 +167,7 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
             sizeId: "", customSize: "",
             colorId: "", breadId: "",
             fillingId: "", frostingId: "",
+            styleId: "",
         };
     }
 

@@ -442,6 +442,7 @@ function baseTier(overrides: Partial<TierRow> = {}): TierRow {
         breadId: '',
         fillingId: '',
         frostingId: '',
+        styleId: '',
         ...overrides,
     }
 }
@@ -492,6 +493,7 @@ describe('mapTierToPayload', () => {
             fillingId: undefined,
             frostingId: undefined,
             colorId: 'color-1',
+            styleId: undefined,
         })
     })
 
@@ -503,6 +505,15 @@ describe('mapTierToPayload', () => {
 
         expect(result.productSize).toBe('CUSTOM')
         expect(result.customSize).toBe('100 personas')
+    })
+
+    it('incluye la forma (styleId) del piso, si se eligió una (cliente: pisos sin forma)', () => {
+        const result = mapTierToPayload(
+            baseTier({ sizeId: '20P', styleId: 'style-1' }),
+            0,
+        )
+
+        expect(result.styleId).toBe('style-1')
     })
 })
 

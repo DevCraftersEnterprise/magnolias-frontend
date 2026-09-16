@@ -9,6 +9,8 @@ defineProps<{
   breadTypes: { id: string; name: string }[];
   fillings: { id: string; name: string }[];
   frostings: { id: string; name: string }[];
+  // Forma por piso (cliente): antes solo existía Tamaño en cada piso.
+  styles: { id: string; name: string; applicableSizes?: string[] }[];
   minTiers: number;
 }>();
 
@@ -108,6 +110,7 @@ const SIZE_OPTIONS: { value: ProductSize; label: string }[] = [
               :id="`tier-size-${tier.localId}`"
               v-model="tier.sizeId"
               class="appearance-none rounded-lg bg-white pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+              @change="resetIncompatibleStyle(tier, styles)"
             >
               <option value="">—</option>
               <option v-for="o in SIZE_OPTIONS" :key="o.value" :value="o.value">
@@ -129,6 +132,30 @@ const SIZE_OPTIONS: { value: ProductSize; label: string }[] = [
             placeholder="ej. 100 personas"
             class="w-28 rounded-lg bg-white px-2.5 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60"
           />
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label
+            :for="`tier-style-${tier.localId}`"
+            class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+            >Forma</label
+          >
+          <div class="relative">
+            <select
+              :id="`tier-style-${tier.localId}`"
+              v-model="tier.styleId"
+              class="appearance-none rounded-lg bg-white pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+            >
+              <option value="">—</option>
+              <option
+                v-for="s in filterStylesForSize(styles, tier.sizeId)"
+                :key="s.id"
+                :value="s.id"
+              >
+                {{ s.name }}
+              </option>
+            </select>
+          </div>
         </div>
 
         <div class="flex items-center gap-2">
