@@ -116,7 +116,17 @@ export type OrderDetailProduct = {
 export type OrderDetailCatalogItem = {
     id: string;
     name: string;
+    price?: string;
 } | null
+
+// Flor incluida en el pedido completo (no por línea de producto). Usado
+// para el desglose de precios de catálogo en el detalle del pedido.
+export type OrderDetailFlower = {
+    id?: string;
+    flower?: { id: string; name: string; price?: string } | null;
+    color?: { id: string; name: string; value?: string } | null;
+    quantity: number;
+}
 
 export type OrderDetailTier = {
     id?: string;
@@ -330,7 +340,7 @@ export type OrderDetail = {
     createdAt: string;
     updatedAt: string;
     details: OrderDetailItem[];
-    orderFlowers: any[];
+    orderFlowers: OrderDetailFlower[];
     payments?: OrderPayment[];
     employeeActions?: OrderEmployeeActionItem[];
     deliveryAssignments?: OrderDeliveryAssignment[];
