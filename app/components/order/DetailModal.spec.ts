@@ -240,3 +240,52 @@ describe('DetailModal - repartidor asignado (Cliente #8)', () => {
         ).toBe('driver-1')
     })
 })
+
+describe('DetailModal - abono y PIN de empleado (Cliente #11)', () => {
+    beforeEach(() => {
+        ordersServiceMock.getOrder.mockReset()
+        ordersServiceMock.updateOrder.mockReset()
+        useAuthUser().user.value = null
+    })
+
+    async function fillAbonoAndSave(wrapper: Awaited<ReturnType<typeof mountModal>>) {
+        await wrapper.find('input[type="number"]').setValue('50')
+        await wrapper
+            .findAll('button')
+            .find((b) => b.text() === 'Guardar')!
+            .trigger('click')
+        await flushPromises()
+    }
+
+    it('registra el abono directo cuando no es una sesión de empleado', async () => {
+        useAuthUser().user.value = { id: 'u1', username: 'x', isActive: true, role: 'ADMIN' } as any
+        ordersServiceMock.getOrder.mockResolvedValue(
+            baseDetail({ remainingBalance: '100.00' }),
+        )
+        ordersServiceMock.updateOrder.mockResolvedValue({})
+
+        const wrapper = await mountModal()
+        await fillAbonoAndSave(wrapper)
+
+        expect(ordersServiceMock.updateOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'order-1',
+                payment: 50,
+                employeeActionToken: undefined,
+            }),
+        )
+    })
+
+    it('abre el modal de PIN en vez de registrar el abono cuando es una sesión de empleado sin token', async () => {
+        useAuthUser().user.value = { id: 'emp-1', username: 'sucursal', isActive: true, role: 'EMPLOYEE' } as any
+        ordersServiceMock.getOrder.mockResolvedValue(
+            baseDetail({ remainingBalance: '100.00' }),
+        )
+
+        const wrapper = await mountModal()
+        await fillAbonoAndSave(wrapper)
+
+        expect(ordersServiceMock.updateOrder).not.toHaveBeenCalled()
+        expect(wrapper.text()).toContain('Identifícate')
+    })
+})
