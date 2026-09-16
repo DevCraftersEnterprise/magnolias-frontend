@@ -770,6 +770,12 @@ function roundLabel(r?: string | null) {
                     {{ order.eventTime }}
                   </p>
                 </div>
+                <div v-if="order.setupDate">
+                  <p class="text-[11px] text-gray-400">Fecha montaje</p>
+                  <p class="mt-0.5 text-[14px] font-semibold text-[#111827]">
+                    {{ formatDate(order.setupDate ?? "") }}
+                  </p>
+                </div>
                 <div v-if="order.setupTime">
                   <p class="text-[11px] text-gray-400">Montaje</p>
                   <p class="mt-0.5 text-[14px] font-semibold text-[#111827]">

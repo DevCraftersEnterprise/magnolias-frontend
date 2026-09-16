@@ -289,6 +289,7 @@ export type OrderDetail = {
     orderCode: string;
     deliveryRound?: string | null;
     deliveryDate: string;
+    setupDate?: string | null;
     deliveryTime?: string | null;
     readyTime?: string | null;
     eventTime?: string | null;
@@ -378,6 +379,7 @@ export type UpdateOrderPayload = {
     orderSource?: string;
     ticketNumber?: string;
     deliveryDate?: string;
+    setupDate?: string;
     deliveryTime?: string;
     readyTime?: string;
     deliveryRound?: string;
@@ -468,6 +470,7 @@ export type CreateOrderPayload = {
     orderSource: string;
     ticketNumber?: string;
     deliveryDate?: string;
+    setupDate?: string;
     deliveryTime?: string;
     readyTime?: string;
     deliveryRound?: string;

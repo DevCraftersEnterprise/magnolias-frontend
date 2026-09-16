@@ -194,6 +194,32 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
         expect(wrapper.text()).not.toContain('TOP_BORDER')
     })
 
+    it('muestra la fecha de montaje cuando el pedido la tiene (cliente: fecha de evento y montaje distintas)', async () => {
+        ordersServiceMock.getOrder.mockResolvedValue(
+            baseOrder({
+                isEvento: true,
+                deliveryDate: '2026-09-20T00:00:00Z',
+                setupDate: '2026-09-18T00:00:00Z',
+                details: [],
+            }),
+        )
+
+        const wrapper = await mountPage()
+
+        expect(wrapper.text()).toContain('Fecha montaje')
+        expect(wrapper.text()).toContain('18/09/2026')
+    })
+
+    it('no muestra la fecha de montaje cuando el pedido no la tiene', async () => {
+        ordersServiceMock.getOrder.mockResolvedValue(
+            baseOrder({ isEvento: true, details: [] }),
+        )
+
+        const wrapper = await mountPage()
+
+        expect(wrapper.text()).not.toContain('Fecha montaje')
+    })
+
     it('muestra el error si falla la carga del pedido', async () => {
         ordersServiceMock.getOrder.mockRejectedValue(new Error('No se pudo cargar'))
 

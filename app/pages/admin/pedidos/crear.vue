@@ -411,7 +411,7 @@ async function submitOrder() {
       deliveryRound,
       collectionDateTime,
       eventTime: isEvento ? step2.deliveryTime || undefined : undefined,
-      setupTime: isEvento ? step2.eventExitTime || undefined : undefined,
+      setupDate: isEvento ? step2.eventMontageDate || undefined : undefined,
       branchDepartureTime: isEvento
         ? step2.eventExitTime || undefined
         : undefined,

@@ -409,12 +409,15 @@ function populateFromOrder(order: OrderDetail) {
   if (order.isEvento) {
     step2.eventGuestCount = order.guestCount ?? "";
     step2.eventResponsibleName = order.setupPersonName ?? "";
+    step2.eventMontageDate = order.setupDate
+      ? order.setupDate.split("T")[0] ?? ""
+      : "";
     Object.assign(
       step2.eventServices,
       parseEventServicesPayload(order.eventServices),
     );
-    if (order.setupTime) {
-      const { h, m, p } = parseTime24(order.setupTime);
+    if (order.branchDepartureTime) {
+      const { h, m, p } = parseTime24(order.branchDepartureTime);
       exitTimeParts.h = h;
       exitTimeParts.m = m;
       exitTimeParts.p = p;
@@ -700,7 +703,7 @@ async function submitOrder() {
       collectionDateTime,
       ...(isEvento && {
         eventTime: step2.deliveryTime || undefined,
-        setupTime: step2.eventExitTime || undefined,
+        setupDate: step2.eventMontageDate || undefined,
         branchDepartureTime: step2.eventExitTime || undefined,
         setupPersonName: step2.eventResponsibleName || undefined,
         guestCount: step2.eventGuestCount
