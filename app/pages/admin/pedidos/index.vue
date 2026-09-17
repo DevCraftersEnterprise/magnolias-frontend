@@ -10,6 +10,7 @@ import type {
   OrderStatus,
 } from "~/types/order.types";
 import { useToast } from "vue-toastification";
+import draggable from "vuedraggable";
 
 const { user } = useAuthUser();
 const { selectedBranch } = useBranch();
@@ -25,14 +26,6 @@ const toast = useToast();
 const kanbanBakerId = computed(() =>
   canToggleViewAs.value ? viewAsBakerId.value : (user.value?.id ?? ""),
 );
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-function typeColor(o: { isEvento?: boolean; isEnTienda?: boolean }) {
-  return getOrderTypeColor(o);
-}
-function typeLabel(o: { isEvento?: boolean; isEnTienda?: boolean }) {
-  return getOrderTypeLabel(o);
-}
 
 // ─── TABLE STATE ─────────────────────────────────────────────────────────────
 const loading = ref(true);
@@ -350,6 +343,34 @@ async function confirmAdvanceStatus() {
   kanbanConfirmTarget.value = null;
   if (!card) return;
   await advanceStatus(card);
+}
+
+function cancelAdvanceStatus() {
+  kanbanConfirmTarget.value = null;
+  // Si el usuario canceló tras soltar una tarjeta (drag-and-drop), SortableJS
+  // ya movió el nodo visualmente antes de pedir confirmación. Forzar un
+  // nuevo array reconstruye los computeds de columna y hace que vuedraggable
+  // reconcilie el DOM con el estado real (la tarjeta "vuelve" a su columna).
+  kanbanAssignments.value = [...kanbanAssignments.value];
+}
+
+// ─── Kanban drag-and-drop (cliente: arrastrar tarjetas entre columnas) ─────
+// Solo se permite avanzar (Pendientes → En producción → Listos), nunca
+// retroceder ni saltar columnas - misma restricción implícita que ya tenía
+// el botón "siguiente estado" por tarjeta.
+function onMoveCheck(evt: any): boolean {
+  const card = evt.draggedContext?.element as
+    | OrderDetailAssignmentCard
+    | undefined;
+  const to = evt.to?.dataset?.status as OrderDetailProductionStatus | undefined;
+  if (!card || !to) return false;
+  return isValidKanbanMove(lineStatus(card), to);
+}
+
+function onDragChange(evt: any) {
+  if (evt.added) {
+    requestAdvanceStatus(evt.added.element as OrderDetailAssignmentCard);
+  }
 }
 
 // ─── Lifecycle & watchers ─────────────────────────────────────────────────────
@@ -1194,121 +1215,35 @@ function onOrderPaymentUpdated(payload: {
                     >{{ pendingLines.length }}</span
                   >
                 </div>
-                <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
-                  <div
-                    v-for="card in pendingLines"
-                    :key="card.orderDetail.id"
-                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden hover:ring-black/[0.14] hover:shadow-sm transition"
-                  >
-                  <button
-                    type="button"
-                    class="block w-full text-left cursor-pointer"
-                    aria-label="Ver detalle del pedido"
-                    @click="goToLineDetail(card)"
-                  >
-                    <div class="h-1 bg-amber-400"></div>
+                <draggable
+                  tag="div"
+                  data-status="PENDING"
+                  class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1"
+                  :model-value="pendingLines"
+                  :item-key="(c: OrderDetailAssignmentCard) => c.orderDetail.id"
+                  group="kanban-production"
+                  :move="onMoveCheck"
+                  @change="onDragChange"
+                >
+                  <template #item="{ element: card }">
+                    <OrderDetailProductionCard
+                      :card="card"
+                      accent="amber"
+                      action-label="Iniciar producción →"
+                      :disabled="updatingId === card.orderDetail.id"
+                      @view="goToLineDetail(card)"
+                      @advance="requestAdvanceStatus(card)"
+                    />
+                  </template>
+                  <template #footer>
                     <div
-                      class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2"
+                      v-if="pendingLines.length === 0"
+                      class="py-10 text-center text-[12px] text-gray-400"
                     >
-                      <span
-                        class="font-bold text-[13px] text-[#111827] leading-tight truncate"
-                        >{{ card.orderDetail.order.orderCode ?? "—" }}</span
-                      >
-                      <span
-                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5"
-                        :style="{ ...typeColor(card.orderDetail.order) }"
-                        >{{ typeLabel(card.orderDetail.order) }}</span
-                      >
+                      Sin pedidos pendientes
                     </div>
-                    <div
-                      class="px-3.5 pb-3 space-y-1.5 text-[12px] text-gray-500"
-                    >
-                      <p class="font-medium text-[#111827] truncate">
-                        {{ card.orderDetail.product?.name ?? "Producto" }}
-                      </p>
-                      <div
-                        v-if="card.orderDetail.order.customer?.fullName"
-                        class="flex items-center gap-1.5 truncate"
-                      >
-                        <svg
-                          class="h-3 w-3 shrink-0 text-gray-400"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-                        <span class="truncate">{{
-                          card.orderDetail.order.customer.fullName
-                        }}</span>
-                      </div>
-                      <div class="flex items-center gap-1.5">
-                        <svg
-                          class="h-3 w-3 shrink-0 text-gray-400"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <rect x="3" y="4" width="18" height="18" rx="2" />
-                          <path d="M16 2v4M8 2v4M3 10h18" />
-                        </svg>
-                        {{ formatDate(card.orderDetail.order.deliveryDate)
-                        }}<span
-                          v-if="card.orderDetail.order.deliveryTime"
-                          class="text-gray-400"
-                        >
-                          · {{ card.orderDetail.order.deliveryTime }}</span
-                        >
-                      </div>
-                      <div
-                        v-if="
-                          card.orderDetail.order.remainingBalance &&
-                          parseFloat(
-                            String(card.orderDetail.order.remainingBalance),
-                          ) > 0
-                        "
-                        class="flex items-center gap-1.5 text-orange-500 font-medium"
-                      >
-                        <svg
-                          class="h-3 w-3 shrink-0"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M12 8v4M12 16h.01" stroke-linecap="round" />
-                        </svg>
-                        Saldo pendiente
-                      </div>
-                    </div>
-                  </button>
-                    <div
-                      class="border-t border-black/[0.06] px-3 py-2.5"
-                    >
-                      <button
-                        class="w-full rounded-lg bg-amber-50 py-1.5 text-[12px] font-semibold text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
-                        :disabled="updatingId === card.orderDetail.id"
-                        @click="requestAdvanceStatus(card)"
-                      >
-                        {{
-                          updatingId === card.orderDetail.id
-                            ? "Actualizando…"
-                            : "Iniciar producción →"
-                        }}
-                      </button>
-                    </div>
-                  </div>
-                  <div
-                    v-if="pendingLines.length === 0"
-                    class="py-10 text-center text-[12px] text-gray-400"
-                  >
-                    Sin pedidos pendientes
-                  </div>
-                </div>
+                  </template>
+                </draggable>
               </div>
 
               <!-- En producción (IN PROCESS) -->
@@ -1327,121 +1262,35 @@ function onOrderPaymentUpdated(payload: {
                     >{{ inProcessLines.length }}</span
                   >
                 </div>
-                <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
-                  <div
-                    v-for="card in inProcessLines"
-                    :key="card.orderDetail.id"
-                    class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden hover:ring-black/[0.14] hover:shadow-sm transition"
-                  >
-                  <button
-                    type="button"
-                    class="block w-full text-left cursor-pointer"
-                    aria-label="Ver detalle del pedido"
-                    @click="goToLineDetail(card)"
-                  >
-                    <div class="h-1 bg-violet-400"></div>
+                <draggable
+                  tag="div"
+                  data-status="IN_PROCESS"
+                  class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1"
+                  :model-value="inProcessLines"
+                  :item-key="(c: OrderDetailAssignmentCard) => c.orderDetail.id"
+                  group="kanban-production"
+                  :move="onMoveCheck"
+                  @change="onDragChange"
+                >
+                  <template #item="{ element: card }">
+                    <OrderDetailProductionCard
+                      :card="card"
+                      accent="violet"
+                      action-label="Marcar como listo →"
+                      :disabled="updatingId === card.orderDetail.id"
+                      @view="goToLineDetail(card)"
+                      @advance="requestAdvanceStatus(card)"
+                    />
+                  </template>
+                  <template #footer>
                     <div
-                      class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2"
+                      v-if="inProcessLines.length === 0"
+                      class="py-10 text-center text-[12px] text-gray-400"
                     >
-                      <span
-                        class="font-bold text-[13px] text-[#111827] leading-tight truncate"
-                        >{{ card.orderDetail.order.orderCode ?? "—" }}</span
-                      >
-                      <span
-                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5"
-                        :style="{ ...typeColor(card.orderDetail.order) }"
-                        >{{ typeLabel(card.orderDetail.order) }}</span
-                      >
+                      Sin pedidos en producción
                     </div>
-                    <div
-                      class="px-3.5 pb-3 space-y-1.5 text-[12px] text-gray-500"
-                    >
-                      <p class="font-medium text-[#111827] truncate">
-                        {{ card.orderDetail.product?.name ?? "Producto" }}
-                      </p>
-                      <div
-                        v-if="card.orderDetail.order.customer?.fullName"
-                        class="flex items-center gap-1.5 truncate"
-                      >
-                        <svg
-                          class="h-3 w-3 shrink-0 text-gray-400"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-                        <span class="truncate">{{
-                          card.orderDetail.order.customer.fullName
-                        }}</span>
-                      </div>
-                      <div class="flex items-center gap-1.5">
-                        <svg
-                          class="h-3 w-3 shrink-0 text-gray-400"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <rect x="3" y="4" width="18" height="18" rx="2" />
-                          <path d="M16 2v4M8 2v4M3 10h18" />
-                        </svg>
-                        {{ formatDate(card.orderDetail.order.deliveryDate)
-                        }}<span
-                          v-if="card.orderDetail.order.deliveryTime"
-                          class="text-gray-400"
-                        >
-                          · {{ card.orderDetail.order.deliveryTime }}</span
-                        >
-                      </div>
-                      <div
-                        v-if="
-                          card.orderDetail.order.remainingBalance &&
-                          parseFloat(
-                            String(card.orderDetail.order.remainingBalance),
-                          ) > 0
-                        "
-                        class="flex items-center gap-1.5 text-orange-500 font-medium"
-                      >
-                        <svg
-                          class="h-3 w-3 shrink-0"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M12 8v4M12 16h.01" stroke-linecap="round" />
-                        </svg>
-                        Saldo pendiente
-                      </div>
-                    </div>
-                  </button>
-                    <div
-                      class="border-t border-black/[0.06] px-3 py-2.5"
-                    >
-                      <button
-                        class="w-full rounded-lg bg-violet-50 py-1.5 text-[12px] font-semibold text-violet-700 hover:bg-violet-100 transition disabled:opacity-40"
-                        :disabled="updatingId === card.orderDetail.id"
-                        @click="requestAdvanceStatus(card)"
-                      >
-                        {{
-                          updatingId === card.orderDetail.id
-                            ? "Actualizando…"
-                            : "Marcar como listo →"
-                        }}
-                      </button>
-                    </div>
-                  </div>
-                  <div
-                    v-if="inProcessLines.length === 0"
-                    class="py-10 text-center text-[12px] text-gray-400"
-                  >
-                    Sin pedidos en producción
-                  </div>
-                </div>
+                  </template>
+                </draggable>
               </div>
 
               <!-- Listos (DONE) -->
@@ -1460,96 +1309,32 @@ function onOrderPaymentUpdated(payload: {
                     >{{ doneLines.length }}</span
                   >
                 </div>
-                <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
-                  <button
-                    v-for="card in doneLines"
-                    :key="card.orderDetail.id"
-                    type="button"
-                    class="block w-full text-left bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden cursor-pointer hover:ring-black/[0.14] hover:shadow-sm transition"
-                    aria-label="Ver detalle del pedido"
-                    @click="goToLineDetail(card)"
-                  >
-                    <div class="h-1 bg-emerald-400"></div>
+                <draggable
+                  tag="div"
+                  data-status="DONE"
+                  class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1"
+                  :model-value="doneLines"
+                  :item-key="(c: OrderDetailAssignmentCard) => c.orderDetail.id"
+                  group="kanban-production"
+                  :move="onMoveCheck"
+                  @change="onDragChange"
+                >
+                  <template #item="{ element: card }">
+                    <OrderDetailProductionCard
+                      :card="card"
+                      accent="emerald"
+                      @view="goToLineDetail(card)"
+                    />
+                  </template>
+                  <template #footer>
                     <div
-                      class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2"
+                      v-if="doneLines.length === 0"
+                      class="py-10 text-center text-[12px] text-gray-400"
                     >
-                      <span
-                        class="font-bold text-[13px] text-[#111827] leading-tight truncate"
-                        >{{ card.orderDetail.order.orderCode ?? "—" }}</span
-                      >
-                      <span
-                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5"
-                        :style="{ ...typeColor(card.orderDetail.order) }"
-                        >{{ typeLabel(card.orderDetail.order) }}</span
-                      >
+                      Sin pedidos listos
                     </div>
-                    <div
-                      class="px-3.5 pb-4 space-y-1.5 text-[12px] text-gray-500"
-                    >
-                      <p class="font-medium text-[#111827] truncate">
-                        {{ card.orderDetail.product?.name ?? "Producto" }}
-                      </p>
-                      <div
-                        v-if="card.orderDetail.order.customer?.fullName"
-                        class="flex items-center gap-1.5 truncate"
-                      >
-                        <svg
-                          class="h-3 w-3 shrink-0 text-gray-400"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-                        <span class="truncate">{{
-                          card.orderDetail.order.customer.fullName
-                        }}</span>
-                      </div>
-                      <div class="flex items-center gap-1.5">
-                        <svg
-                          class="h-3 w-3 shrink-0 text-gray-400"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <rect x="3" y="4" width="18" height="18" rx="2" />
-                          <path d="M16 2v4M8 2v4M3 10h18" />
-                        </svg>
-                        {{ formatDate(card.orderDetail.order.deliveryDate)
-                        }}<span
-                          v-if="card.orderDetail.order.deliveryTime"
-                          class="text-gray-400"
-                        >
-                          · {{ card.orderDetail.order.deliveryTime }}</span
-                        >
-                      </div>
-                      <div
-                        class="flex items-center gap-1.5 text-emerald-600 font-medium"
-                      >
-                        <svg
-                          class="h-3 w-3 shrink-0"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                          stroke-linecap="round"
-                        >
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                        Listo para entregar
-                      </div>
-                    </div>
-                  </button>
-                  <div
-                    v-if="doneLines.length === 0"
-                    class="py-10 text-center text-[12px] text-gray-400"
-                  >
-                    Sin pedidos listos
-                  </div>
-                </div>
+                  </template>
+                </draggable>
               </div>
             </div>
             <!-- /columnas -->
@@ -1586,7 +1371,7 @@ function onOrderPaymentUpdated(payload: {
           type="button"
           class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
           aria-label="Cerrar"
-          @click="kanbanConfirmTarget = null"
+          @click="cancelAdvanceStatus"
         />
 
         <!-- Panel -->
@@ -1665,7 +1450,7 @@ function onOrderPaymentUpdated(payload: {
             <button
               type="button"
               class="flex-1 rounded-2xl border border-black/10 py-3 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
-              @click="kanbanConfirmTarget = null"
+              @click="cancelAdvanceStatus"
             >
               Cancelar
             </button>
