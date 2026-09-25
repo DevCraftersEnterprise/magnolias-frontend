@@ -39,4 +39,19 @@ describe('useCatalogPriceSum', () => {
 
         expect(sum.value).toBe(0)
     })
+
+    it('con pisos suma pan, relleno y cobertura de cada piso más decoración y fruta de la línea', () => {
+        const row = ref({
+            hasTiers: true,
+            tiers: [
+                { breadId: 'bt-1', fillingId: 'fi-1', frostingId: 'fr-1' },
+                { breadId: 'bt-1', fillingId: 'fi-1', frostingId: 'fr-1' },
+            ],
+            decorationId: 'de-1',
+            fruitId: 'fu-1',
+        })
+        const sum = useCatalogPriceSum(row, catalogs())
+
+        expect(sum.value).toBe(2 * (10 + 20 + 5) + 8 + 12)
+    })
 })

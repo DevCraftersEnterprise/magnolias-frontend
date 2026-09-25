@@ -65,6 +65,23 @@ describe('useOrderCatalogPriceTotal', () => {
         expect(total.value).toBe(350)
     })
 
+    it('con pisos también suma decoración y fruta de la línea', () => {
+        const o = order({
+            details: [
+                {
+                    id: 'd1',
+                    decoration: { id: 'de-1', name: 'Velas', price: '$5.00' },
+                    fruit: { id: 'fu-1', name: 'Cerezas', price: '$15.00' },
+                    tiers: [
+                        { position: 1, breadType: { id: 'b', name: 'Red Velvet', price: '$150.00' } },
+                    ],
+                } as never,
+            ],
+        })
+
+        expect(useOrderCatalogPriceTotal(ref(o)).value).toBe(170)
+    })
+
     it('incluye las flores del pedido, multiplicadas por su cantidad', () => {
         const o = order({
             orderFlowers: [

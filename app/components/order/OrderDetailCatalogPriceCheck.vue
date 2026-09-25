@@ -8,7 +8,7 @@ defineProps<{
 
 <template>
   <div
-    v-if="!hasTiers && catalogPriceSum > 0"
+    v-if="catalogPriceSum > 0"
     class="flex justify-between py-2"
   >
     <span class="text-[12px] text-gray-500">Precio sugerido de catálogo</span>
