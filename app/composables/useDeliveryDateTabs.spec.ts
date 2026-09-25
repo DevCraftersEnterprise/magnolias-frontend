@@ -41,6 +41,29 @@ describe('useDeliveryDateTabs', () => {
         expect(dayAfterItems.value.map((i) => i.id)).toEqual(['2'])
     })
 
+    it('clasifica por día LOCAL: ahora+24h cae en "mañana" sin importar la hora ni la zona horaria (bug de la tarde/noche)', () => {
+        const items = ref<Item[]>([
+            { id: '1', deliveryDate: new Date(Date.now() + 86400000).toISOString() },
+            { id: '2', deliveryDate: new Date(Date.now() + 2 * 86400000).toISOString() },
+        ])
+
+        const { tomorrowItems, dayAfterItems } = useDeliveryDateTabs(
+            items,
+            (i) => i.deliveryDate,
+        )
+
+        expect(tomorrowItems.value.map((i) => i.id)).toEqual(['1'])
+        expect(dayAfterItems.value.map((i) => i.id)).toEqual(['2'])
+    })
+
+    it('acepta fechas sin hora (YYYY-MM-DD) tal cual', () => {
+        const items = ref<Item[]>([{ id: '1', deliveryDate: isoOffset(1) }])
+
+        const { tomorrowItems } = useDeliveryDateTabs(items, (i) => i.deliveryDate)
+
+        expect(tomorrowItems.value.map((i) => i.id)).toEqual(['1'])
+    })
+
     it('activeItems refleja la pestaña activa', () => {
         const items = ref<Item[]>([
             { id: '1', deliveryDate: `${isoOffset(1)}T10:00:00Z` },
