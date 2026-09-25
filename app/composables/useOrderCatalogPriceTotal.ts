@@ -2,7 +2,7 @@ import type { Ref } from "vue";
 import type { OrderDetail, OrderDetailCatalogItem } from "~/types/order.types";
 
 function catalogItemPrice(item?: OrderDetailCatalogItem): number {
-    return Number(item?.price) || 0;
+    return moneyToNumber(item?.price);
 }
 
 /**
@@ -46,7 +46,7 @@ export function useOrderCatalogPriceTotal(order: Ref<OrderDetail | null>) {
         }, 0);
 
         const flowersTotal = (order.value.orderFlowers ?? []).reduce(
-            (sum, f) => sum + (Number(f.flower?.price) || 0) * (f.quantity ?? 1),
+            (sum, f) => sum + moneyToNumber(f.flower?.price) * (f.quantity ?? 1),
             0,
         );
 

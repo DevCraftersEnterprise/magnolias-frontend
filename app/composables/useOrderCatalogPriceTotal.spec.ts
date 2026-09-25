@@ -23,11 +23,11 @@ describe('useOrderCatalogPriceTotal', () => {
             details: [
                 {
                     id: 'd1',
-                    breadType: { id: 'bt-1', name: 'Chocolate', price: '110.00' },
-                    filling: { id: 'fi-1', name: 'Cajeta', price: '50.00' },
-                    frosting: { id: 'fr-1', name: 'Crema', price: '30.00' },
-                    decoration: { id: 'de-1', name: 'Velas', price: '5.00' },
-                    fruit: { id: 'fu-1', name: 'Fresa', price: '15.00' },
+                    breadType: { id: 'bt-1', name: 'Chocolate', price: '$110.00' },
+                    filling: { id: 'fi-1', name: 'Cajeta', price: '$50.00' },
+                    frosting: { id: 'fr-1', name: 'Crema', price: '$30.00' },
+                    decoration: { id: 'de-1', name: 'Velas', price: '$5.00' },
+                    fruit: { id: 'fu-1', name: 'Fresa', price: '$15.00' },
                 } as never,
             ],
         })
@@ -45,15 +45,15 @@ describe('useOrderCatalogPriceTotal', () => {
                     tiers: [
                         {
                             position: 1,
-                            breadType: { id: 'bt-1', name: 'Chocolate', price: '110.00' },
-                            filling: { id: 'fi-1', name: 'Cajeta', price: '50.00' },
-                            frosting: { id: 'fr-1', name: 'Crema', price: '30.00' },
+                            breadType: { id: 'bt-1', name: 'Chocolate', price: '$110.00' },
+                            filling: { id: 'fi-1', name: 'Cajeta', price: '$50.00' },
+                            frosting: { id: 'fr-1', name: 'Crema', price: '$30.00' },
                         },
                         {
                             position: 2,
-                            breadType: { id: 'bt-2', name: 'Vainilla', price: '100.00' },
-                            filling: { id: 'fi-2', name: 'Nuez', price: '40.00' },
-                            frosting: { id: 'fr-2', name: 'Chantilly', price: '20.00' },
+                            breadType: { id: 'bt-2', name: 'Vainilla', price: '$100.00' },
+                            filling: { id: 'fi-2', name: 'Nuez', price: '$40.00' },
+                            frosting: { id: 'fr-2', name: 'Chantilly', price: '$20.00' },
                         },
                     ],
                 } as never,
@@ -68,7 +68,7 @@ describe('useOrderCatalogPriceTotal', () => {
     it('incluye las flores del pedido, multiplicadas por su cantidad', () => {
         const o = order({
             orderFlowers: [
-                { flower: { id: 'fl-1', name: 'Margaritas', price: '15.00' }, quantity: 3 },
+                { flower: { id: 'fl-1', name: 'Margaritas', price: '$15.00' }, quantity: 3 },
             ],
         })
 
@@ -83,7 +83,7 @@ describe('useOrderCatalogPriceTotal', () => {
                 {
                     id: 'd1',
                     style: { id: 'st-1', name: 'Redondo' },
-                    breadType: { id: 'bt-1', name: 'Chocolate', price: '110.00' },
+                    breadType: { id: 'bt-1', name: 'Chocolate', price: '$110.00' },
                 } as never,
             ],
         })
