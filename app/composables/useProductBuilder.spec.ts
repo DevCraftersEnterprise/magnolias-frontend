@@ -55,15 +55,16 @@ describe('useProductBuilder', () => {
             })
         })
 
-        it('si el producto ya está agregado, solo incrementa la cantidad', () => {
+        it('si el producto ya está agregado, agrega una línea nueva (personalización)', () => {
             const { orderProducts, addProduct } = setup()
             const p = product()
 
             addProduct(p)
             addProduct(p)
 
-            expect(orderProducts.value).toHaveLength(1)
-            expect(orderProducts.value[0]!.qty).toBe(2)
+            expect(orderProducts.value).toHaveLength(2)
+            expect(orderProducts.value[0]!.qty).toBe(1)
+            expect(orderProducts.value[1]!.qty).toBe(1)
         })
 
         it('addProduct limpia la búsqueda', () => {

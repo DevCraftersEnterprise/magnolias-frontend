@@ -817,7 +817,7 @@ async function downloadFormat() {
                         :assignment="detail.assignments?.[0]"
                         :bakers="bakers"
                         :loading="bakersLoading || assigningDetailId === detail.id"
-                        :read-only="NON_EDITABLE_ORDER_STATUSES.includes(activeData.status)"
+                        :read-only="NON_BAKER_ASSIGNABLE_ORDER_STATUSES.includes(activeData.status)"
                         @assign="(bakerId) => onAssignBaker(detail.id, bakerId)"
                       />
                       <!-- Pisos (pastel de 2+ pisos) -->

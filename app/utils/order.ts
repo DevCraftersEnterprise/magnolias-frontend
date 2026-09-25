@@ -59,6 +59,13 @@ export const NON_EDITABLE_ORDER_STATUSES: OrderStatus[] = [
     'CANCELED',
 ]
 
+// Estados en los que ya no se puede asignar/reasignar pastelero: además de
+// entregado/cancelado, tampoco cuando el pedido ya va en reparto.
+export const NON_BAKER_ASSIGNABLE_ORDER_STATUSES: OrderStatus[] = [
+    ...NON_EDITABLE_ORDER_STATUSES,
+    'IN DELIVERY',
+]
+
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
     CASH: 'Efectivo',
     TRANSFER: 'Transferencia',

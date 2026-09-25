@@ -737,26 +737,26 @@ function onOrderPaymentUpdated(payload: {
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
                                 :class="
-                                  NON_EDITABLE_ORDER_STATUSES.includes(
+                                  NON_BAKER_ASSIGNABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   )
                                     ? 'text-gray-200 cursor-not-allowed'
                                     : 'text-gray-400 hover:bg-purple-50 hover:text-[#7C00C9]'
                                 "
                                 :title="
-                                  NON_EDITABLE_ORDER_STATUSES.includes(
+                                  NON_BAKER_ASSIGNABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   )
                                     ? 'No se puede asignar en este estado'
                                     : 'Asignar reposteros por línea'
                                 "
                                 :disabled="
-                                  NON_EDITABLE_ORDER_STATUSES.includes(
+                                  NON_BAKER_ASSIGNABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   )
                                 "
                                 @click.stop="
-                                  !NON_EDITABLE_ORDER_STATUSES.includes(
+                                  !NON_BAKER_ASSIGNABLE_ORDER_STATUSES.includes(
                                     order.status,
                                   ) && openDetail(order)
                                 "
@@ -825,28 +825,20 @@ function onOrderPaymentUpdated(payload: {
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
                                 :class="
-                                  NON_EDITABLE_ORDER_STATUSES.includes(
-                                    order.status,
-                                  )
+                                  order.status !== 'CREATED'
                                     ? 'text-gray-200 cursor-not-allowed'
                                     : 'text-gray-400 hover:bg-orange-50 hover:text-orange-500'
                                 "
                                 :title="
-                                  NON_EDITABLE_ORDER_STATUSES.includes(
-                                    order.status,
-                                  )
-                                    ? 'No se puede cancelar un pedido entregado o ya cancelado'
+                                  order.status !== 'CREATED'
+                                    ? 'Solo se puede cancelar un pedido en estado Creado'
                                     : 'Cancelar pedido'
                                 "
                                 :disabled="
-                                  NON_EDITABLE_ORDER_STATUSES.includes(
-                                    order.status,
-                                  )
+                                  order.status !== 'CREATED'
                                 "
                                 @click="
-                                  !NON_EDITABLE_ORDER_STATUSES.includes(
-                                    order.status,
-                                  ) && confirmCancel(order)
+                                  order.status === 'CREATED' && confirmCancel(order)
                                 "
                               >
                                 <svg

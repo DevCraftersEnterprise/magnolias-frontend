@@ -196,9 +196,9 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
     }
 
     function addProduct(p: ProductItem) {
-        const existing = orderProducts.value.find((r) => r.product.id === p.id);
-        if (existing) { existing.qty++; }
-        else { orderProducts.value.push(makeProductRow(p)); }
+        // Cliente: cada producto es personalizable, así que agregar el mismo
+        // producto crea una línea nueva en vez de sumar cantidad a la existente.
+        orderProducts.value.push(makeProductRow(p));
         productQuery.value = ""; productResults.value = []; showProductPanel.value = false;
     }
 
