@@ -22,9 +22,13 @@ export function useOrderCatalogPriceTotal(order: Ref<OrderDetail | null>) {
         if (!order.value) return 0;
 
         const detailsTotal = order.value.details.reduce((sum, detail) => {
+            const extras =
+                catalogItemPrice(detail.decoration) +
+                catalogItemPrice(detail.fruit);
             if (detail.tiers && detail.tiers.length > 0) {
                 return (
                     sum +
+                    extras +
                     detail.tiers.reduce(
                         (tierSum, tier) =>
                             tierSum +

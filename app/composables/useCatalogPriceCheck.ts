@@ -7,6 +7,8 @@ type PricedRow = {
     frostingId?: string;
     decorationId?: string;
     fruitId?: string;
+    hasTiers?: boolean;
+    tiers?: { breadId?: string; fillingId?: string; frostingId?: string }[];
 };
 
 /**
@@ -30,12 +32,26 @@ export function useCatalogPriceSum(
     return computed(() => {
         const r = row.value;
         if (!r) return 0;
+        const extras =
+            catalogPrice(catalogs.decorations.value, r.decorationId ?? "") +
+            catalogPrice(catalogs.fruits.value, r.fruitId ?? "");
+        if (r.hasTiers) {
+            return (
+                (r.tiers ?? []).reduce(
+                    (sum, t) =>
+                        sum +
+                        catalogPrice(catalogs.breadTypes.value, t.breadId ?? "") +
+                        catalogPrice(catalogs.fillings.value, t.fillingId ?? "") +
+                        catalogPrice(catalogs.frostings.value, t.frostingId ?? ""),
+                    0,
+                ) + extras
+            );
+        }
         return (
             catalogPrice(catalogs.breadTypes.value, r.breadId ?? "") +
             catalogPrice(catalogs.fillings.value, r.fillingId ?? "") +
             catalogPrice(catalogs.frostings.value, r.frostingId ?? "") +
-            catalogPrice(catalogs.decorations.value, r.decorationId ?? "") +
-            catalogPrice(catalogs.fruits.value, r.fruitId ?? "")
+            extras
         );
     });
 }
