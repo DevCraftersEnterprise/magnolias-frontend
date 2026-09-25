@@ -129,6 +129,20 @@ describe('pages/admin/pedidos/reparto - pestaña Disponibles (cliente: self-assi
         expect(deliverBtn!.attributes('disabled')).toBeDefined()
     })
 
+    it('hacer click en la tarjeta no navega a ninguna pantalla (el repartidor no tiene acceso al detalle)', async () => {
+        ordersServiceMock.getDriverAssignments.mockResolvedValue([
+            assignmentCard({ remainingBalance: '0.00' }),
+        ])
+
+        const wrapper = await mountPage()
+        const allTab = wrapper.findAll('button').find((b) => b.text().includes('Todas'))
+        await allTab!.trigger('click')
+
+        expect(wrapper.find('button[aria-label="Ver detalle del pedido"]').exists()).toBe(false)
+        await wrapper.find('.grid > div').trigger('click')
+        expect(navigateToMock).not.toHaveBeenCalled()
+    })
+
     it('permite marcar como entregado un pedido IN DELIVERY con saldo en cero', async () => {
         ordersServiceMock.getDriverAssignments.mockResolvedValue([
             assignmentCard({ remainingBalance: '0.00' }),

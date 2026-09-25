@@ -396,6 +396,29 @@ describe('pages/admin/pedidos/index - entregar y cancelar (sesión no-empleado)'
         expect(ordersServiceMock.markDelivered).toHaveBeenCalledWith('order-1', undefined)
     })
 
+    it('no permite cancelar un pedido que ya no está en estado Creado (cliente)', async () => {
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                {
+                    id: 'order-1',
+                    orderCode: 'PED-0001',
+                    status: 'IN PROCESS',
+                    remainingBalance: '0',
+                    isEvento: false,
+                    isEnTienda: false,
+                },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        const btn = wrapper.find('button[title="Solo se puede cancelar un pedido en estado Creado"]')
+
+        expect(btn.exists()).toBe(true)
+        expect(btn.attributes('disabled')).toBeDefined()
+    })
+
     it('cancela un pedido sin pedir PIN (no es una sesión de empleado)', async () => {
         ordersServiceMock.getOrders.mockResolvedValue({
             items: [

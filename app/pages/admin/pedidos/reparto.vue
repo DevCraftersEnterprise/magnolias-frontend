@@ -123,10 +123,6 @@ async function executeDeliver() {
   }
 }
 
-function goToOrderDetail(card: OrderDeliveryAssignmentCard) {
-  navigateTo("/admin/pedidos/detalle/" + card.order.id);
-}
-
 watch([driverId, selectedBranch], () => loadAssignments(), { immediate: true });
 </script>
 
@@ -302,12 +298,7 @@ watch([driverId, selectedBranch], () => loadAssignments(), { immediate: true });
                 :key="card.id"
                 class="bg-white rounded-xl ring-1 ring-black/[0.07] overflow-hidden hover:ring-black/[0.14] hover:shadow-sm transition"
               >
-                <button
-                  type="button"
-                  class="block w-full text-left cursor-pointer"
-                  aria-label="Ver detalle del pedido"
-                  @click="goToOrderDetail(card)"
-                >
+                <div class="block w-full text-left">
                   <div
                     class="px-3.5 pt-3 pb-2 flex items-start justify-between gap-2"
                   >
@@ -348,7 +339,7 @@ watch([driverId, selectedBranch], () => loadAssignments(), { immediate: true });
                   <div v-if="card.order.deliveryAddress" class="px-3.5 pb-3">
                     <OrderDeliveryAddressSummary :address="card.order.deliveryAddress" />
                   </div>
-                </button>
+                </div>
                 <div class="border-t border-black/[0.06] px-3 py-2.5">
                   <button
                     class="w-full rounded-lg bg-green-50 py-1.5 text-[12px] font-semibold text-green-700 hover:bg-green-100 transition disabled:opacity-40"

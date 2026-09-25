@@ -2528,6 +2528,15 @@ function next() {
                 }}</span>
               </div>
               <div
+                v-if="specialRoundCost > 0"
+                class="flex items-center justify-between text-[13px]"
+              >
+                <span class="text-gray-500">Ronda especial</span>
+                <span class="font-semibold text-[#111827]">{{
+                  formatMXN(specialRoundCost)
+                }}</span>
+              </div>
+              <div
                 class="flex items-center justify-between text-[14px] pt-1.5 border-t border-black/10"
               >
                 <span class="font-bold text-[#111827]">Total</span
