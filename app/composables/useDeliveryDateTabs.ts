@@ -18,9 +18,15 @@ export function useDeliveryDateTabs<T>(
   const rangeFrom = ref("");
   const rangeTo = ref("");
 
+  // Fecha de entrega como día de calendario LOCAL, la misma referencia que
+  // usan tomorrowStr/dayAfterStr (isoDate usa getters locales). Antes se
+  // tomaba la parte de fecha del ISO (UTC): en la tarde/noche de zonas detrás
+  // de UTC (México), un pedido de "mañana" caía en "pasado mañana".
   function deliveryDateStr(iso: string) {
     if (!iso) return "";
-    return iso.split("T")[0];
+    if (!iso.includes("T")) return iso;
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? iso.split("T")[0] : isoDate(d);
   }
 
   const tomorrowStr = computed(() => {
