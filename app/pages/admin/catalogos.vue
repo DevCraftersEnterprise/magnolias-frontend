@@ -6,6 +6,7 @@ import { type CatalogEditPayload } from "~/components/catalog/EditModal.vue";
 import { type ColorEditPayload } from "~/components/color/EditModal.vue";
 import { catalogsService } from "~/services/catalogs.service";
 import type { BreadTypeItem, ColorItem } from "~/types/catalog.types";
+import type { ProductSize } from "~/types/order.types";
 
 // ─── Types & constants ──────────────────────────────────────────────────────
 type BlockKey =
@@ -14,11 +15,14 @@ type BlockKey =
   | "flor"
   | "estilo"
   | "color"
-  | "cubierta";
+  | "cubierta"
+  | "decoracion"
+  | "fruta";
 
 // La clave "estilo" (BlockKey) es el nombre interno del catálogo `styles`;
 // se muestra al usuario como "Forma", solo cambia la etiqueta visible.
 // El antiguo catálogo "sabor" se fusionó dentro de "pan" (cliente #2).
+// "decoracion"/"fruta" son catálogos nuevos (cliente #2).
 const blockLabel: Record<BlockKey, string> = {
   pan: "tipo de pan",
   relleno: "relleno",
@@ -26,6 +30,8 @@ const blockLabel: Record<BlockKey, string> = {
   estilo: "forma",
   color: "color",
   cubierta: "tipo de cubierta",
+  decoracion: "decoración",
+  fruta: "fruta",
 };
 
 const modalTitle = ref("");
@@ -75,6 +81,12 @@ const stylesBlock = useCatalogBlock((limit, offset) =>
 const flowersBlock = useCatalogBlock((limit, offset) =>
   catalogsService.getFlowers(limit, offset),
 );
+const decorationsBlock = useCatalogBlock((limit, offset) =>
+  catalogsService.getDecorations(limit, offset),
+);
+const fruitsBlock = useCatalogBlock((limit, offset) =>
+  catalogsService.getFruits(limit, offset),
+);
 
 // ─── Lifecycle ─────────────────────────────────────────────────────────────
 onMounted(() => {
@@ -84,6 +96,8 @@ onMounted(() => {
   frostingsBlock.load();
   stylesBlock.load();
   flowersBlock.load();
+  decorationsBlock.load();
+  fruitsBlock.load();
 });
 
 // ─── Selection ─────────────────────────────────────────────────────────────
@@ -94,6 +108,8 @@ const selected = ref<Record<BlockKey, string | null>>({
   estilo: null,
   color: null,
   cubierta: null,
+  decoracion: null,
+  fruta: null,
 });
 
 function pick(block: BlockKey, value: string) {
@@ -106,6 +122,8 @@ type AnyItem = {
   name: string;
   description?: string;
   value?: string;
+  price?: string;
+  applicableSizes?: ProductSize[];
 };
 
 const editOpen = ref(false);
@@ -144,6 +162,8 @@ function openEdit(block: BlockKey, item: AnyItem) {
     id: item.id,
     name: item.name,
     description: item.description ?? "",
+    price: item.price !== undefined ? moneyToNumber(item.price) : undefined,
+    applicableSizes: item.applicableSizes,
   };
   editOpen.value = true;
 }
@@ -186,6 +206,19 @@ function openDelete(block: BlockKey, item: AnyItem) {
         if (selected.value.flor === item.name) selected.value.flor = null;
       },
 
+      decoracion: async () => {
+        await catalogsService.deleteDecoration(item.id);
+        await decorationsBlock.reset();
+        if (selected.value.decoracion === item.name)
+          selected.value.decoracion = null;
+      },
+
+      fruta: async () => {
+        await catalogsService.deleteFruit(item.id);
+        await fruitsBlock.reset();
+        if (selected.value.fruta === item.name) selected.value.fruta = null;
+      },
+
       color: async () => {
         // pendiente endpoint real de colores
         await loadColors();
@@ -209,6 +242,67 @@ async function onConfirmDelete() {
 }
 
 // ─── Save handlers ─────────────────────────────────────────────────────────
+// Mismo patrón que el mapa `handlers` de openDelete: una entrada por
+// catálogo (crear/editar/recargar), en vez de un if por catálogo — así
+// agregar un catálogo nuevo (cliente #2: decoración, fruta) no vuelve a
+// crecer la complejidad de esta función.
+type SavedCatalogPayload = {
+  name: string;
+  description: string;
+  price?: number;
+  applicableSizes?: ProductSize[];
+};
+
+const catalogSaveHandlers: Partial<
+  Record<
+    BlockKey,
+    {
+      create: (payload: SavedCatalogPayload) => Promise<unknown>;
+      patch: (
+        id: string,
+        payload: SavedCatalogPayload & { isActive: boolean },
+      ) => Promise<unknown>;
+      reload: () => Promise<void>;
+    }
+  >
+> = {
+  pan: {
+    create: catalogsService.createBreadType,
+    patch: catalogsService.patchBreadType,
+    reload: loadBreadTypes,
+  },
+  relleno: {
+    create: catalogsService.createFilling,
+    patch: catalogsService.patchFilling,
+    reload: fillingsBlock.reset,
+  },
+  cubierta: {
+    create: catalogsService.createFrosting,
+    patch: catalogsService.patchFrosting,
+    reload: frostingsBlock.reset,
+  },
+  estilo: {
+    create: catalogsService.createStyle,
+    patch: catalogsService.patchStyle,
+    reload: stylesBlock.reset,
+  },
+  flor: {
+    create: catalogsService.createFlower,
+    patch: catalogsService.patchFlower,
+    reload: flowersBlock.reset,
+  },
+  decoracion: {
+    create: catalogsService.createDecoration,
+    patch: catalogsService.patchDecoration,
+    reload: decorationsBlock.reset,
+  },
+  fruta: {
+    create: catalogsService.createFruit,
+    patch: catalogsService.patchFruit,
+    reload: fruitsBlock.reset,
+  },
+};
+
 async function onSaveEdit(payload: CatalogEditPayload) {
   editOpen.value = false;
 
@@ -216,108 +310,23 @@ async function onSaveEdit(payload: CatalogEditPayload) {
   const isEdit = editMode.value === "edit";
 
   // color usa su propio modal
-  if (block === "color") return;
+  const handler = catalogSaveHandlers[block];
+  if (!handler) return;
 
-  // ===== CREATE (POST) =====
-  if (!isEdit) {
-    if (block === "pan") {
-      await catalogsService.createBreadType({
-        name: payload.name,
-        description: payload.description ?? "",
-      });
-      await loadBreadTypes();
-      return;
-    }
+  const basePayload: SavedCatalogPayload = {
+    name: payload.name,
+    description: payload.description ?? "",
+    price: payload.price,
+    applicableSizes: payload.applicableSizes,
+  };
 
-    if (block === "relleno") {
-      await catalogsService.createFilling({
-        name: payload.name,
-        description: payload.description ?? "",
-      });
-      await fillingsBlock.reset();
-      return;
-    }
-
-    if (block === "cubierta") {
-      await catalogsService.createFrosting({
-        name: payload.name,
-        description: payload.description ?? "",
-      });
-      await frostingsBlock.reset();
-      return;
-    }
-
-    if (block === "estilo") {
-      await catalogsService.createStyle({
-        name: payload.name,
-        description: payload.description ?? "",
-      });
-      await stylesBlock.reset();
-      return;
-    }
-
-    if (block === "flor") {
-      await catalogsService.createFlower({
-        name: payload.name,
-        description: payload.description ?? "",
-      });
-      await flowersBlock.reset();
-      return;
-    }
-
-    return;
+  if (isEdit) {
+    await handler.patch(payload.id!, { ...basePayload, isActive: true });
+  } else {
+    await handler.create(basePayload);
   }
 
-  // ===== EDIT (PATCH) =====
-  if (block === "pan") {
-    await catalogsService.patchBreadType(payload.id!, {
-      name: payload.name,
-      description: payload.description ?? "",
-      isActive: true,
-    });
-    await loadBreadTypes();
-    return;
-  }
-
-  if (block === "relleno") {
-    await catalogsService.patchFilling(payload.id!, {
-      name: payload.name,
-      description: payload.description ?? "",
-      isActive: true,
-    });
-    await fillingsBlock.reset();
-    return;
-  }
-
-  if (block === "cubierta") {
-    await catalogsService.patchFrosting(payload.id!, {
-      name: payload.name,
-      description: payload.description ?? "",
-      isActive: true,
-    });
-    await frostingsBlock.reset();
-    return;
-  }
-
-  if (block === "estilo") {
-    await catalogsService.patchStyle(payload.id!, {
-      name: payload.name,
-      description: payload.description ?? "",
-      isActive: true,
-    });
-    await stylesBlock.reset();
-    return;
-  }
-
-  if (block === "flor") {
-    await catalogsService.patchFlower(payload.id!, {
-      name: payload.name,
-      description: payload.description ?? "",
-      isActive: true,
-    });
-    await flowersBlock.reset();
-    return;
-  }
+  await handler.reload();
 }
 async function onSaveColor(payload: ColorEditPayload) {
   colorOpen.value = false;
@@ -355,6 +364,18 @@ const cards = [
     title: "Tipos de cubierta",
     items: frostingsBlock.items,
     lm: frostingsBlock.lm,
+  },
+  {
+    key: "decoracion",
+    title: "Decoración",
+    items: decorationsBlock.items,
+    lm: decorationsBlock.lm,
+  },
+  {
+    key: "fruta",
+    title: "Fruta",
+    items: fruitsBlock.items,
+    lm: fruitsBlock.lm,
   },
 ];
 </script>
@@ -413,6 +434,11 @@ const cards = [
                   <span class="truncate text-[12px] text-[#6B7280]">{{
                     it.description
                   }}</span>
+                  <span
+                    v-if="moneyToNumber(it.price) > 0"
+                    class="text-[11px] font-medium text-[#C9007C]"
+                    >{{ formatMXN(moneyToNumber(it.price)) }}</span
+                  >
                 </div>
 
                 <!-- Acciones (hover) -->
@@ -574,6 +600,8 @@ const cards = [
       :mode="editMode"
       :model="editModel"
       :title="modalTitle"
+      :show-applicable-sizes="editBlock === 'estilo'"
+      :hide-price="editBlock === 'estilo'"
       @save="onSaveEdit"
     />
 

@@ -74,6 +74,7 @@ const roleLabels: Record<string, string> = {
   ADMIN: "Admin",
   EMPLOYEE: "Sucursal",
   BAKER: "Pastelero",
+  DRIVER: "Repartidor",
 };
 
 function roleLabel(r: string) {
@@ -85,6 +86,7 @@ const roleBadgeClass: Record<string, string> = {
   ADMIN: "bg-pink-100 text-pink-700",
   EMPLOYEE: "bg-blue-100 text-blue-700",
   BAKER: "bg-amber-100 text-amber-700",
+  DRIVER: "bg-teal-100 text-teal-700",
 };
 
 function roleBadge(r: string) {
@@ -124,6 +126,7 @@ function roleBadge(r: string) {
                   <option value="ADMIN">Admin</option>
                   <option value="EMPLOYEE">Sucursal</option>
                   <option value="BAKER">Pastelero</option>
+                  <option value="DRIVER">Repartidor</option>
                 </select>
                 <svg
                   class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"

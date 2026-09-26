@@ -73,3 +73,54 @@ describe('ordersService — asignación por línea (Cliente #11)', () => {
         })
     })
 })
+
+describe('ordersService — asignación de repartidor (Cliente #8)', () => {
+    beforeEach(() => {
+        apiFetchMock.mockReset()
+        apiFetchMock.mockResolvedValue({})
+    })
+
+    describe('assignOrderDelivery', () => {
+        it('llama al endpoint correcto con driverId', async () => {
+            await ordersService.assignOrderDelivery('order-1', 'driver-1')
+
+            expect(apiFetchMock).toHaveBeenCalledWith(
+                '/api/orders/order-1/delivery/assign',
+                expect.objectContaining({
+                    method: 'POST',
+                    auth: true,
+                    body: JSON.stringify({ driverId: 'driver-1' }),
+                }),
+            )
+        })
+
+        it('incluye notes en el body cuando se provee', async () => {
+            await ordersService.assignOrderDelivery(
+                'order-1',
+                'driver-1',
+                'Entregar antes de las 5pm',
+            )
+
+            expect(apiFetchMock).toHaveBeenCalledWith(
+                '/api/orders/order-1/delivery/assign',
+                expect.objectContaining({
+                    body: JSON.stringify({
+                        driverId: 'driver-1',
+                        notes: 'Entregar antes de las 5pm',
+                    }),
+                }),
+            )
+        })
+    })
+
+    describe('getDriverAssignments', () => {
+        it('llama al endpoint correcto con GET', async () => {
+            await ordersService.getDriverAssignments('driver-1')
+
+            expect(apiFetchMock).toHaveBeenCalledWith(
+                '/api/orders/delivery/assignments/driver-1',
+                expect.objectContaining({ method: 'GET', auth: true }),
+            )
+        })
+    })
+})

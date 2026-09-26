@@ -8,6 +8,8 @@ export function useOrderPayment(
     orderProducts: Ref<{ price: number; qty: number; discountPercent?: number }[]>,
 ) {
     const serviceCost = ref<number>(0);
+    // Cliente #3: costo adicional cuando la ronda de entrega es "especial".
+    const specialRoundCost = ref<number>(0);
 
     const step4 = reactive({
         paymentType: "EFECTIVO",
@@ -22,11 +24,13 @@ export function useOrderPayment(
         const discountPercent = r.discountPercent || 0;
         return s + (discountPercent > 0 ? lineTotal * (1 - discountPercent / 100) : lineTotal);
     }, 0));
-    const orderTotal = computed(() => subtotal.value + (serviceCost.value || 0));
+    const orderTotal = computed(() =>
+        subtotal.value + (serviceCost.value || 0) + (specialRoundCost.value || 0),
+    );
     const remaining = computed(() => orderTotal.value - (step4.depositAmount || 0));
 
     return {
-        step4, serviceCost,
+        step4, serviceCost, specialRoundCost,
         subtotal, orderTotal, remaining,
         PAYMENT_TYPES,
     };

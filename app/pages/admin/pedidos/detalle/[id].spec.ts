@@ -14,6 +14,8 @@ const catalogsServiceMock = vi.hoisted(() => ({
     getStyles: vi.fn().mockResolvedValue({ items: [] }),
     getFlowers: vi.fn().mockResolvedValue({ items: [] }),
     getColors: vi.fn().mockResolvedValue([]),
+    getDecorations: vi.fn().mockResolvedValue({ items: [] }),
+    getFruits: vi.fn().mockResolvedValue({ items: [] }),
 }))
 const addressesServiceMock = vi.hoisted(() => ({
     getAddresses: vi.fn().mockResolvedValue([]),
@@ -82,6 +84,29 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
         await mountPage()
 
         expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos', { replace: true })
+    })
+
+    it('no muestra la descripción del producto (cliente: innecesaria en la vista de pastelero)', async () => {
+        ordersServiceMock.getOrder.mockResolvedValue(
+            baseOrder({
+                details: [
+                    {
+                        id: 'd1',
+                        quantity: 1,
+                        product: {
+                            name: 'Personalizado',
+                            description: 'Descripción detallada del producto',
+                        },
+                        productSize: '20P',
+                    },
+                ],
+            }),
+        )
+
+        const wrapper = await mountPage()
+
+        expect(wrapper.text()).toContain('Personalizado')
+        expect(wrapper.text()).not.toContain('Descripción detallada del producto')
     })
 
     it('muestra el desglose de cada piso para un pastel de varios niveles', async () => {
@@ -167,6 +192,32 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
 
         expect(wrapper.text()).toContain('Borde superior')
         expect(wrapper.text()).not.toContain('TOP_BORDER')
+    })
+
+    it('muestra la fecha de montaje cuando el pedido la tiene (cliente: fecha de evento y montaje distintas)', async () => {
+        ordersServiceMock.getOrder.mockResolvedValue(
+            baseOrder({
+                isEvento: true,
+                deliveryDate: '2026-09-20T00:00:00Z',
+                setupDate: '2026-09-18T00:00:00Z',
+                details: [],
+            }),
+        )
+
+        const wrapper = await mountPage()
+
+        expect(wrapper.text()).toContain('Fecha montaje')
+        expect(wrapper.text()).toContain('18/09/2026')
+    })
+
+    it('no muestra la fecha de montaje cuando el pedido no la tiene', async () => {
+        ordersServiceMock.getOrder.mockResolvedValue(
+            baseOrder({ isEvento: true, details: [] }),
+        )
+
+        const wrapper = await mountPage()
+
+        expect(wrapper.text()).not.toContain('Fecha montaje')
     })
 
     it('muestra el error si falla la carga del pedido', async () => {

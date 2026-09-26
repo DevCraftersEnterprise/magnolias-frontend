@@ -157,6 +157,166 @@ describe('pages/admin/pedidos/index - kanban de pastelero', () => {
 
         expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos/detalle/order-3')
     })
+
+    it('filtra el kanban por tipo de pedido (cliente #6)', async () => {
+        useAuthUser().user.value = { id: 'baker-1', username: 'ana', isActive: true, role: 'BAKER' } as any
+        ordersServiceMock.getBakerDetailAssignments.mockResolvedValue([
+            assignmentCard({
+                orderDetail: {
+                    id: 'detail-evento',
+                    productionStatus: 'PENDING',
+                    product: { name: 'Pastel evento' },
+                    order: {
+                        id: 'order-evento',
+                        orderCode: 'PED-0001',
+                        status: 'CREATED',
+                        deliveryDate: new Date(Date.now() + 86400000).toISOString(),
+                        isEvento: true,
+                        isEnTienda: false,
+                    },
+                },
+            }),
+            assignmentCard({
+                orderDetail: {
+                    id: 'detail-domicilio',
+                    productionStatus: 'PENDING',
+                    product: { name: 'Pastel domicilio' },
+                    order: {
+                        id: 'order-domicilio',
+                        orderCode: 'PED-0002',
+                        status: 'CREATED',
+                        deliveryDate: new Date(Date.now() + 86400000).toISOString(),
+                        isEvento: false,
+                        isEnTienda: false,
+                    },
+                },
+            }),
+        ])
+
+        const wrapper = await mountPage()
+
+        expect(wrapper.text()).toContain('Pastel evento')
+        expect(wrapper.text()).toContain('Pastel domicilio')
+
+        await wrapper.find('#kanban-type-filter').setValue('evento')
+
+        expect(wrapper.text()).toContain('Pastel evento')
+        expect(wrapper.text()).not.toContain('Pastel domicilio')
+
+        await wrapper.find('#kanban-type-filter').setValue('domicilio')
+
+        expect(wrapper.text()).not.toContain('Pastel evento')
+        expect(wrapper.text()).toContain('Pastel domicilio')
+    })
+})
+
+describe('pages/admin/pedidos/index - drag-and-drop del kanban (cliente: arrastrar tarjetas entre columnas)', () => {
+    beforeEach(() => {
+        ordersServiceMock.getBakerDetailAssignments.mockReset().mockResolvedValue([
+            assignmentCard({
+                orderDetail: {
+                    id: 'detail-1',
+                    productionStatus: 'PENDING',
+                    product: { name: 'Pastel' },
+                    order: {
+                        id: 'order-1',
+                        orderCode: 'PED-0001',
+                        status: 'CREATED',
+                        deliveryDate: new Date(Date.now() + 86400000).toISOString(),
+                    },
+                },
+            }),
+            assignmentCard({
+                orderDetail: {
+                    id: 'detail-2',
+                    productionStatus: 'IN_PROCESS',
+                    product: { name: 'Pastel en proceso' },
+                    order: {
+                        id: 'order-2',
+                        orderCode: 'PED-0002',
+                        status: 'IN PROCESS',
+                        deliveryDate: new Date(Date.now() + 86400000).toISOString(),
+                    },
+                },
+            }),
+        ])
+        useAuthUser().user.value = { id: 'baker-1', username: 'ana', isActive: true, role: 'BAKER' } as any
+        useBranch().selectedBranch.value = { id: 'branch-1', name: 'Morelos' } as any
+        useViewAs().viewAsBaker.value = false
+        useViewAs().viewAsBakerId.value = ''
+    })
+
+    function draggables(wrapper: Awaited<ReturnType<typeof mountPage>>) {
+        return wrapper.findAllComponents({ name: 'draggable' })
+    }
+
+    it('el botón de acción de la tarjeta (OrderDetailProductionCard) abre el modal de confirmación', async () => {
+        const wrapper = await mountPage()
+
+        const actionBtn = wrapper
+            .findAll('button')
+            .find((b) => b.text() === 'Iniciar producción →')
+        expect(actionBtn).toBeTruthy()
+        await actionBtn!.trigger('click')
+
+        expect(wrapper.text()).toContain('Cambiar estado de la línea')
+        expect(wrapper.text()).toContain('PED-0001')
+    })
+
+    it('el botón de acción de la columna "En producción" también abre el modal de confirmación', async () => {
+        const wrapper = await mountPage()
+
+        const actionBtn = wrapper
+            .findAll('button')
+            .find((b) => b.text() === 'Marcar como listo →')
+        expect(actionBtn).toBeTruthy()
+        await actionBtn!.trigger('click')
+
+        expect(wrapper.text()).toContain('Cambiar estado de la línea')
+        expect(wrapper.text()).toContain('PED-0002')
+    })
+
+    it('el hook move permite avanzar a la columna siguiente y rechaza cualquier otro destino', async () => {
+        const wrapper = await mountPage()
+        const pendingColumn = draggables(wrapper)[0]!
+        const moveFn = pendingColumn.props('move') as (evt: any) => boolean
+        const card = { orderDetail: { productionStatus: 'PENDING' } }
+
+        expect(
+            moveFn({ draggedContext: { element: card }, to: { dataset: { status: 'IN_PROCESS' } } }),
+        ).toBe(true)
+        expect(
+            moveFn({ draggedContext: { element: card }, to: { dataset: { status: 'DONE' } } }),
+        ).toBe(false)
+        expect(
+            moveFn({ draggedContext: {}, to: { dataset: { status: 'IN_PROCESS' } } }),
+        ).toBe(false)
+    })
+
+    it('soltar una tarjeta (evento change con added) abre el modal de confirmación', async () => {
+        const wrapper = await mountPage()
+        const pendingColumn = draggables(wrapper)[0]!
+        const card = pendingColumn.props('modelValue')[0]
+
+        await pendingColumn.vm.$emit('change', { added: { element: card } })
+
+        expect(wrapper.text()).toContain('Cambiar estado de la línea')
+        expect(wrapper.text()).toContain('PED-0001')
+    })
+
+    it('cancelar el modal de confirmación lo cierra sin cambiar el estado', async () => {
+        const wrapper = await mountPage()
+        const pendingColumn = draggables(wrapper)[0]!
+        const card = pendingColumn.props('modelValue')[0]
+        await pendingColumn.vm.$emit('change', { added: { element: card } })
+        expect(wrapper.text()).toContain('Cambiar estado de la línea')
+
+        const cancelBtn = wrapper.findAll('button').find((b) => b.text() === 'Cancelar')
+        await cancelBtn!.trigger('click')
+
+        expect(wrapper.text()).not.toContain('Cambiar estado de la línea')
+        expect(ordersServiceMock.updateDetailProductionStatus).not.toHaveBeenCalled()
+    })
 })
 
 describe('pages/admin/pedidos/index - tabla y refrescar', () => {
@@ -214,7 +374,7 @@ describe('pages/admin/pedidos/index - entregar y cancelar (sesión no-empleado)'
                 {
                     id: 'order-1',
                     orderCode: 'PED-0001',
-                    status: 'DONE',
+                    status: 'IN DELIVERY',
                     remainingBalance: '0',
                     isEvento: false,
                     isEnTienda: false,
@@ -234,6 +394,29 @@ describe('pages/admin/pedidos/index - entregar y cancelar (sesión no-empleado)'
         await flushPromises()
 
         expect(ordersServiceMock.markDelivered).toHaveBeenCalledWith('order-1', undefined)
+    })
+
+    it('no permite cancelar un pedido que ya no está en estado Creado (cliente)', async () => {
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                {
+                    id: 'order-1',
+                    orderCode: 'PED-0001',
+                    status: 'IN PROCESS',
+                    remainingBalance: '0',
+                    isEvento: false,
+                    isEnTienda: false,
+                },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        const btn = wrapper.find('button[title="Solo se puede cancelar un pedido en estado Creado"]')
+
+        expect(btn.exists()).toBe(true)
+        expect(btn.attributes('disabled')).toBeDefined()
     })
 
     it('cancela un pedido sin pedir PIN (no es una sesión de empleado)', async () => {
@@ -267,5 +450,72 @@ describe('pages/admin/pedidos/index - entregar y cancelar (sesión no-empleado)'
             'Cliente canceló',
             undefined,
         )
+    })
+
+    it('cierra el modal de confirmación de entrega al pedir el PIN de empleado (cliente: quedaban apilados)', async () => {
+        useAuthUser().user.value = { id: 'emp-1', username: 'sucursal', isActive: true, role: 'EMPLOYEE' } as any
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                {
+                    id: 'order-1',
+                    orderCode: 'PED-0001',
+                    status: 'IN DELIVERY',
+                    remainingBalance: '0',
+                    isEvento: false,
+                    isEnTienda: false,
+                },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        await wrapper.find('button[title="Marcar como entregado"]').trigger('click')
+        const confirmBtn = wrapper
+            .findAll('button')
+            .find((b) => b.text() === 'Confirmar entrega')
+        await confirmBtn!.trigger('click')
+        await flushPromises()
+
+        expect(wrapper.text()).toContain('Identifícate')
+        expect(
+            wrapper.findAll('button').find((b) => b.text() === 'Confirmar entrega'),
+        ).toBeUndefined()
+        expect(ordersServiceMock.markDelivered).not.toHaveBeenCalled()
+    })
+
+    it('cierra el modal de confirmación de cancelación al pedir el PIN de empleado', async () => {
+        useAuthUser().user.value = { id: 'emp-1', username: 'sucursal', isActive: true, role: 'EMPLOYEE' } as any
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                {
+                    id: 'order-1',
+                    orderCode: 'PED-0001',
+                    status: 'CREATED',
+                    remainingBalance: '0',
+                    isEvento: false,
+                    isEnTienda: false,
+                },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        await wrapper.find('button[title="Cancelar pedido"]').trigger('click')
+        await wrapper.find('textarea').setValue('Cliente canceló')
+        const confirmBtn = wrapper
+            .findAll('button')
+            .find((b) => b.text() === 'Cancelar pedido' && !b.attributes('title'))
+        await confirmBtn!.trigger('click')
+        await flushPromises()
+
+        expect(wrapper.text()).toContain('Identifícate')
+        expect(
+            wrapper
+                .findAll('button')
+                .find((b) => b.text() === 'Cancelar pedido' && !b.attributes('title')),
+        ).toBeUndefined()
+        expect(ordersServiceMock.cancelOrder).not.toHaveBeenCalled()
     })
 })

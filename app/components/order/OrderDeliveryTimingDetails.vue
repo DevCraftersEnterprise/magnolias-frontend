@@ -1,11 +1,13 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   step2: {
     isEvento: boolean;
     deliveryRound: string;
     deliveryDate: string;
     eventMontageDate: string;
   };
+  // Cliente #3: costo adicional cuando deliveryRound es "especial".
+  specialRoundCost: number;
   deliveryTimeParts: { h: number; m: string; p: "AM" | "PM" };
   exitTimeParts: { h: number; m: string; p: "AM" | "PM" };
   minDeliveryDate: string;
@@ -14,6 +16,20 @@ defineProps<{
   exitTimeOutOfHours: boolean;
   minuteOptions: readonly string[];
 }>();
+
+const emit = defineEmits<{
+  (e: "update:specialRoundCost", value: number): void;
+}>();
+
+// Si dejan de elegir la ronda especial, se limpia el costo adicional.
+watch(
+  () => props.step2.deliveryRound,
+  (round) => {
+    if (round !== "especial" && props.specialRoundCost) {
+      emit("update:specialRoundCost", 0);
+    }
+  },
+);
 </script>
 
 <template>
@@ -55,6 +71,7 @@ defineProps<{
             <option value="1">Ronda 1</option>
             <option value="2">Ronda 2</option>
             <option value="3">Ronda 3</option>
+            <option value="especial">Ronda especial</option>
           </select>
           <svg
             class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
@@ -70,6 +87,43 @@ defineProps<{
             />
           </svg>
         </div>
+      </div>
+
+      <!-- Costo adicional de ronda especial (cliente #3) -->
+      <div
+        v-if="step2.deliveryRound === 'especial'"
+        class="flex items-center gap-3 px-4 py-3 bg-white"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          class="h-5 w-5 flex-shrink-0 text-[#FC9AD3]"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l2 2" />
+        </svg>
+        <label
+          for="special-round-cost"
+          class="text-[13px] font-medium text-gray-700 w-36 flex-shrink-0"
+          >Costo adicional</label
+        >
+        <input
+          id="special-round-cost"
+          :value="specialRoundCost"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="0.00"
+          class="w-32 rounded-lg border border-black/12 px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#FC9AD3]/60 bg-white"
+          @input="
+            emit(
+              'update:specialRoundCost',
+              Number(($event.target as HTMLInputElement).value) || 0,
+            )
+          "
+        />
       </div>
 
       <!-- Fecha + Hora -->

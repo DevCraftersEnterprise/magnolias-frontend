@@ -36,5 +36,14 @@ export const useBranch = () => {
         }
     }
 
-    return { branches, selectedBranch, bakerBranches, loadBranches }
+    // Cliente #7: al cerrar sesión, esta info debe olvidarse — de lo contrario,
+    // como la app es una SPA sin recarga completa, la sucursal/rol del usuario
+    // anterior sigue reflejada en el navbar tras iniciar sesión con otro usuario.
+    function resetBranch() {
+        branches.value = []
+        selectedBranch.value = null
+        bakerBranches.value = []
+    }
+
+    return { branches, selectedBranch, bakerBranches, loadBranches, resetBranch }
 }

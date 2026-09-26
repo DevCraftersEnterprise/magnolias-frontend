@@ -7,6 +7,7 @@ const props = defineProps<{
   assignment?: OrderLineAssignment | null;
   bakers: UserItem[];
   loading?: boolean;
+  readOnly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -33,7 +34,8 @@ function onChange(event: Event) {
       <select
         :id="selectId"
         :value="selectedBakerId"
-        :disabled="loading"
+        :disabled="loading || readOnly"
+        :title="readOnly ? 'No se puede reasignar un pedido entregado o cancelado' : undefined"
         class="appearance-none rounded-lg bg-white pl-2.5 pr-7 py-1 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer disabled:opacity-50"
         @change="onChange"
       >

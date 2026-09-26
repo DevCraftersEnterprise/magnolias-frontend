@@ -9,15 +9,22 @@ const { branches, selectedBranch, bakerBranches } = useBranch();
 const {
   viewAsBaker,
   viewAsBakerId,
+  viewAsDriver,
+  viewAsDriverId,
   canToggleViewAs,
   effectiveRole,
   enterViewAsBaker,
+  enterViewAsDriver,
   exitViewAs,
 } = useViewAs();
 
 const username = computed(() => user.value?.username ?? "...");
 const role = computed(() => user.value?.role ?? "");
 const isBaker = computed(() => effectiveRole.value === "BAKER");
+const isDriver = computed(() => effectiveRole.value === "DRIVER");
+// BAKER y DRIVER (Cliente #8) pueden pertenecer a varias sucursales, así que
+// comparten el mismo selector de "sus" sucursales.
+const isMultiBranchRole = computed(() => isBaker.value || isDriver.value);
 const canSeeBranchSelect = computed(() =>
   ["ADMIN", "SUPER"].includes(effectiveRole.value),
 );
@@ -51,6 +58,37 @@ watch([viewAsBaker, selectedBranch], () => {
 function onToggleViewAs(e: Event) {
   const checked = (e.target as HTMLInputElement).checked;
   if (checked) enterViewAsBaker();
+  else exitViewAs();
+}
+
+// Análogo a previewBakers, para "Ver como repartidor" (Cliente #8).
+const previewDrivers = ref<UserItem[]>([]);
+const previewDriversLoading = ref(false);
+
+async function loadPreviewDrivers() {
+  if (!selectedBranch.value?.id) {
+    previewDrivers.value = [];
+    return;
+  }
+  previewDriversLoading.value = true;
+  try {
+    previewDrivers.value = await usersService.getDriversByBranch(
+      selectedBranch.value.id,
+    );
+  } catch {
+    previewDrivers.value = [];
+  } finally {
+    previewDriversLoading.value = false;
+  }
+}
+
+watch([viewAsDriver, selectedBranch], () => {
+  if (viewAsDriver.value) loadPreviewDrivers();
+});
+
+function onToggleViewAsDriver(e: Event) {
+  const checked = (e.target as HTMLInputElement).checked;
+  if (checked) enterViewAsDriver();
   else exitViewAs();
 }
 
@@ -142,6 +180,42 @@ const initials = computed(() => {
         </button>
       </div>
 
+      <!-- Aviso de vista simulada como repartidor (Cliente #8) -->
+      <div
+        v-if="viewAsDriver"
+        class="flex items-center gap-2 bg-teal-50 border border-teal-300 rounded-xl py-[6px] pl-3 pr-[6px]"
+      >
+        <span class="text-[12px] font-semibold text-teal-700 whitespace-nowrap"
+          >Viendo como:</span
+        >
+        <select
+          v-model="viewAsDriverId"
+          aria-label="Selecciona un repartidor para previsualizar"
+          class="bg-white border border-teal-300 rounded-lg text-[12px] font-semibold text-teal-800 py-[3px] pl-2 pr-6 outline-none max-w-[160px]"
+          :disabled="previewDriversLoading"
+        >
+          <option value="" disabled>
+            {{
+              previewDriversLoading
+                ? "Cargando…"
+                : previewDrivers.length
+                  ? "Selecciona un repartidor"
+                  : "Sin repartidores en esta sucursal"
+            }}
+          </option>
+          <option v-for="d in previewDrivers" :key="d.id" :value="d.id">
+            {{ d.name }} {{ d.lastname }}
+          </option>
+        </select>
+        <button
+          type="button"
+          class="text-[11px] font-semibold text-teal-700 underline hover:text-teal-900"
+          @click="exitViewAs"
+        >
+          Salir
+        </button>
+      </div>
+
       <!-- ADMIN / SUPER: selector de todas las sucursales -->
       <div
         v-if="canSeeBranchSelect && branches.length > 0"
@@ -190,7 +264,7 @@ const initials = computed(() => {
 
       <!-- BAKER: selector entre sus sucursales asignadas -->
       <div
-        v-else-if="isBaker && bakerBranches.length > 1"
+        v-else-if="isMultiBranchRole && bakerBranches.length > 1"
         class="relative flex items-center"
       >
         <svg
@@ -269,6 +343,22 @@ const initials = computed(() => {
           class="h-4 w-4 rounded border-gray-300 accent-[#FC9AD3]"
           :checked="viewAsBaker"
           @change="onToggleViewAs"
+        />
+      </label>
+
+      <!-- SUPER/ADMIN: interruptor para previsualizar la vista de repartidor (Cliente #8) -->
+      <label
+        v-if="canToggleViewAs"
+        class="hidden items-center gap-2 cursor-pointer select-none min-[900px]:flex"
+      >
+        <span class="text-[12px] font-medium text-gray-500 whitespace-nowrap"
+          >Ver como repartidor</span
+        >
+        <input
+          type="checkbox"
+          class="h-4 w-4 rounded border-gray-300 accent-teal-400"
+          :checked="viewAsDriver"
+          @change="onToggleViewAsDriver"
         />
       </label>
 

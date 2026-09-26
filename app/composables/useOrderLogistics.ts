@@ -63,7 +63,7 @@ export function useOrderLogistics(
         eventMontageDate: "", eventExitTime: "",
         eventGuestCount: "" as number | "",
         eventResponsibleName: "",
-        eventServices: { dessertTable: false, cake: false, cheeseTable: false, plated: false },
+        eventServices: defaultEventServicesFlags(),
         useCommonAddr: false, commonAddrId: "",
         saveAsCommonAddr: false, commonAddrName: "",
     });
@@ -113,6 +113,9 @@ export function useOrderLogistics(
         return m >= 0 && (m < 480 || m >= 1200);
     });
     const deliveryTimeOutOfHours = computed(() => {
+        // Cliente: la ronda especial se cobra aparte, así que el horario fuera
+        // de atención no debe avisar ni bloquear el avance.
+        if (step2.deliveryRound === "especial") return false;
         const m = timeToMinutes(step2.deliveryTime);
         if (m < 0) return false;
         if (step2.isEvento) return m < 420;

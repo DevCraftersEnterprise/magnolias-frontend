@@ -13,6 +13,7 @@ function tier(overrides: Partial<TierRow> = {}): TierRow {
         breadId: '',
         fillingId: '',
         frostingId: '',
+        styleId: '',
         ...overrides,
     }
 }
@@ -28,6 +29,7 @@ function mountEditor(
             breadTypes: [{ id: 'bread-1', name: 'Vainilla' }],
             fillings: [{ id: 'filling-1', name: 'Fresa' }],
             frostings: [{ id: 'frosting-1', name: 'Chantilly' }],
+            styles: [{ id: 'style-1', name: 'Redondo' }],
             minTiers: 2,
         },
     })
@@ -43,6 +45,7 @@ describe('OrderProductTiersEditor', () => {
                 breadTypes: [],
                 fillings: [],
                 frostings: [],
+                styles: [],
                 minTiers: 2,
             },
         })
@@ -62,6 +65,7 @@ describe('OrderProductTiersEditor', () => {
                 breadTypes: [],
                 fillings: [],
                 frostings: [],
+                styles: [],
                 minTiers: 2,
             },
         })
@@ -112,5 +116,74 @@ describe('OrderProductTiersEditor', () => {
 
         expect(withCustom.find('input[type="text"]').exists()).toBe(true)
         expect(withoutCustom.find('input[type="text"]').exists()).toBe(false)
+    })
+
+    it('muestra un select de Forma por piso (cliente: pisos sin forma)', () => {
+        const wrapper = mountEditor([tier()])
+
+        expect(wrapper.text()).toContain('Forma')
+        const styleSelect = wrapper.find('select[id^="tier-style-"]')
+        expect(styleSelect.exists()).toBe(true)
+        expect(styleSelect.findAll('option').map((o) => o.text())).toEqual(
+            expect.arrayContaining(['Redondo']),
+        )
+    })
+
+    it('actualiza tier.styleId al elegir una forma en el select del piso', async () => {
+        const t = tier()
+        const wrapper = mountEditor([t])
+
+        const styleSelect = wrapper.find('select[id^="tier-style-"]')
+        await styleSelect.setValue('style-1')
+
+        expect(t.styleId).toBe('style-1')
+    })
+
+    it('limpia la forma del piso al cambiar a un tamaño con el que ya no es compatible', async () => {
+        const t = tier({ sizeId: '20P', styleId: 'style-1' })
+        const wrapper = mount(OrderProductTiersEditor, {
+            props: {
+                hasTiers: true,
+                tiers: [t],
+                colorCatalog: [],
+                breadTypes: [],
+                fillings: [],
+                frostings: [],
+                styles: [
+                    { id: 'style-1', name: 'Redondo', applicableSizes: ['20P'] },
+                ],
+                minTiers: 2,
+            },
+        })
+
+        const sizeSelect = wrapper.find('select[id^="tier-size-"]')
+        await sizeSelect.setValue('30P')
+
+        expect(t.styleId).toBe('')
+    })
+
+    it('filtra las formas del piso según applicableSizes del tamaño elegido', () => {
+        const wrapper = mount(OrderProductTiersEditor, {
+            props: {
+                hasTiers: true,
+                tiers: [tier({ sizeId: '20P' })],
+                colorCatalog: [],
+                breadTypes: [],
+                fillings: [],
+                frostings: [],
+                styles: [
+                    { id: 'style-1', name: 'Redondo', applicableSizes: ['20P'] },
+                    { id: 'style-2', name: 'Cuadrado', applicableSizes: ['30P'] },
+                ],
+                minTiers: 2,
+            },
+        })
+
+        const options = wrapper
+            .find('select[id^="tier-style-"]')
+            .findAll('option')
+            .map((o) => o.text())
+        expect(options).toContain('Redondo')
+        expect(options).not.toContain('Cuadrado')
     })
 })

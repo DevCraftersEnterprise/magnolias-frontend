@@ -36,7 +36,8 @@ export const FLOWERS_BADGE_COLOR = { bg: '#FFBEE6', text: '#C9007C' };
 export const STATUS_LABELS: Record<OrderStatus, string> = {
     'CREATED': 'Creado',
     'IN PROCESS': 'En proceso',
-    'DONE': 'Finalizado',
+    'DONE': 'Listo',
+    'IN DELIVERY': 'En proceso de entrega',
     'DELIVERED': 'Entregado',
     'CANCELED': 'Cancelado',
 }
@@ -45,9 +46,25 @@ export const STATUS_COLORS: Record<OrderStatus, { bg: string; text: string }> = 
     'CREATED': { bg: '#B9FFC6', text: '#00C91D' },
     'IN PROCESS': { bg: '#FFF8A9', text: '#C7B400' },
     'DONE': { bg: '#B9D9FF', text: '#0047C9' },
+    'IN DELIVERY': { bg: '#E6D9FF', text: '#5B00C9' },
     'DELIVERED': { bg: '#FFD9B9', text: '#C94A00' },
     'CANCELED': { bg: '#FFD9D9', text: '#C90000' },
 }
+
+// Estados sobre los que ya no se puede reasignar pastelero/repartidor
+// (cliente: una vez entregado o cancelado el pedido, esas asignaciones
+// quedan fijas).
+export const NON_EDITABLE_ORDER_STATUSES: OrderStatus[] = [
+    'DELIVERED',
+    'CANCELED',
+]
+
+// Estados en los que ya no se puede asignar/reasignar pastelero: además de
+// entregado/cancelado, tampoco cuando el pedido ya va en reparto.
+export const NON_BAKER_ASSIGNABLE_ORDER_STATUSES: OrderStatus[] = [
+    ...NON_EDITABLE_ORDER_STATUSES,
+    'IN DELIVERY',
+]
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
     CASH: 'Efectivo',
@@ -61,6 +78,7 @@ export const DELIVERY_ROUND_LABELS: Record<string, string> = {
     ROUND_2: 'Ronda 2',
     ROUND_3: 'Ronda 3',
     ROUND_4: 'Ronda 4',
+    RONDA_ESPECIAL: 'Ronda especial',
 }
 
 export const ORDER_SOURCE_LABELS: Record<string, string> = {

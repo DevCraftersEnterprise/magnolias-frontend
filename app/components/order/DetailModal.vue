@@ -3,6 +3,7 @@ import { ordersService } from "~/services/orders.service";
 import type { OrderDetail, OrderItem } from "~/types/order.types";
 import { useToast } from "vue-toastification";
 import { useOrderDetailAssignment } from "~/composables/useOrderDetailAssignment";
+import { useOrderDeliveryAssignment } from "~/composables/useOrderDeliveryAssignment";
 
 const props = defineProps<{
   open: boolean;
@@ -25,6 +26,17 @@ const loadingDetail = ref(false);
 const { bakers, bakersLoading, assigningDetailId, loadBakers, assignBaker } =
   useOrderDetailAssignment();
 
+// ── Asignación de repartidor a nivel de pedido (Cliente #8) ─────────────────
+// canToggleViewAs ya equivale a "es un ADMIN/SUPER real" (ver useViewAs.ts).
+const { canToggleViewAs: canAssignDriver } = useViewAs();
+const {
+  drivers,
+  driversLoading,
+  assigningOrderId,
+  loadDrivers,
+  assignDriver,
+} = useOrderDeliveryAssignment();
+
 watch(
   () => props.open,
   async (v) => {
@@ -37,6 +49,7 @@ watch(
       activeData.value = await ordersService.getOrder(props.order.id);
       if (activeData.value?.branch?.id) {
         loadBakers(activeData.value.branch.id);
+        if (canAssignDriver.value) loadDrivers(activeData.value.branch.id);
       }
     } catch {
       activeData.value = null; // fall back to list data
@@ -58,6 +71,18 @@ async function onAssignBaker(detailId: string, bakerId: string) {
   }
 }
 
+async function onAssignDriver(driverId: string) {
+  if (!props.order) return;
+  try {
+    const assignment = await assignDriver(props.order.id, driverId);
+    if (!activeData.value) return;
+    activeData.value.deliveryAssignments = [assignment];
+    toast.success("Repartidor asignado correctamente.");
+  } catch (e: any) {
+    toast.error(e?.message || "No se pudo asignar el repartidor.");
+  }
+}
+
 // ── Escape key ───────────────────────────────────────────────────────────────
 function onKey(e: KeyboardEvent) {
   if (e.key === "Escape" && props.open) emit("close");
@@ -70,6 +95,28 @@ const abonoAmount = ref<number | "">("");
 const abonoSaving = ref(false);
 const toast = useToast();
 const abonoSuccess = ref(false);
+
+// ── Autoría de empleado (cuenta compartida de sucursal, Cliente #11) ────────
+// El backend exige employeeActionToken en cualquier updateOrder hecho por una
+// sesión EMPLOYEE; antes este modal no lo pedía y el abono fallaba con un
+// error genérico sin llegar a mostrar el modal de PIN.
+const { user } = useAuthUser();
+const isEmployeeSession = computed(() => user.value?.role === "EMPLOYEE");
+const {
+  modalOpen: employeePinModalOpen,
+  loading: employeePinLoading,
+  error: employeePinError,
+  employeeActionToken,
+  openModal: openEmployeePinModal,
+  verifyPin: verifyEmployeePin,
+  reset: resetEmployeePin,
+} = useEmployeePin();
+
+async function onEmployeePinSubmit(pin: string) {
+  const ok = await verifyEmployeePin(pin);
+  if (!ok) return;
+  await saveAbono();
+}
 
 const remainingParsed = computed(() => {
   const raw =
@@ -93,10 +140,25 @@ watch(
 async function saveAbono() {
   const amount = Number(abonoAmount.value);
   if (!amount || amount <= 0 || !props.order) return;
+
+  if (isEmployeeSession.value && !employeeActionToken.value) {
+    openEmployeePinModal();
+    return;
+  }
+
   abonoSaving.value = true;
   abonoSuccess.value = false;
+  // Token de un solo uso: se consume aquí para que el siguiente abono (en
+  // este mismo pedido u otro) vuelva a pedir el PIN, en vez de asumir que
+  // sigue siendo el mismo compañero frente al mostrador.
+  const actionToken = employeeActionToken.value || undefined;
+  if (isEmployeeSession.value) resetEmployeePin();
   try {
-    await ordersService.updateOrder({ id: props.order.id, payment: amount });
+    await ordersService.updateOrder({
+      id: props.order.id,
+      payment: amount,
+      employeeActionToken: actionToken,
+    });
     activeData.value = await ordersService.getOrder(props.order.id);
     abonoAmount.value = "";
     abonoSuccess.value = true;
@@ -114,6 +176,10 @@ async function saveAbono() {
     abonoSaving.value = false;
   }
 }
+
+// Precio de catálogo actual (referencia) - cliente: no se sumaban los
+// precios de pan/relleno/cobertura/decoración/fruta/flores en el detalle.
+const catalogPriceTotal = useOrderCatalogPriceTotal(activeData);
 
 // ── Computed from detail (fallback to list data) ────────────────────────────
 const activeDeliveryAddress = computed(
@@ -159,19 +225,6 @@ const updatedByName = computed(() => {
   }
   const u = activeUpdatedBy.value;
   return u ? `${u.name} ${u.lastname}` : null;
-});
-
-const buildDeliveryAddress = computed(() => {
-  const a = activeDeliveryAddress.value;
-  if (!a) return "";
-  return [
-    a.street?.trim(),
-    a.number ? `#${a.number}` : null,
-    a.neighborhood?.trim(),
-    a.city?.trim(),
-  ]
-    .filter(Boolean)
-    .join(", ");
 });
 
 const buildCustomerAddress = computed(() => {
@@ -595,6 +648,25 @@ async function downloadFormat() {
                 </div>
               </div>
 
+              <!-- ─ Repartidor asignado (Cliente #8, solo ADMIN/SUPER) ─ -->
+              <div v-if="canAssignDriver && activeData">
+                <p
+                  class="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400"
+                >
+                  Reparto
+                </p>
+                <div class="rounded-xl bg-[#F8F8F9] px-4 py-3">
+                  <OrderDeliveryAssignmentRow
+                    :order-id="activeData.id"
+                    :assignment="activeData.deliveryAssignments?.[0]"
+                    :drivers="drivers"
+                    :loading="driversLoading || assigningOrderId === activeData.id"
+                    :read-only="NON_EDITABLE_ORDER_STATUSES.includes(activeData.status)"
+                    @assign="onAssignDriver"
+                  />
+                </div>
+              </div>
+
               <!-- ─ 2. Dirección de entrega ─ -->
               <div v-if="activeDeliveryAddress">
                 <p
@@ -602,94 +674,7 @@ async function downloadFormat() {
                 >
                   Dirección de entrega
                 </p>
-                <div class="rounded-xl bg-[#F8F8F9] px-4 py-4 space-y-3">
-                  <!-- Receptor -->
-                  <div
-                    v-if="activeDeliveryAddress.receiverName"
-                    class="flex items-center gap-3"
-                  >
-                    <div
-                      class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-pink-100"
-                    >
-                      <svg
-                        class="h-4 w-4 text-pink-400"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-[13px] font-semibold text-[#111827]">
-                        {{ activeDeliveryAddress.receiverName }}
-                      </p>
-                      <p
-                        v-if="activeDeliveryAddress.receiverPhone"
-                        class="text-[12px] text-gray-500"
-                      >
-                        {{ activeDeliveryAddress.receiverPhone }}
-                      </p>
-                    </div>
-                  </div>
-                  <!-- Dirección -->
-                  <div
-                    v-if="buildDeliveryAddress"
-                    class="flex items-start gap-3"
-                  >
-                    <div
-                      class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-pink-100"
-                    >
-                      <svg
-                        class="h-4 w-4 text-pink-400"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path
-                          d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
-                        />
-                      </svg>
-                    </div>
-                    <div class="pt-1 space-y-0.5">
-                      <p class="text-[13px] text-gray-700 leading-relaxed">
-                        {{ buildDeliveryAddress }}
-                      </p>
-                      <p
-                        v-if="activeDeliveryAddress.postalCode"
-                        class="text-[12px] text-gray-500"
-                      >
-                        CP {{ activeDeliveryAddress.postalCode }}
-                      </p>
-                      <p
-                        v-if="activeDeliveryAddress.betweenStreets"
-                        class="text-[12px] text-gray-500"
-                      >
-                        Entre: {{ activeDeliveryAddress.betweenStreets }}
-                      </p>
-                      <p
-                        v-if="activeDeliveryAddress.interphoneCode"
-                        class="text-[12px] text-gray-500"
-                      >
-                        Interfón: {{ activeDeliveryAddress.interphoneCode }}
-                      </p>
-                      <p
-                        v-if="activeDeliveryAddress.reference"
-                        class="text-[12px] text-gray-500"
-                      >
-                        Ref: {{ activeDeliveryAddress.reference }}
-                      </p>
-                    </div>
-                  </div>
-                  <!-- Notas de entrega -->
-                  <div
-                    v-if="activeDeliveryAddress.deliveryNotes"
-                    class="ml-11 rounded-lg bg-white px-3 py-2 ring-1 ring-black/5 text-[12px] text-gray-500 italic"
-                  >
-                    Nota: {{ activeDeliveryAddress.deliveryNotes }}
-                  </div>
-                </div>
+                <OrderDeliveryAddressSummary :address="activeDeliveryAddress" />
               </div>
 
               <!-- ─ 3. Cliente ─ -->
@@ -832,6 +817,7 @@ async function downloadFormat() {
                         :assignment="detail.assignments?.[0]"
                         :bakers="bakers"
                         :loading="bakersLoading || assigningDetailId === detail.id"
+                        :read-only="NON_BAKER_ASSIGNABLE_ORDER_STATUSES.includes(activeData.status)"
                         @assign="(bakerId) => onAssignBaker(detail.id, bakerId)"
                       />
                       <!-- Pisos (pastel de 2+ pisos) -->
@@ -954,6 +940,21 @@ async function downloadFormat() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <!-- Precio de catálogo actual (referencia, no snapshot histórico) -->
+                <div
+                  v-if="catalogPriceTotal > 0"
+                  class="mt-2 flex items-center justify-between rounded-xl bg-[#F8F8F9] px-4 py-2.5 text-[12px]"
+                >
+                  <span
+                    class="text-gray-400"
+                    title="Suma del precio ACTUAL de pan, relleno, cobertura, decoración, fruta y flores del pedido. Puede no coincidir con lo cobrado si el precio del catálogo cambió después."
+                    >Precio de catálogo (referencia)</span
+                  >
+                  <span class="font-semibold text-[#111827]">{{
+                    formatMXN(catalogPriceTotal)
+                  }}</span>
                 </div>
               </div>
 
@@ -1105,4 +1106,12 @@ async function downloadFormat() {
       </div>
     </Transition>
   </Teleport>
+
+  <OrderEmployeePinModal
+    v-model="employeePinModalOpen"
+    :loading="employeePinLoading"
+    :error="employeePinError"
+    action-label="registrar el abono"
+    @submit="onEmployeePinSubmit"
+  />
 </template>

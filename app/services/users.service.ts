@@ -26,6 +26,13 @@ export const usersService = {
     })
   },
 
+  getDriversByBranch(branchId: string) {
+    return apiFetch<UserItem[]>(`/api/users/drivers/${branchId}`, {
+      method: 'GET',
+      auth: true,
+    })
+  },
+
   createUser(payload: CreateUserPayload) {
     return apiFetch<UserItem>('/api/users', {
       method: 'POST',
