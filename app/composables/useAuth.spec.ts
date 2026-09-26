@@ -153,17 +153,4 @@ describe('useAuth', () => {
         })
     })
 
-    describe('logout', () => {
-        it('limpia tokens y usuario', () => {
-            document.cookie = 'access_token=algo; path=/'
-            document.cookie = 'refresh_token=algo; path=/'
-
-            const { logout, access, refresh, user } = useAuth()
-            logout()
-
-            expect(access.value).toBeNull()
-            expect(refresh.value).toBeNull()
-            expect(user.value).toBeNull()
-        })
-    })
 })

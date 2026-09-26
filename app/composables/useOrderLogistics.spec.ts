@@ -137,6 +137,19 @@ describe('useOrderLogistics', () => {
         expect(deliveryTimeOutOfHours.value).toBe(false)
     })
 
+    it('con ronda especial, deliveryTimeOutOfHours se ignora aunque la hora esté fuera de horario (cliente: se cobra aparte)', async () => {
+        const { setOrderMode, step2, deliveryTimeParts, deliveryTimeOutOfHours } = setup()
+        setOrderMode('domicilio')
+        deliveryTimeParts.h = 6
+        deliveryTimeParts.p = 'AM'
+        await nextTick()
+        expect(deliveryTimeOutOfHours.value).toBe(true)
+
+        step2.deliveryRound = 'especial'
+
+        expect(deliveryTimeOutOfHours.value).toBe(false)
+    })
+
     it('deliveryTimeOutOfHours usa el rango general (8am-8pm) para otros modos', async () => {
         const { setOrderMode, deliveryTimeParts, deliveryTimeOutOfHours } = setup()
         setOrderMode('domicilio')

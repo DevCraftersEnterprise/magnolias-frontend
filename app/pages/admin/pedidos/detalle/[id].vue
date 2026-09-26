@@ -353,12 +353,6 @@ function roundLabel(r?: string | null) {
                       >
                         {{ detail.product?.name ?? `Producto ${i + 1}` }}
                       </p>
-                      <p
-                        v-if="detail.product?.description"
-                        class="mt-1 text-[13px] text-gray-400"
-                      >
-                        {{ detail.product.description }}
-                      </p>
                     </div>
                     <span
                       class="shrink-0 rounded-xl bg-[#F5E6FA] px-4 py-2 text-[16px] font-bold text-[#7C00C9]"
@@ -774,6 +768,12 @@ function roundLabel(r?: string | null) {
                   <p class="text-[11px] text-gray-400">Hora evento</p>
                   <p class="mt-0.5 text-[14px] font-semibold text-[#111827]">
                     {{ order.eventTime }}
+                  </p>
+                </div>
+                <div v-if="order.setupDate">
+                  <p class="text-[11px] text-gray-400">Fecha montaje</p>
+                  <p class="mt-0.5 text-[14px] font-semibold text-[#111827]">
+                    {{ formatDate(order.setupDate ?? "") }}
                   </p>
                 </div>
                 <div v-if="order.setupTime">

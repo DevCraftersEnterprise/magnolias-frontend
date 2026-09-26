@@ -45,6 +45,7 @@ const roleSubtitles: Record<string, string> = {
   ADMIN: "Administración general",
   EMPLOYEE: "Cuenta compartida del mostrador de una sucursal",
   BAKER: "Puede pertenecer a varias sucursales",
+  DRIVER: "Puede pertenecer a varias sucursales",
 };
 
 const roleSubtitle = computed(() => roleSubtitles[form.role] ?? "");
@@ -87,6 +88,9 @@ async function onSubmit() {
       payload.area = form.area || null;
       if (form.specialty.trim()) payload.specialty = form.specialty.trim();
     }
+    if (form.role === "DRIVER") {
+      payload.branchIds = form.branchIds;
+    }
 
     if (props.mode === "create") {
       const created = await usersService.createUser(payload);
@@ -108,6 +112,9 @@ async function onSubmit() {
         if (form.area) editPayload.area = form.area;
         if (form.specialty.trim())
           editPayload.specialty = form.specialty.trim();
+      }
+      if (form.role === "DRIVER") {
+        if (form.branchIds.length > 0) editPayload.branchIds = form.branchIds;
       }
       await usersService.updateUser(editPayload);
       if (form.userkey) {
@@ -249,6 +256,7 @@ async function onSubmit() {
             <option value="ADMIN">Admin</option>
             <option value="EMPLOYEE">Sucursal</option>
             <option value="BAKER">Pastelero</option>
+            <option value="DRIVER">Repartidor</option>
           </select>
           <svg
             class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
@@ -300,8 +308,8 @@ async function onSubmit() {
         </div>
       </template>
 
-      <!-- === BAKER: branchIds (múltiple) + area + specialty === -->
-      <template v-else-if="form.role === 'BAKER'">
+      <!-- === BAKER/DRIVER: branchIds (múltiple); área + specialty solo BAKER === -->
+      <template v-else-if="form.role === 'BAKER' || form.role === 'DRIVER'">
         <div>
           <label class="text-xs font-semibold text-black/60">
             Sucursales
@@ -330,48 +338,52 @@ async function onSubmit() {
             </p>
           </div>
         </div>
-        <div>
-          <label class="text-xs font-semibold text-black/60">Área</label>
-          <div class="relative mt-1">
-            <select
-              v-model="form.area"
-              class="h-11 w-full appearance-none rounded-xl bg-black/5 px-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-black/10"
-              required
-            >
-              <option value="" disabled>Selecciona un área</option>
-              <option value="BO">BO · Back Office</option>
-              <option value="PA">PA · Panadería</option>
-              <option value="PE">PE · Piso de Entrega</option>
-              <option value="CK">CK · Cocina</option>
-              <option value="3L">3L · Tres Leches</option>
-            </select>
-            <svg
-              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+        <template v-if="form.role === 'BAKER'">
+          <div>
+            <label for="user-area" class="text-xs font-semibold text-black/60">Área</label>
+            <div class="relative mt-1">
+              <select
+                id="user-area"
+                v-model="form.area"
+                class="h-11 w-full appearance-none rounded-xl bg-black/5 px-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-black/10"
+                required
+              >
+                <option value="" disabled>Selecciona un área</option>
+                <option value="BO">BO · Back Office</option>
+                <option value="PA">PA · Panadería</option>
+                <option value="PE">PE · Piso de Entrega</option>
+                <option value="CK">CK · Cocina</option>
+                <option value="3L">3L · Tres Leches</option>
+              </select>
+              <svg
+                class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
           </div>
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-black/60">
-            Especialidad
-            <span class="font-normal text-black/40">(opcional)</span>
-          </label>
-          <input
-            v-model="form.specialty"
-            class="mt-1 h-11 w-full rounded-xl bg-black/5 px-3 text-sm outline-none focus:ring-2 focus:ring-black/10"
-            placeholder="Ej. Especialista en pasteles de tres leches"
-          />
-        </div>
+          <div>
+            <label for="user-specialty" class="text-xs font-semibold text-black/60">
+              Especialidad
+              <span class="font-normal text-black/40">(opcional)</span>
+            </label>
+            <input
+              id="user-specialty"
+              v-model="form.specialty"
+              class="mt-1 h-11 w-full rounded-xl bg-black/5 px-3 text-sm outline-none focus:ring-2 focus:ring-black/10"
+              placeholder="Ej. Especialista en pasteles de tres leches"
+            />
+          </div>
+        </template>
       </template>
 
       <!-- Toggle isActive (solo en edición) -->

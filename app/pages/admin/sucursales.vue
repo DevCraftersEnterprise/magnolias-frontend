@@ -7,15 +7,22 @@ definePageMeta({ layout: "admin", pageTitle: "Sucursales" });
 useHead({ title: "Sucursales · Magnolias" });
 
 // ─── State ───────────────────────────────────────────────────────────────────
+// Usa el estado global de useBranch() (el mismo que lee el Topbar) en vez de
+// una lista local: así crear/editar una sucursal aquí se refleja de inmediato
+// en el select de sucursales del navbar, incluso al crear la primera (antes
+// quedaban desincronizados y el select del Topbar nunca se actualizaba).
+const { branches } = useBranch();
 const toast = useToast();
 const loading = ref(true);
 const showModal = ref(false);
 const editingBranch = ref<BranchResponse | null>(null);
-const branches = ref<BranchResponse[]>([]);
 
 // ─── Load ────────────────────────────────────────────────────────────────────
 async function loadBranches() {
   try {
+    // Carga siempre fresca (a diferencia de useBranch().loadBranches(), que
+    // no vuelve a pedir datos si branches ya tiene elementos): esta página es
+    // la fuente de verdad de sucursales y debe reflejar altas/bajas recientes.
     const data = await branchesService.getBranches();
     branches.value = data;
   } catch (error) {

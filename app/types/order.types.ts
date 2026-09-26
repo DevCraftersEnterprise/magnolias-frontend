@@ -1,4 +1,4 @@
-export type OrderStatus = 'CREATED' | 'IN PROCESS' | 'DONE' | 'DELIVERED' | 'CANCELED';
+export type OrderStatus = 'CREATED' | 'IN PROCESS' | 'DONE' | 'IN DELIVERY' | 'DELIVERED' | 'CANCELED';
 export type ProductSize = '10P' | '15P' | '20P' | '25P' | '30P' | '40P' | '50P' | 'CUSTOM';
 
 export type OrderDeliveryAddress = {
@@ -116,7 +116,17 @@ export type OrderDetailProduct = {
 export type OrderDetailCatalogItem = {
     id: string;
     name: string;
+    price?: string;
 } | null
+
+// Flor incluida en el pedido completo (no por línea de producto). Usado
+// para el desglose de precios de catálogo en el detalle del pedido.
+export type OrderDetailFlower = {
+    id?: string;
+    flower?: { id: string; name: string; price?: string } | null;
+    color?: { id: string; name: string; value?: string } | null;
+    quantity: number;
+}
 
 export type OrderDetailTier = {
     id?: string;
@@ -149,6 +159,8 @@ export type OrderDetailItem = {
     filling?: OrderDetailCatalogItem;
     frosting?: OrderDetailCatalogItem;
     style?: OrderDetailCatalogItem;
+    decoration?: OrderDetailCatalogItem;
+    fruit?: OrderDetailCatalogItem;
     tiers?: OrderDetailTier[];
     assignments?: OrderLineAssignment[];
     productionStatus?: OrderDetailProductionStatus;
@@ -179,6 +191,48 @@ export type OrderDetailAssignmentCard = {
             customer?: { fullName: string };
         };
     };
+}
+
+// Asignación de repartidor a nivel de pedido completo (Cliente #8) - a
+// diferencia de OrderLineAssignment (por línea de producto).
+export type OrderDeliveryAssignedDriver = {
+    id: string;
+    name: string;
+    lastname: string;
+    role?: string;
+    phone?: string | null;
+}
+
+export type OrderDeliveryAssignment = {
+    id: string;
+    driver: OrderDeliveryAssignedDriver;
+    assignedDate: string;
+    notes?: string | null;
+}
+
+// Tarjeta de la lista de reparto (GET /api/orders/delivery/assignments/:driverId)
+export type OrderDeliveryAssignmentCard = {
+    id: string;
+    assignedDate: string;
+    notes?: string | null;
+    order: OrderAvailableDeliveryOrder;
+}
+
+// Pedido "Listo" (DONE) sin repartidor asignado, disponible para que un
+// repartidor lo tome (cliente: self-assign en vez de asignación por admin).
+export type OrderAvailableDeliveryOrder = {
+    id: string;
+    orderCode: string;
+    deliveryDate: string;
+    deliveryTime?: string | null;
+    status: OrderStatus;
+    isEvento?: boolean;
+    isEnTienda?: boolean;
+    remainingBalance?: string;
+    branch?: { id: string; name: string };
+    customer?: { fullName: string };
+    details?: { product?: { name: string } | null }[];
+    deliveryAddress?: OrderDetailDeliveryAddress;
 }
 
 export type OrderDetailCustomer = {
@@ -250,6 +304,7 @@ export type OrderDetail = {
     orderCode: string;
     deliveryRound?: string | null;
     deliveryDate: string;
+    setupDate?: string | null;
     deliveryTime?: string | null;
     readyTime?: string | null;
     eventTime?: string | null;
@@ -265,6 +320,7 @@ export type OrderDetail = {
     paidAmount?: string;
     dessertsTotal?: string;
     setupServiceCost?: string;
+    specialRoundCost?: string;
     hasPhotoReference?: boolean;
     ticketNumber?: string | null;
     settlementTicketNumber?: string | null;
@@ -284,9 +340,10 @@ export type OrderDetail = {
     createdAt: string;
     updatedAt: string;
     details: OrderDetailItem[];
-    orderFlowers: any[];
+    orderFlowers: OrderDetailFlower[];
     payments?: OrderPayment[];
     employeeActions?: OrderEmployeeActionItem[];
+    deliveryAssignments?: OrderDeliveryAssignment[];
 }
 
 export type OrderDetailTierPayload = {
@@ -316,6 +373,8 @@ export type UpdateOrderDetailPayload = {
     fillingId?: string;
     frostingId?: string;
     styleId?: string;
+    decorationId?: string;
+    fruitId?: string;
     referenceFiles?: File[];
     discountPercent?: number;
     tiers?: OrderDetailTierPayload[];
@@ -335,6 +394,7 @@ export type UpdateOrderPayload = {
     orderSource?: string;
     ticketNumber?: string;
     deliveryDate?: string;
+    setupDate?: string;
     deliveryTime?: string;
     readyTime?: string;
     deliveryRound?: string;
@@ -347,6 +407,7 @@ export type UpdateOrderPayload = {
     guestCount?: number;
     dessertsTotal?: number;
     setupServiceCost?: number;
+    specialRoundCost?: number;
     hasPhotoReference?: boolean;
     requiresInvoice?: boolean;
     isCustomerPickup?: boolean;
@@ -375,6 +436,8 @@ export type CreateOrderDetail = {
     fillingId?: string;
     frostingId?: string;
     styleId?: string;
+    decorationId?: string;
+    fruitId?: string;
     referenceFiles?: File[];
     discountPercent?: number;
     tiers?: OrderDetailTierPayload[];
@@ -422,6 +485,7 @@ export type CreateOrderPayload = {
     orderSource: string;
     ticketNumber?: string;
     deliveryDate?: string;
+    setupDate?: string;
     deliveryTime?: string;
     readyTime?: string;
     deliveryRound?: string;
@@ -436,6 +500,7 @@ export type CreateOrderPayload = {
     guestCount?: number;
     dessertsTotal?: number;
     setupServiceCost?: number;
+    specialRoundCost?: number;
     // misc
     hasPhotoReference?: boolean;
     requiresInvoice?: boolean;

@@ -4,9 +4,11 @@ import type { CommonAddress } from "~/types/address.types";
 import type {
     BreadTypeItem,
     ColorItem,
+    DecorationItem,
     FillingItem,
     FlowerItem,
     FrostingItem,
+    FruitItem,
     StyleItem
 } from "~/types/catalog.types"
 
@@ -18,6 +20,8 @@ export function useOrderCatalogs() {
     const flowerCatalog = ref<FlowerItem[]>([]);
     const colorCatalog = ref<ColorItem[]>([]);
     const commonAddresses = ref<CommonAddress[]>([]);
+    const decorations = ref<DecorationItem[]>([]);
+    const fruits = ref<FruitItem[]>([]);
 
     Promise.all([
         catalogsService.getBreadTypes().then(r => { breadTypes.value = r.items; }),
@@ -26,6 +30,8 @@ export function useOrderCatalogs() {
         catalogsService.getStyles().then(r => { styles.value = r.items; }),
         catalogsService.getFlowers().then(r => { flowerCatalog.value = r.items; }),
         catalogsService.getColors().then(r => { colorCatalog.value = r; }),
+        catalogsService.getDecorations().then(r => { decorations.value = r.items; }),
+        catalogsService.getFruits().then(r => { fruits.value = r.items; }),
         addressesService.getAddresses().then(r => { commonAddresses.value = r; })
     ]).catch(() => { });
 
@@ -48,6 +54,7 @@ export function useOrderCatalogs() {
 
     return {
         breadTypes, fillings, frostings, styles, flowerCatalog, colorCatalog, commonAddresses,
+        decorations, fruits,
         colorName, colorHex, catalogLabel, locationLabel
     };
 }

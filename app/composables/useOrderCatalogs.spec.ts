@@ -7,6 +7,8 @@ const catalogsServiceMock = vi.hoisted(() => ({
     getStyles: vi.fn(),
     getFlowers: vi.fn(),
     getColors: vi.fn(),
+    getDecorations: vi.fn(),
+    getFruits: vi.fn(),
 }))
 
 const addressesServiceMock = vi.hoisted(() => ({
@@ -40,11 +42,17 @@ describe('useOrderCatalogs', () => {
         catalogsServiceMock.getColors.mockResolvedValue([
             { id: 'co-1', name: 'Rosa', value: '#ffc0cb' },
         ])
+        catalogsServiceMock.getDecorations.mockResolvedValue({
+            items: [{ id: 'de-1', name: 'Perlas doradas' }],
+        })
+        catalogsServiceMock.getFruits.mockResolvedValue({
+            items: [{ id: 'fr-1', name: 'Fresa' }],
+        })
         addressesServiceMock.getAddresses.mockResolvedValue([{ id: 'addr-1' }])
     })
 
     it('carga los catálogos en paralelo al invocarse', async () => {
-        const { breadTypes, fillings, colorCatalog, commonAddresses } =
+        const { breadTypes, fillings, colorCatalog, commonAddresses, decorations, fruits } =
             useOrderCatalogs()
         await flushPromises()
 
@@ -54,6 +62,8 @@ describe('useOrderCatalogs', () => {
             { id: 'co-1', name: 'Rosa', value: '#ffc0cb' },
         ])
         expect(commonAddresses.value).toEqual([{ id: 'addr-1' }])
+        expect(decorations.value).toEqual([{ id: 'de-1', name: 'Perlas doradas' }])
+        expect(fruits.value).toEqual([{ id: 'fr-1', name: 'Fresa' }])
     })
 
     it('si un catálogo falla, los demás se cargan igual (cada .then es independiente)', async () => {

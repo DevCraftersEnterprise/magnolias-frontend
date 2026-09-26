@@ -26,6 +26,14 @@ describe('useOrderPayment', () => {
         expect(orderTotal.value).toBe(130)
     })
 
+    it('orderTotal suma el costo de ronda especial (cliente #3)', () => {
+        const orderProducts = ref([{ price: 100, qty: 1 }])
+        const { orderTotal, specialRoundCost } = useOrderPayment(orderProducts)
+        specialRoundCost.value = 40
+
+        expect(orderTotal.value).toBe(140)
+    })
+
     it('remaining descuenta el anticipo', () => {
         const orderProducts = ref([{ price: 200, qty: 1 }])
         const { remaining, step4 } = useOrderPayment(orderProducts)

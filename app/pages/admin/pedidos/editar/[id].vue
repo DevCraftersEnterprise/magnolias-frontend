@@ -19,6 +19,7 @@ import OrderDeliveryAddressForm from "~/components/order/OrderDeliveryAddressFor
 import OrderEventServicesAndDetails from "~/components/order/OrderEventServicesAndDetails.vue";
 import OrderProductTiersEditor from "~/components/order/OrderProductTiersEditor.vue";
 import OrderDetailTiersSummary from "~/components/order/OrderDetailTiersSummary.vue";
+import OrderDetailCatalogPriceCheck from "~/components/order/OrderDetailCatalogPriceCheck.vue";
 
 const router = useRouter();
 const routeP = useRoute();
@@ -36,6 +37,8 @@ const {
   flowerCatalog,
   colorCatalog,
   commonAddresses,
+  decorations,
+  fruits,
   colorName,
   colorHex,
   catalogLabel,
@@ -107,8 +110,28 @@ async function removeExistingRefImage(rowIndex: number, imageId: string) {
   }
 }
 
-const { step4, serviceCost, subtotal, orderTotal, remaining, PAYMENT_TYPES } =
-  useOrderPayment(orderProducts);
+const {
+  step4,
+  serviceCost,
+  specialRoundCost,
+  subtotal,
+  orderTotal,
+  remaining,
+  PAYMENT_TYPES,
+} = useOrderPayment(orderProducts);
+
+// ─── Precio sugerido de catálogo (paso 4: verificar/ajustar el precio) ───────
+// Cliente #1: los catálogos ahora tienen precio; se muestra la suma de lo
+// elegido junto al precio capturado manualmente para que el empleado lo
+// verifique antes de confirmar. No se autosuma al precio de la línea. Cálculo
+// compartido con crear.vue vía useCatalogPriceSum (evita duplicar lógica).
+const detailRowCatalogPriceSum = useCatalogPriceSum(detailRow, {
+  breadTypes,
+  fillings,
+  frostings,
+  decorations,
+  fruits,
+});
 
 // ─── Descuentos por producto (requiere autorización de admin/super) ───────────
 const {
@@ -352,6 +375,7 @@ function populateFromOrder(order: OrderDetail) {
     ROUND_1: "1",
     ROUND_2: "2",
     ROUND_3: "3",
+    RONDA_ESPECIAL: "especial",
   };
   if (order.deliveryRound)
     step2.deliveryRound = roundRev[order.deliveryRound] ?? "";
@@ -385,13 +409,15 @@ function populateFromOrder(order: OrderDetail) {
   if (order.isEvento) {
     step2.eventGuestCount = order.guestCount ?? "";
     step2.eventResponsibleName = order.setupPersonName ?? "";
-    const svc = order.eventServices ?? [];
-    step2.eventServices.dessertTable = svc.includes("DESSERT_TABLE");
-    step2.eventServices.cake = svc.includes("CAKE");
-    step2.eventServices.cheeseTable = svc.includes("CHEESE_TABLE");
-    step2.eventServices.plated = svc.includes("PLATED");
-    if (order.setupTime) {
-      const { h, m, p } = parseTime24(order.setupTime);
+    step2.eventMontageDate = order.setupDate
+      ? order.setupDate.split("T")[0] ?? ""
+      : "";
+    Object.assign(
+      step2.eventServices,
+      parseEventServicesPayload(order.eventServices),
+    );
+    if (order.branchDepartureTime) {
+      const { h, m, p } = parseTime24(order.branchDepartureTime);
       exitTimeParts.h = h;
       exitTimeParts.m = m;
       exitTimeParts.p = p;
@@ -424,6 +450,8 @@ function populateFromOrder(order: OrderDetail) {
       fillingId: d.filling?.id ?? "",
       frostingId: d.frosting?.id ?? "",
       styleId: d.style?.id ?? "",
+      decorationId: d.decoration?.id ?? "",
+      fruitId: d.fruit?.id ?? "",
       hasTiers: (d.tiers ?? []).length > 0,
       tiers: (d.tiers ?? [])
         .slice()
@@ -474,6 +502,9 @@ function populateFromOrder(order: OrderDetail) {
       Math.round((parseMoney(order.totalAmount) - detailsSum) * 100) / 100;
     serviceCost.value = derived > 0 ? derived : 0;
   }
+
+  // Special round cost (cliente #3)
+  specialRoundCost.value = parseMoney(order.specialRoundCost);
 
   // Flowers
   if (order.orderFlowers && order.orderFlowers.length > 0) {
@@ -571,6 +602,7 @@ async function submitOrder() {
       "1": "ROUND_1",
       "2": "ROUND_2",
       "3": "ROUND_3",
+      especial: "RONDA_ESPECIAL",
     };
     const deliveryRound = step2.deliveryRound
       ? (roundMap[step2.deliveryRound] ?? step2.deliveryRound)
@@ -587,13 +619,9 @@ async function submitOrder() {
         ? orderTotal.value
         : step4.depositAmount || 0;
 
-    const eventServices: string[] = [];
-    if (isEvento) {
-      if (step2.eventServices.dessertTable) eventServices.push("DESSERT_TABLE");
-      if (step2.eventServices.cake) eventServices.push("CAKE");
-      if (step2.eventServices.cheeseTable) eventServices.push("CHEESE_TABLE");
-      if (step2.eventServices.plated) eventServices.push("PLATED");
-    }
+    const eventServices: string[] = isEvento
+      ? buildEventServicesPayload(step2.eventServices)
+      : [];
 
     let deliveryAddress: CreateOrderDeliveryAddress | undefined;
     if (!isVitrina) {
@@ -675,7 +703,7 @@ async function submitOrder() {
       collectionDateTime,
       ...(isEvento && {
         eventTime: step2.deliveryTime || undefined,
-        setupTime: step2.eventExitTime || undefined,
+        setupDate: step2.eventMontageDate || undefined,
         branchDepartureTime: step2.eventExitTime || undefined,
         setupPersonName: step2.eventResponsibleName || undefined,
         guestCount: step2.eventGuestCount
@@ -684,6 +712,7 @@ async function submitOrder() {
         eventServices: eventServices.length ? eventServices : undefined,
       }),
       setupServiceCost: serviceCost.value || undefined,
+      specialRoundCost: specialRoundCost.value || undefined,
       requiresInvoice: step4.requiresInvoice || undefined,
       // Vacío = conservar el valor ya guardado (ver populateFromOrder: el
       // backend nunca devuelve este dato, así que el campo siempre arranca
@@ -1089,6 +1118,8 @@ function next() {
             <template v-if="needsDelivery">
               <OrderDeliveryTimingDetails
                 :step2="step2"
+                :special-round-cost="specialRoundCost"
+                @update:special-round-cost="specialRoundCost = $event"
                 :delivery-time-parts="deliveryTimeParts"
                 :exit-time-parts="exitTimeParts"
                 :min-delivery-date="minDeliveryDate"
@@ -1273,7 +1304,13 @@ function next() {
             </fieldset>
 
             <!-- Servicios y Detalles del Evento -->
-            <OrderEventServicesAndDetails v-if="step2.isEvento" :step2="step2" />
+            <OrderEventServicesAndDetails
+              v-if="step2.isEvento"
+              :step2="step2"
+              @update:event-service="
+                (key, value) => (step2.eventServices[key] = value)
+              "
+            />
           </div>
         </div>
 
@@ -1538,6 +1575,7 @@ function next() {
                       :bread-types="breadTypes"
                       :fillings="fillings"
                       :frostings="frostings"
+                      :styles="styles"
                       :min-tiers="MIN_TIERS"
                       @update:has-tiers="(v) => setHasTiers(i, v)"
                       @add-tier="addTier(i)"
@@ -1557,6 +1595,7 @@ function next() {
                           <select
                             v-model="row.sizeId"
                             class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] text-[#111827] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                            @change="resetIncompatibleStyle(row, styles)"
                           >
                             <option value="">—</option>
                             <option value="10P">10 P</option>
@@ -1590,6 +1629,41 @@ function next() {
                           placeholder="ej. 100 personas"
                           class="w-28 rounded-lg bg-[#F3F3F4] px-2.5 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60"
                         />
+                      </div>
+                      <!-- Cliente #5: Forma junto a Tamaño, filtrada por applicableSizes -->
+                      <div class="flex items-center gap-2">
+                        <span
+                          class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                          >Forma</span
+                        >
+                        <div class="relative">
+                          <select
+                            v-model="row.styleId"
+                            aria-label="Forma"
+                            class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                          >
+                            <option value="">—</option>
+                            <option
+                              v-for="s in filterStylesForSize(styles, row.sizeId)"
+                              :key="s.id"
+                              :value="s.id"
+                            >
+                              {{ s.name }}
+                            </option></select
+                          ><svg
+                            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                          >
+                            <path
+                              d="M6 9l6 6 6-6"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        </div>
                       </div>
                       <div class="flex items-center gap-2">
                         <span
@@ -1699,20 +1773,55 @@ function next() {
                       <div class="flex items-center gap-2">
                         <span
                           class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                          >Forma</span
+                          >Decoración</span
                         >
                         <div class="relative">
                           <select
-                            v-model="row.styleId"
+                            v-model="row.decorationId"
+                            aria-label="Decoración"
                             class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
                           >
                             <option value="">—</option>
                             <option
-                              v-for="s in styles"
-                              :key="s.id"
-                              :value="s.id"
+                              v-for="d in decorations"
+                              :key="d.id"
+                              :value="d.id"
                             >
-                              {{ s.name }}
+                              {{ d.name }}
+                            </option></select
+                          ><svg
+                            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                          >
+                            <path
+                              d="M6 9l6 6 6-6"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span
+                          class="text-[12px] font-medium text-gray-500 flex-shrink-0"
+                          >Fruta</span
+                        >
+                        <div class="relative">
+                          <select
+                            v-model="row.fruitId"
+                            aria-label="Fruta"
+                            class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
+                          >
+                            <option value="">—</option>
+                            <option
+                              v-for="fr in fruits"
+                              :key="fr.id"
+                              :value="fr.id"
+                            >
+                              {{ fr.name }}
                             </option></select
                           ><svg
                             class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-black/40"
@@ -2419,6 +2528,15 @@ function next() {
                 }}</span>
               </div>
               <div
+                v-if="specialRoundCost > 0"
+                class="flex items-center justify-between text-[13px]"
+              >
+                <span class="text-gray-500">Ronda especial</span>
+                <span class="font-semibold text-[#111827]">{{
+                  formatMXN(specialRoundCost)
+                }}</span>
+              </div>
+              <div
                 class="flex items-center justify-between text-[14px] pt-1.5 border-t border-black/10"
               >
                 <span class="font-bold text-[#111827]">Total</span
@@ -2552,6 +2670,24 @@ function next() {
                     }}</span>
                   </div>
                   <div
+                    v-if="detailRow.decorationId"
+                    class="flex justify-between py-2"
+                  >
+                    <span class="text-[12px] text-gray-500">Decoración</span
+                    ><span class="text-[12px] font-semibold text-[#111827]">{{
+                      catalogLabel(decorations, detailRow.decorationId)
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="detailRow.fruitId"
+                    class="flex justify-between py-2"
+                  >
+                    <span class="text-[12px] text-gray-500">Fruta</span
+                    ><span class="text-[12px] font-semibold text-[#111827]">{{
+                      catalogLabel(fruits, detailRow.fruitId)
+                    }}</span>
+                  </div>
+                  <div
                     v-if="detailRow.withText && detailRow.text"
                     class="flex justify-between py-2"
                   >
@@ -2606,6 +2742,12 @@ function next() {
                       />
                     </div>
                   </div>
+
+                  <OrderDetailCatalogPriceCheck
+                    :has-tiers="detailRow.hasTiers"
+                    :price="detailRow.price"
+                    :catalog-price-sum="detailRowCatalogPriceSum"
+                  />
                 </div>
                 <div
                   class="px-5 py-3 border-t border-black/10 flex justify-end"

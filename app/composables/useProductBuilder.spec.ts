@@ -55,15 +55,16 @@ describe('useProductBuilder', () => {
             })
         })
 
-        it('si el producto ya está agregado, solo incrementa la cantidad', () => {
+        it('si el producto ya está agregado, agrega una línea nueva (personalización)', () => {
             const { orderProducts, addProduct } = setup()
             const p = product()
 
             addProduct(p)
             addProduct(p)
 
-            expect(orderProducts.value).toHaveLength(1)
-            expect(orderProducts.value[0]!.qty).toBe(2)
+            expect(orderProducts.value).toHaveLength(2)
+            expect(orderProducts.value[0]!.qty).toBe(1)
+            expect(orderProducts.value[1]!.qty).toBe(1)
         })
 
         it('addProduct limpia la búsqueda', () => {
@@ -442,6 +443,7 @@ function baseTier(overrides: Partial<TierRow> = {}): TierRow {
         breadId: '',
         fillingId: '',
         frostingId: '',
+        styleId: '',
         ...overrides,
     }
 }
@@ -457,6 +459,8 @@ function baseRow(overrides: Partial<OrderProductRow> = {}): OrderProductRow {
         fillingId: '',
         frostingId: '',
         styleId: '',
+        decorationId: '',
+        fruitId: '',
         withText: false,
         text: '',
         textLocation: 'TOP',
@@ -490,6 +494,7 @@ describe('mapTierToPayload', () => {
             fillingId: undefined,
             frostingId: undefined,
             colorId: 'color-1',
+            styleId: undefined,
         })
     })
 
@@ -501,6 +506,15 @@ describe('mapTierToPayload', () => {
 
         expect(result.productSize).toBe('CUSTOM')
         expect(result.customSize).toBe('100 personas')
+    })
+
+    it('incluye la forma (styleId) del piso, si se eligió una (cliente: pisos sin forma)', () => {
+        const result = mapTierToPayload(
+            baseTier({ sizeId: '20P', styleId: 'style-1' }),
+            0,
+        )
+
+        expect(result.styleId).toBe('style-1')
     })
 })
 
@@ -548,6 +562,15 @@ describe('buildOrderDetailPayload', () => {
         )
 
         expect(result.styleId).toBe('style-1');
+    })
+
+    it('mapea decorationId/fruitId (catálogos nuevos, a nivel de fila)', () => {
+        const result = buildOrderDetailPayload(
+            baseRow({ decorationId: 'decoration-1', fruitId: 'fruit-1' }),
+        )
+
+        expect(result.decorationId).toBe('decoration-1');
+        expect(result.fruitId).toBe('fruit-1');
     })
 
     it('no incluye discountPercent (cada página lo agrega con su propia regla)', () => {

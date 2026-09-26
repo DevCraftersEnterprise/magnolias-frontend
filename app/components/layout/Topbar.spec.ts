@@ -1,13 +1,24 @@
 import { mount, flushPromises } from '@vue/test-utils'
+import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const usersServiceMock = vi.hoisted(() => ({
     getBakersByBranch: vi.fn(),
+    getDriversByBranch: vi.fn(),
+}))
+const { navigateToMock } = vi.hoisted(() => ({
+    navigateToMock: vi.fn(),
 }))
 
 vi.mock('~/services/users.service', () => ({
     usersService: usersServiceMock,
 }))
+
+// enterViewAsBaker/enterViewAsDriver llaman a navigateTo() real de Nuxt: sin
+// mockear, la navegación queda pendiente tras terminar el test y puede
+// resolverse ya con el entorno jsdom del archivo desmontado ("history is not
+// defined"), rompiendo la suite completa de forma intermitente en CI.
+mockNuxtImport('navigateTo', () => navigateToMock)
 
 import Topbar from './Topbar.vue'
 import { useAuthUser } from '~/composables/useAuthUser'
@@ -32,12 +43,16 @@ function mountTopbar(props: Record<string, unknown> = {}) {
 describe('Topbar', () => {
     beforeEach(() => {
         usersServiceMock.getBakersByBranch.mockReset().mockResolvedValue([])
+        usersServiceMock.getDriversByBranch.mockReset().mockResolvedValue([])
+        navigateToMock.mockReset()
         useAuthUser().user.value = null
         useBranch().branches.value = []
         useBranch().selectedBranch.value = null
         useBranch().bakerBranches.value = []
         useViewAs().viewAsBaker.value = false
         useViewAs().viewAsBakerId.value = ''
+        useViewAs().viewAsDriver.value = false
+        useViewAs().viewAsDriverId.value = ''
     })
 
     it('no muestra el aviso "Viendo como" cuando viewAsBaker está apagado', () => {
@@ -164,5 +179,73 @@ describe('Topbar', () => {
 
         expect(wrapper.text()).toContain('Cargando…')
         useAuthUser().loading.value = false
+    })
+
+    describe('vista simulada de repartidor (Cliente #8)', () => {
+        it('no muestra el aviso "Viendo como" cuando viewAsDriver está apagado', () => {
+            setUserRole('ADMIN')
+            const wrapper = mountTopbar()
+
+            expect(wrapper.find('select[aria-label="Selecciona un repartidor para previsualizar"]').exists()).toBe(false)
+        })
+
+        it('carga los repartidores de la sucursal seleccionada al activar "Ver como repartidor"', async () => {
+            setUserRole('SUPER')
+            useBranch().selectedBranch.value = { id: 'branch-1', name: 'Morelos' } as any
+            usersServiceMock.getDriversByBranch.mockResolvedValue([
+                { id: 'd1', name: 'Luis', lastname: 'Pérez' },
+            ])
+            const wrapper = mountTopbar()
+
+            useViewAs().viewAsDriver.value = true
+            await flushPromises()
+
+            expect(usersServiceMock.getDriversByBranch).toHaveBeenCalledWith('branch-1')
+            expect(wrapper.text()).toContain('Viendo como')
+            const select = wrapper.find('select[aria-label="Selecciona un repartidor para previsualizar"]')
+            const options = select.findAll('option')
+            expect(options.map((o) => o.text())).toEqual(
+                expect.arrayContaining(['Luis Pérez']),
+            )
+
+            await select.setValue('d1')
+
+            expect(useViewAs().viewAsDriverId.value).toBe('d1')
+        })
+
+        it('muestra "Sin repartidores en esta sucursal" si la lista viene vacía', async () => {
+            setUserRole('ADMIN')
+            useBranch().selectedBranch.value = { id: 'branch-1', name: 'Morelos' } as any
+            usersServiceMock.getDriversByBranch.mockResolvedValue([])
+            const wrapper = mountTopbar()
+
+            useViewAs().viewAsDriver.value = true
+            await flushPromises()
+
+            expect(wrapper.text()).toContain('Sin repartidores en esta sucursal')
+        })
+
+        it('activa la vista simulada de repartidor al marcar su checkbox', async () => {
+            setUserRole('ADMIN')
+            const wrapper = mountTopbar()
+
+            const checkboxes = wrapper.findAll('input[type="checkbox"]')
+            await checkboxes[1]!.setValue(true)
+
+            expect(useViewAs().viewAsDriver.value).toBe(true)
+        })
+
+        it('desactiva la vista simulada de repartidor al desmarcar su checkbox', async () => {
+            setUserRole('ADMIN')
+            useViewAs().viewAsDriver.value = true
+            useViewAs().viewAsDriverId.value = 'driver-1'
+            const wrapper = mountTopbar()
+
+            const checkboxes = wrapper.findAll('input[type="checkbox"]')
+            await checkboxes[1]!.setValue(false)
+
+            expect(useViewAs().viewAsDriver.value).toBe(false)
+            expect(useViewAs().viewAsDriverId.value).toBe('')
+        })
     })
 })
