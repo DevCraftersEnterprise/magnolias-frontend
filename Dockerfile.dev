@@ -1,0 +1,17 @@
+# Solo para desarrollo local (hot-reload con `nuxt dev`).
+# No se usa para build/deploy: eso lo sigue haciendo GitHub Actions con
+# `npm run generate` + subida por FTP a Hostinger (ver README, Despliegue).
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 3000
+
+# --host 0.0.0.0: el server de Nuxt debe escuchar en todas las interfaces
+# para ser alcanzable desde fuera del contenedor.
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
