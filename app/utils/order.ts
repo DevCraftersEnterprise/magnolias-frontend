@@ -66,6 +66,16 @@ export const NON_BAKER_ASSIGNABLE_ORDER_STATUSES: OrderStatus[] = [
     'IN DELIVERY',
 ]
 
+// Estados en los que el pedido completo ya no se puede editar (cliente: solo
+// bloquea a partir de "Listo" en adelante - Creado y En proceso sí se pueden
+// editar; editar un pedido En proceso regresa la línea tocada a Pendiente).
+export const ORDER_EDIT_BLOCKED_STATUSES: OrderStatus[] = [
+    'DONE',
+    'IN DELIVERY',
+    'DELIVERED',
+    'CANCELED',
+]
+
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
     CASH: 'Efectivo',
     TRANSFER: 'Transferencia',
