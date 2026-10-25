@@ -480,3 +480,88 @@ describe('pages/admin/pedidos/index - entregar y cancelar (sesión no-empleado)'
         expect(ordersServiceMock.cancelOrder).not.toHaveBeenCalled()
     })
 })
+
+describe('pages/admin/pedidos/index - editar pedido (cliente: ya no solo Creado, aviso si está En proceso)', () => {
+    beforeEach(() => {
+        navigateToMock.mockReset()
+        useAuthUser().user.value = { id: 'admin-1', username: 'admin', isActive: true, role: 'ADMIN' } as any
+        useBranch().selectedBranch.value = { id: 'branch-1', name: 'Morelos' } as any
+        useViewAs().viewAsBaker.value = false
+        useViewAs().viewAsBakerId.value = ''
+    })
+
+    it('un pedido Creado navega directo a editar, sin aviso', async () => {
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                { id: 'order-1', orderCode: 'PED-0001', status: 'CREATED', remainingBalance: '0', isEvento: false, isEnTienda: false },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        await wrapper.find('button[title="Editar pedido"]').trigger('click')
+
+        expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos/editar/order-1')
+        expect(wrapper.text()).not.toContain('Este pedido ya está en producción')
+    })
+
+    it('un pedido En proceso muestra el aviso antes de navegar a editar', async () => {
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                { id: 'order-1', orderCode: 'PED-0001', status: 'IN PROCESS', remainingBalance: '0', isEvento: false, isEnTienda: false },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        await wrapper.find('button[title="Editar pedido"]').trigger('click')
+
+        expect(wrapper.text()).toContain('Este pedido ya está en producción')
+        expect(navigateToMock).not.toHaveBeenCalled()
+
+        const confirmBtn = wrapper.findAll('button').find((b) => b.text() === 'Aceptar')
+        expect(confirmBtn).toBeTruthy()
+        await confirmBtn!.trigger('click')
+
+        expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos/editar/order-1')
+    })
+
+    it('cancelar el aviso no navega a editar', async () => {
+        ordersServiceMock.getOrders.mockResolvedValue({
+            items: [
+                { id: 'order-1', orderCode: 'PED-0001', status: 'IN PROCESS', remainingBalance: '0', isEvento: false, isEnTienda: false },
+            ],
+            total: 1,
+            pagination: {},
+        })
+
+        const wrapper = await mountPage()
+        await wrapper.find('button[title="Editar pedido"]').trigger('click')
+        const cancelBtn = wrapper.findAll('button').find((b) => b.text() === 'Cancelar')
+        await cancelBtn!.trigger('click')
+
+        expect(navigateToMock).not.toHaveBeenCalled()
+        expect(wrapper.text()).not.toContain('Este pedido ya está en producción')
+    })
+
+    it.each(['DONE', 'IN DELIVERY', 'DELIVERED', 'CANCELED'])(
+        'un pedido %s no deja editar (botón deshabilitado)',
+        async (status) => {
+            ordersServiceMock.getOrders.mockResolvedValue({
+                items: [
+                    { id: 'order-1', orderCode: 'PED-0001', status, remainingBalance: '0', isEvento: false, isEnTienda: false },
+                ],
+                total: 1,
+                pagination: {},
+            })
+
+            const wrapper = await mountPage()
+            const btn = wrapper.find('button[title="No se puede editar un pedido en este estado"]')
+
+            expect(btn.exists()).toBe(true)
+            expect(btn.attributes('disabled')).toBeDefined()
+        },
+    )
+})
