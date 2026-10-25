@@ -164,6 +164,9 @@ export type OrderDetailItem = {
     tiers?: OrderDetailTier[];
     assignments?: OrderLineAssignment[];
     productionStatus?: OrderDetailProductionStatus;
+    // Cliente: sucursal editó esta línea después de que producción ya la
+    // había arrancado - se limpia cuando el pastelero la vuelve a avanzar.
+    modifiedAfterProduction?: boolean;
     discountPercent?: number | string | null;
     discountAuthorizedBy?: { id: string; name: string; lastname: string } | null;
     discountAuthorizedAt?: string | null;

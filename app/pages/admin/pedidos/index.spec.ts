@@ -210,13 +210,14 @@ describe('pages/admin/pedidos/index - kanban de pastelero', () => {
     })
 })
 
-describe('pages/admin/pedidos/index - drag-and-drop del kanban (cliente: arrastrar tarjetas entre columnas)', () => {
+describe('pages/admin/pedidos/index - kanban sin avance directo (cliente: obliga a abrir el detalle)', () => {
     beforeEach(() => {
         ordersServiceMock.getBakerDetailAssignments.mockReset().mockResolvedValue([
             assignmentCard({
                 orderDetail: {
                     id: 'detail-1',
                     productionStatus: 'PENDING',
+                    modifiedAfterProduction: false,
                     product: { name: 'Pastel' },
                     order: {
                         id: 'order-1',
@@ -230,6 +231,7 @@ describe('pages/admin/pedidos/index - drag-and-drop del kanban (cliente: arrastr
                 orderDetail: {
                     id: 'detail-2',
                     productionStatus: 'IN_PROCESS',
+                    modifiedAfterProduction: true,
                     product: { name: 'Pastel en proceso' },
                     order: {
                         id: 'order-2',
@@ -244,78 +246,37 @@ describe('pages/admin/pedidos/index - drag-and-drop del kanban (cliente: arrastr
         useBranch().selectedBranch.value = { id: 'branch-1', name: 'Morelos' } as any
         useViewAs().viewAsBaker.value = false
         useViewAs().viewAsBakerId.value = ''
+        navigateToMock.mockReset()
     })
 
-    function draggables(wrapper: Awaited<ReturnType<typeof mountPage>>) {
-        return wrapper.findAllComponents({ name: 'draggable' })
-    }
-
-    it('el botón de acción de la tarjeta (OrderDetailProductionCard) abre el modal de confirmación', async () => {
+    it('ya no hay botón de avance directo en las tarjetas del tablero', async () => {
         const wrapper = await mountPage()
-
-        const actionBtn = wrapper
-            .findAll('button')
-            .find((b) => b.text() === 'Iniciar producción →')
-        expect(actionBtn).toBeTruthy()
-        await actionBtn!.trigger('click')
-
-        expect(wrapper.text()).toContain('Cambiar estado de la línea')
-        expect(wrapper.text()).toContain('PED-0001')
-    })
-
-    it('el botón de acción de la columna "En producción" también abre el modal de confirmación', async () => {
-        const wrapper = await mountPage()
-
-        const actionBtn = wrapper
-            .findAll('button')
-            .find((b) => b.text() === 'Marcar como listo →')
-        expect(actionBtn).toBeTruthy()
-        await actionBtn!.trigger('click')
-
-        expect(wrapper.text()).toContain('Cambiar estado de la línea')
-        expect(wrapper.text()).toContain('PED-0002')
-    })
-
-    it('el hook move permite avanzar a la columna siguiente y rechaza cualquier otro destino', async () => {
-        const wrapper = await mountPage()
-        const pendingColumn = draggables(wrapper)[0]!
-        const moveFn = pendingColumn.props('move') as (evt: any) => boolean
-        const card = { orderDetail: { productionStatus: 'PENDING' } }
 
         expect(
-            moveFn({ draggedContext: { element: card }, to: { dataset: { status: 'IN_PROCESS' } } }),
-        ).toBe(true)
+            wrapper.findAll('button').find((b) => b.text() === 'Iniciar producción →'),
+        ).toBeFalsy()
         expect(
-            moveFn({ draggedContext: { element: card }, to: { dataset: { status: 'DONE' } } }),
-        ).toBe(false)
-        expect(
-            moveFn({ draggedContext: {}, to: { dataset: { status: 'IN_PROCESS' } } }),
-        ).toBe(false)
+            wrapper.findAll('button').find((b) => b.text() === 'Marcar como listo →'),
+        ).toBeFalsy()
     })
 
-    it('soltar una tarjeta (evento change con added) abre el modal de confirmación', async () => {
+    it('hacer clic en una tarjeta navega al detalle completo del pedido', async () => {
         const wrapper = await mountPage()
-        const pendingColumn = draggables(wrapper)[0]!
-        const card = pendingColumn.props('modelValue')[0]
 
-        await pendingColumn.vm.$emit('change', { added: { element: card } })
+        const card = wrapper.find('[aria-label="Ver detalle del pedido"]')
+        expect(card.exists()).toBe(true)
+        await card.trigger('click')
 
-        expect(wrapper.text()).toContain('Cambiar estado de la línea')
-        expect(wrapper.text()).toContain('PED-0001')
+        expect(navigateToMock).toHaveBeenCalledWith('/admin/pedidos/detalle/order-1')
     })
 
-    it('cancelar el modal de confirmación lo cierra sin cambiar el estado', async () => {
+    it('muestra "Modificado desde sucursal" solo en la línea que fue editada durante producción', async () => {
         const wrapper = await mountPage()
-        const pendingColumn = draggables(wrapper)[0]!
-        const card = pendingColumn.props('modelValue')[0]
-        await pendingColumn.vm.$emit('change', { added: { element: card } })
-        expect(wrapper.text()).toContain('Cambiar estado de la línea')
 
-        const cancelBtn = wrapper.findAll('button').find((b) => b.text() === 'Cancelar')
-        await cancelBtn!.trigger('click')
-
-        expect(wrapper.text()).not.toContain('Cambiar estado de la línea')
-        expect(ordersServiceMock.updateDetailProductionStatus).not.toHaveBeenCalled()
+        expect(wrapper.text()).toContain('Modificado desde sucursal')
+        // PED-0001 (sin modificar) no debe traer la etiqueta junto a su código.
+        const pendingCardText = wrapper.find('[aria-label="Ver detalle del pedido"]').text()
+        expect(pendingCardText).not.toContain('Modificado desde sucursal')
     })
 })
 
