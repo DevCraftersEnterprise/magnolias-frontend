@@ -1897,17 +1897,18 @@ function next() {
                         </div>
                       </template>
                     </div>
-                    <!-- Manga -->
+                    <!-- Pompa -->
                     <div
                       class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
                     >
                       <span
                         class="text-[12px] font-medium text-gray-500 flex-shrink-0"
-                        >Decoración con manga</span
+                        >Pompa</span
                       >
                       <div class="relative">
                         <select
                           v-model="row.mangaStyle"
+                          aria-label="Pompa"
                           class="appearance-none rounded-lg bg-[#F3F3F4] pl-2.5 pr-7 py-1.5 text-[12px] outline-none ring-1 ring-black/8 focus:ring-2 focus:ring-[#FC9AD3]/60 cursor-pointer"
                         >
                           <option value="">—</option>
@@ -1933,7 +1934,7 @@ function next() {
                         </svg>
                       </div>
                       <input
-                        v-if="row.mangaStyle && row.mangaStyle !== 'NONE'"
+                        v-if="row.mangaStyle"
                         v-model="row.mangaNotes"
                         type="text"
                         placeholder="Notas de decoración"
@@ -2701,12 +2702,10 @@ function next() {
                     >
                   </div>
                   <div
-                    v-if="
-                      detailRow.mangaStyle && detailRow.mangaStyle !== 'NONE'
-                    "
+                    v-if="detailRow.mangaStyle"
                     class="flex justify-between py-2"
                   >
-                    <span class="text-[12px] text-gray-500">Manga</span
+                    <span class="text-[12px] text-gray-500">Pompa</span
                     ><span class="text-[12px] font-semibold text-[#111827]">{{
                       optionLabel(MANGA_OPTIONS, detailRow.mangaStyle)
                     }}</span>

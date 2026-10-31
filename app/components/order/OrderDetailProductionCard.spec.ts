@@ -24,6 +24,19 @@ function card(overrides: Record<string, unknown> = {}): OrderDetailAssignmentCar
 }
 
 describe('OrderDetailProductionCard', () => {
+    it('muestra la hora de entrega 2 horas antes de la real (cliente: hora de pastelero)', () => {
+        const wrapper = mount(OrderDetailProductionCard, {
+            props: {
+                card: card({ order: { id: 'order-1', orderCode: 'PED-0001', deliveryTime: '15:30' } }),
+                accent: 'amber',
+                actionLabel: 'Iniciar producción →',
+            },
+        })
+
+        expect(wrapper.text()).toContain('13:30')
+        expect(wrapper.text()).not.toContain('15:30')
+    })
+
     it('renderiza los datos del pedido y de la línea', () => {
         const wrapper = mount(OrderDetailProductionCard, {
             props: { card: card(), accent: 'amber', actionLabel: 'Iniciar producción →' },

@@ -730,7 +730,7 @@ export const manualSections: ManualSection[] = [
                     ['Piso', 'Cada nivel independiente de un pastel de varios pisos, con su propio tamaño/color/tipo de pan/relleno/cubierta'],
                     ['Catálogo', 'Conjunto de opciones para personalizar un producto'],
                     ['Cubierta', 'Tipo de decoración exterior de un pastel'],
-                    ['Manga', 'Estilo de borde decorativo con manga pastelera'],
+                    ['Pompa', 'Ubicación de la decoración con manga pastelera: Arriba, Abajo, Ambos o Costado'],
                     ['Sucursal', 'Punto físico de venta o producción de la pastelería'],
                     ['Empleado de sucursal', 'Persona identificada por nombre + PIN dentro de una cuenta tipo Sucursal compartida, distinta de un Usuario del sistema'],
                     ['PIN de empleado', 'Código de 4 a 6 dígitos que identifica individualmente a un empleado de sucursal al crear, editar, entregar o cancelar un pedido'],
