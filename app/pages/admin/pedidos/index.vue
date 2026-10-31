@@ -10,7 +10,6 @@ import type {
   OrderStatus,
 } from "~/types/order.types";
 import { useToast } from "vue-toastification";
-import draggable from "vuedraggable";
 
 const { user } = useAuthUser();
 const { selectedBranch } = useBranch();
@@ -207,15 +206,9 @@ async function executeCancel() {
 // Cliente #6: filtro por tipo de pedido, además de las pestañas de fecha.
 // Genérico para cualquier tipo (aunque el cliente solo pidió eventos).
 type KanbanTypeFilter = "all" | "evento" | "enTienda" | "domicilio";
-const PRODUCTION_STATUS_LABELS: Record<OrderDetailProductionStatus, string> = {
-  PENDING: "Pendiente",
-  IN_PROCESS: "En proceso",
-  DONE: "Listo",
-};
 const kanbanTypeFilter = ref<KanbanTypeFilter>("all");
 const kanbanLoading = ref(true);
 const kanbanAssignments = ref<OrderDetailAssignmentCard[]>([]);
-const updatingId = ref<string | null>(null);
 
 // Cliente #11: el kanban ahora es por línea de producto asignada, no por
 // pedido completo - un solo fetch (getBakerDetailAssignments) trae todas las
@@ -296,81 +289,39 @@ async function loadKanbanOrders() {
   }
 }
 
-function nextLineStatus(
-  status: OrderDetailProductionStatus,
-): OrderDetailProductionStatus {
-  return status === "PENDING" ? "IN_PROCESS" : "DONE";
-}
-
-async function advanceStatus(card: OrderDetailAssignmentCard) {
-  if (updatingId.value) return;
-  updatingId.value = card.orderDetail.id;
-  try {
-    const next = nextLineStatus(lineStatus(card));
-    const updated = await ordersService.updateDetailProductionStatus(
-      card.orderDetail.id,
-      next,
-    );
-    card.orderDetail.productionStatus = updated.productionStatus ?? next;
-    if (updated.order?.status) card.orderDetail.order.status = updated.order.status;
-    toast.success(
-      next === "DONE" ? "Línea marcada como lista." : "Producción iniciada.",
-    );
-  } catch (e: any) {
-    console.error("Error actualizando estado:", e);
-    toast.error(e?.message || "No se pudo actualizar el estado.");
-  } finally {
-    updatingId.value = null;
-  }
-}
-
 function refreshKanban() {
   loadKanbanOrders();
 }
 
+// Cliente: el tablero ya no permite avanzar el estado de una línea
+// directamente (ni botón ni arrastrar) - obliga a abrir el detalle completo
+// del pedido (con imágenes y personalización) antes de poder avanzarla. El
+// avance real vive en /admin/pedidos/detalle/[id].vue.
 function goToLineDetail(card: OrderDetailAssignmentCard) {
   navigateTo("/admin/pedidos/detalle/" + card.orderDetail.order.id);
 }
 
-// ─── Kanban confirm modal ───────────────────────────────────────────────────
-const kanbanConfirmTarget = ref<OrderDetailAssignmentCard | null>(null);
-function requestAdvanceStatus(card: OrderDetailAssignmentCard) {
-  if (updatingId.value) return;
-  kanbanConfirmTarget.value = card;
-}
-async function confirmAdvanceStatus() {
-  const card = kanbanConfirmTarget.value;
-  kanbanConfirmTarget.value = null;
-  if (!card) return;
-  await advanceStatus(card);
-}
-
-function cancelAdvanceStatus() {
-  kanbanConfirmTarget.value = null;
-  // Si el usuario canceló tras soltar una tarjeta (drag-and-drop), SortableJS
-  // ya movió el nodo visualmente antes de pedir confirmación. Forzar un
-  // nuevo array reconstruye los computeds de columna y hace que vuedraggable
-  // reconcilie el DOM con el estado real (la tarjeta "vuelve" a su columna).
-  kanbanAssignments.value = [...kanbanAssignments.value];
-}
-
-// ─── Kanban drag-and-drop (cliente: arrastrar tarjetas entre columnas) ─────
-// Solo se permite avanzar (Pendientes → En producción → Listos), nunca
-// retroceder ni saltar columnas - misma restricción implícita que ya tenía
-// el botón "siguiente estado" por tarjeta.
-function onMoveCheck(evt: any): boolean {
-  const card = evt.draggedContext?.element as
-    | OrderDetailAssignmentCard
-    | undefined;
-  const to = evt.to?.dataset?.status as OrderDetailProductionStatus | undefined;
-  if (!card || !to) return false;
-  return isValidKanbanMove(lineStatus(card), to);
-}
-
-function onDragChange(evt: any) {
-  if (evt.added) {
-    requestAdvanceStatus(evt.added.element as OrderDetailAssignmentCard);
+// ─── Editar pedido (cliente: ya se puede editar En proceso, no solo Creado) ─
+// Si el pedido ya tiene producción iniciada, se avisa que la línea editada
+// va a regresar a Pendiente antes de dejar entrar al formulario.
+const editProductionWarningOrder = ref<OrderItem | null>(null);
+const editProductionWarningOpen = computed({
+  get: () => !!editProductionWarningOrder.value,
+  set: (open: boolean) => {
+    if (!open) editProductionWarningOrder.value = null;
+  },
+});
+function requestEditOrder(order: OrderItem) {
+  if (order.status === "IN PROCESS") {
+    editProductionWarningOrder.value = order;
+    return;
   }
+  navigateTo("/admin/pedidos/editar/" + order.id);
+}
+function confirmEditInProcessOrder() {
+  const order = editProductionWarningOrder.value;
+  editProductionWarningOrder.value = null;
+  if (order) navigateTo("/admin/pedidos/editar/" + order.id);
 }
 
 // ─── Lifecycle & watchers ─────────────────────────────────────────────────────
@@ -695,26 +646,24 @@ function onOrderPaymentUpdated(payload: {
                                   <circle cx="12" cy="12" r="3" />
                                 </svg>
                               </button>
-                              <!-- Editar (solo CREATED) -->
+                              <!-- Editar (bloqueado desde Listo en adelante) -->
                               <button
                                 type="button"
                                 class="grid h-8 w-8 place-items-center rounded-lg transition"
                                 :class="
-                                  order.status === 'CREATED'
+                                  !ORDER_EDIT_BLOCKED_STATUSES.includes(order.status)
                                     ? 'text-gray-400 hover:bg-black/5 hover:text-[#111827]'
                                     : 'text-gray-200 cursor-not-allowed'
                                 "
                                 :title="
-                                  order.status === 'CREATED'
+                                  !ORDER_EDIT_BLOCKED_STATUSES.includes(order.status)
                                     ? 'Editar pedido'
-                                    : 'Solo se pueden editar pedidos con estado Creado'
+                                    : 'No se puede editar un pedido en este estado'
                                 "
-                                :disabled="order.status !== 'CREATED'"
+                                :disabled="ORDER_EDIT_BLOCKED_STATUSES.includes(order.status)"
                                 @click="
-                                  order.status === 'CREATED' &&
-                                  navigateTo(
-                                    '/admin/pedidos/editar/' + order.id,
-                                  )
+                                  !ORDER_EDIT_BLOCKED_STATUSES.includes(order.status) &&
+                                  requestEditOrder(order)
                                 "
                               >
                                 <svg
@@ -1207,35 +1156,22 @@ function onOrderPaymentUpdated(payload: {
                     >{{ pendingLines.length }}</span
                   >
                 </div>
-                <draggable
-                  tag="div"
-                  data-status="PENDING"
-                  class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1"
-                  :model-value="pendingLines"
-                  :item-key="(c: OrderDetailAssignmentCard) => c.orderDetail.id"
-                  group="kanban-production"
-                  :move="onMoveCheck"
-                  @change="onDragChange"
-                >
-                  <template #item="{ element: card }">
-                    <OrderDetailProductionCard
-                      :card="card"
-                      accent="amber"
-                      action-label="Iniciar producción →"
-                      :disabled="updatingId === card.orderDetail.id"
-                      @view="goToLineDetail(card)"
-                      @advance="requestAdvanceStatus(card)"
-                    />
-                  </template>
-                  <template #footer>
-                    <div
-                      v-if="pendingLines.length === 0"
-                      class="py-10 text-center text-[12px] text-gray-400"
-                    >
-                      Sin pedidos pendientes
-                    </div>
-                  </template>
-                </draggable>
+                <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
+                  <OrderDetailProductionCard
+                    v-for="card in pendingLines"
+                    :key="card.orderDetail.id"
+                    :card="card"
+                    accent="amber"
+                    action-label="Iniciar producción →"
+                    @view="goToLineDetail(card)"
+                  />
+                  <div
+                    v-if="pendingLines.length === 0"
+                    class="py-10 text-center text-[12px] text-gray-400"
+                  >
+                    Sin pedidos pendientes
+                  </div>
+                </div>
               </div>
 
               <!-- En producción (IN PROCESS) -->
@@ -1254,35 +1190,22 @@ function onOrderPaymentUpdated(payload: {
                     >{{ inProcessLines.length }}</span
                   >
                 </div>
-                <draggable
-                  tag="div"
-                  data-status="IN_PROCESS"
-                  class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1"
-                  :model-value="inProcessLines"
-                  :item-key="(c: OrderDetailAssignmentCard) => c.orderDetail.id"
-                  group="kanban-production"
-                  :move="onMoveCheck"
-                  @change="onDragChange"
-                >
-                  <template #item="{ element: card }">
-                    <OrderDetailProductionCard
-                      :card="card"
-                      accent="violet"
-                      action-label="Marcar como listo →"
-                      :disabled="updatingId === card.orderDetail.id"
-                      @view="goToLineDetail(card)"
-                      @advance="requestAdvanceStatus(card)"
-                    />
-                  </template>
-                  <template #footer>
-                    <div
-                      v-if="inProcessLines.length === 0"
-                      class="py-10 text-center text-[12px] text-gray-400"
-                    >
-                      Sin pedidos en producción
-                    </div>
-                  </template>
-                </draggable>
+                <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
+                  <OrderDetailProductionCard
+                    v-for="card in inProcessLines"
+                    :key="card.orderDetail.id"
+                    :card="card"
+                    accent="violet"
+                    action-label="Marcar como listo →"
+                    @view="goToLineDetail(card)"
+                  />
+                  <div
+                    v-if="inProcessLines.length === 0"
+                    class="py-10 text-center text-[12px] text-gray-400"
+                  >
+                    Sin pedidos en producción
+                  </div>
+                </div>
               </div>
 
               <!-- Listos (DONE) -->
@@ -1301,32 +1224,21 @@ function onOrderPaymentUpdated(payload: {
                     >{{ doneLines.length }}</span
                   >
                 </div>
-                <draggable
-                  tag="div"
-                  data-status="DONE"
-                  class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1"
-                  :model-value="doneLines"
-                  :item-key="(c: OrderDetailAssignmentCard) => c.orderDetail.id"
-                  group="kanban-production"
-                  :move="onMoveCheck"
-                  @change="onDragChange"
-                >
-                  <template #item="{ element: card }">
-                    <OrderDetailProductionCard
-                      :card="card"
-                      accent="emerald"
-                      @view="goToLineDetail(card)"
-                    />
-                  </template>
-                  <template #footer>
-                    <div
-                      v-if="doneLines.length === 0"
-                      class="py-10 text-center text-[12px] text-gray-400"
-                    >
-                      Sin pedidos listos
-                    </div>
-                  </template>
-                </draggable>
+                <div class="bg-gray-50/60 p-3 space-y-2.5 min-h-[260px] flex-1">
+                  <OrderDetailProductionCard
+                    v-for="card in doneLines"
+                    :key="card.orderDetail.id"
+                    :card="card"
+                    accent="emerald"
+                    @view="goToLineDetail(card)"
+                  />
+                  <div
+                    v-if="doneLines.length === 0"
+                    class="py-10 text-center text-[12px] text-gray-400"
+                  >
+                    Sin pedidos listos
+                  </div>
+                </div>
               </div>
             </div>
             <!-- /columnas -->
@@ -1344,120 +1256,13 @@ function onOrderPaymentUpdated(payload: {
     @order-updated="onOrderPaymentUpdated"
   />
 
-  <!-- ── CONFIRMAR AVANCE DE ESTADO (KANBAN) ────────────────────── -->
-  <Teleport to="body">
-    <Transition
-      enter-active-class="transition duration-150 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition duration-100 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="kanbanConfirmTarget"
-        class="fixed inset-0 z-[110] flex items-center justify-center px-4"
-      >
-        <!-- Backdrop -->
-        <button
-          type="button"
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
-          aria-label="Cerrar"
-          @click="cancelAdvanceStatus"
-        />
+  <UiConfirmModal
+    v-model="editProductionWarningOpen"
+    title="Este pedido ya está en producción"
+    :message="`Vas a editar el pedido ${editProductionWarningOrder?.orderCode ?? ''}. La línea que modifiques regresará a Pendiente y el pastelero tendrá que volver a iniciar su producción. ¿Deseas continuar?`"
+    @confirm="confirmEditInProcessOrder"
+  />
 
-        <!-- Panel -->
-        <div
-          class="relative z-10 w-full max-w-[380px] rounded-3xl bg-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.08] overflow-hidden"
-        >
-          <!-- Ícono centrado -->
-          <div class="flex flex-col items-center pt-8 pb-5 px-8 text-center">
-            <div
-              class="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#FFBEE6]/40 ring-2 ring-[#FFBEE6]"
-            >
-              <svg
-                class="h-7 w-7 text-[#C9007C]"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"
-                />
-                <path d="M12 8v4l3 3" />
-              </svg>
-            </div>
-            <h3 class="text-[17px] font-bold text-[#111827] leading-snug">
-              Cambiar estado de la línea
-            </h3>
-            <p class="mt-1.5 text-[13px] text-gray-500">
-              <span class="font-semibold text-[#111827]">{{
-                kanbanConfirmTarget.orderDetail.order.orderCode
-              }}</span>
-              pasará de
-            </p>
-            <!-- Flecha de estado -->
-            <div class="mt-3 flex items-center justify-center gap-2.5">
-              <span
-                class="inline-flex rounded-full px-3 py-1 text-[12px] font-bold"
-                :class="
-                  lineStatus(kanbanConfirmTarget) === 'PENDING'
-                    ? 'bg-gray-100 text-gray-500'
-                    : 'bg-[#FFBEE6] text-[#C9007C]'
-                "
-                >{{
-                  PRODUCTION_STATUS_LABELS[lineStatus(kanbanConfirmTarget)]
-                }}</span
-              >
-              <svg
-                class="h-4 w-4 text-gray-300 shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-              >
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-              <span
-                class="inline-flex rounded-full px-3 py-1 text-[12px] font-bold bg-[#FFBEE6] text-[#C9007C]"
-              >
-                {{
-                  PRODUCTION_STATUS_LABELS[
-                    nextLineStatus(lineStatus(kanbanConfirmTarget))
-                  ]
-                }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Separador -->
-          <div class="mx-6 border-t border-black/[0.06]" />
-
-          <!-- Botones -->
-          <div class="flex gap-3 px-6 py-5">
-            <button
-              type="button"
-              class="flex-1 rounded-2xl border border-black/10 py-3 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition"
-              @click="cancelAdvanceStatus"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              class="flex-1 rounded-2xl py-3 text-[13px] font-bold bg-[#C9007C] text-white hover:bg-[#a5006a] transition shadow-sm"
-              @click="confirmAdvanceStatus"
-            >
-              Confirmar
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
 
   <!-- ── MARCAR ENTREGADO ─────────────────────────────────────────────── -->
   <Teleport to="body">

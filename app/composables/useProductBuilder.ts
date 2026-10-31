@@ -69,8 +69,7 @@ export function buildOrderDetailPayload(row: OrderProductRow) {
         writingText: row.withText && row.text ? row.text : undefined,
         writingLocation:
             row.withText && row.textLocation ? row.textLocation : undefined,
-        pipingLocation:
-            row.mangaStyle && row.mangaStyle !== "NONE" ? row.mangaStyle : undefined,
+        pipingLocation: row.mangaStyle || undefined,
         decorationNotes: row.mangaNotes || undefined,
         notes: row.notes || undefined,
         breadTypeId: row.hasTiers ? undefined : row.breadId || undefined,
@@ -99,16 +98,16 @@ export const UBICACION_OPTIONS = [
     { value: "SIDE", label: "Lado" },
 ];
 
-// Los valores deben coincidir exactamente con el enum PipingLocation del
-// backend (src/common/enums/piping-location.enum.ts); un valor que no
-// coincida hace que el backend rechace el pedido en el paso de creación.
+// Cliente: "Decoración con manga" pasa a llamarse "Pompa", restringida a
+// estas 4 opciones (reunión 24 oct 2026). Los valores deben coincidir
+// exactamente con el enum PipingLocation del backend
+// (src/common/enums/piping-location.enum.ts); un valor que no coincida hace
+// que el backend rechace el pedido en el paso de creación.
 export const MANGA_OPTIONS = [
-    { value: "NONE", label: "Ninguna" },
-    { value: "TOP_BORDER", label: "Borde superior" },
-    { value: "BOTTOM_BORDER", label: "Borde inferior" },
-    { value: "FULL_BORDER", label: "Borde completo" },
-    { value: "CENTER", label: "Centro" },
-    { value: "FULL_DESING", label: "Diseño completo" },
+    { value: "TOP", label: "Arriba" },
+    { value: "BOTTOM", label: "Abajo" },
+    { value: "BOTH", label: "Ambos" },
+    { value: "SIDE", label: "Costado" },
 ];
 
 export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; value: string }[]>) {
@@ -268,7 +267,7 @@ export function useProductBuilder(colorCatalog: Ref<{ id: string; name: string; 
         if (!r) return false;
         return !!(r.sizeId || r.colorId || r.breadId || r.fillingId ||
             r.frostingId || r.styleId || r.hasTiers || (r.withText && r.text) ||
-            (r.mangaStyle && r.mangaStyle !== "NONE") || r.notes ||
+            r.mangaStyle || r.notes ||
             r.referencePreviews.length > 0 || r.existingReferenceImages.length > 0);
     });
     function openDetailModal(i: number) { detailModal.rowIndex = i; detailModal.open = true; }

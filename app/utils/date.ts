@@ -38,12 +38,30 @@ export function formatLocalDate(iso: string): string {
     return `${d}/${m}/${y}`;
 }
 
+// Cliente: el resumen de "Crear pedido" siempre mostraba 12:00 AM sin
+// importar la hora elegida. formatTime esperaba un datetime ISO completo
+// ("...T15:30:00") y cortaba por "T", pero step2.deliveryTime/pickupTime
+// (buildTime24) son un "HH:MM" simple, sin "T" - split('T')[1] daba
+// undefined y la hora caía siempre a 0. Acepta ambos formatos.
 export function formatTime(t: string): string {
     if (!t) return '-';
-    const parts = t.split('T')[1]?.split(':') ?? [];
+    const timePart = t.includes('T') ? t.split('T')[1] : t;
+    const parts = timePart?.split(':') ?? [];
     const h = parseInt(parts[0] ?? '0', 10);
 
     return `${h % 12 || 12}:${parts[1] ?? '00'} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
+// Cliente: a los usuarios tipo Pastelero se les muestra la hora de entrega
+// 2 horas antes de la hora real (no cambia el dato del pedido, solo cómo
+// se les presenta en su propia vista, para que tengan margen de sobra).
+export function bakerDeliveryTime(t?: string | null): string {
+    if (!t) return '';
+    const [hStr, mStr] = t.split(':');
+    const h = parseInt(hStr ?? '0', 10);
+    const m = mStr ?? '00';
+    const shifted = ((h - 2) % 24 + 24) % 24;
+    return `${String(shifted).padStart(2, '0')}:${m}`;
 }
 
 export function formatDateTime(iso: string): string {

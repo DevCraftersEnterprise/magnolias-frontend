@@ -8,6 +8,7 @@ function card(overrides: Record<string, unknown> = {}): OrderDetailAssignmentCar
         orderDetail: {
             id: 'detail-1',
             productionStatus: 'PENDING',
+            modifiedAfterProduction: false,
             product: { name: 'Pastel de chocolate' },
             order: {
                 id: 'order-1',
@@ -23,6 +24,19 @@ function card(overrides: Record<string, unknown> = {}): OrderDetailAssignmentCar
 }
 
 describe('OrderDetailProductionCard', () => {
+    it('muestra la hora de entrega 2 horas antes de la real (cliente: hora de pastelero)', () => {
+        const wrapper = mount(OrderDetailProductionCard, {
+            props: {
+                card: card({ order: { id: 'order-1', orderCode: 'PED-0001', deliveryTime: '15:30' } }),
+                accent: 'amber',
+                actionLabel: 'Iniciar producción →',
+            },
+        })
+
+        expect(wrapper.text()).toContain('13:30')
+        expect(wrapper.text()).not.toContain('15:30')
+    })
+
     it('renderiza los datos del pedido y de la línea', () => {
         const wrapper = mount(OrderDetailProductionCard, {
             props: { card: card(), accent: 'amber', actionLabel: 'Iniciar producción →' },
@@ -42,21 +56,16 @@ describe('OrderDetailProductionCard', () => {
         expect(wrapper.emitted('view')).toHaveLength(1)
     })
 
-    it('emite advance al hacer click en el botón de acción, sin disparar view', async () => {
+    it('ya no tiene ningún botón de avance directo - solo "Ver detalle" (cliente: obliga a abrir el detalle)', () => {
         const wrapper = mount(OrderDetailProductionCard, {
             props: { card: card(), accent: 'violet', actionLabel: 'Marcar como listo →' },
         })
 
-        const buttons = wrapper.findAll('button')
-        const actionBtn = buttons.find((b) => b.text() === 'Marcar como listo →')
-        expect(actionBtn).toBeTruthy()
-        await actionBtn!.trigger('click')
-
-        expect(wrapper.emitted('advance')).toHaveLength(1)
-        expect(wrapper.emitted('view')).toBeUndefined()
+        expect(wrapper.findAll('button')).toHaveLength(1)
+        expect(wrapper.text()).not.toContain('Marcar como listo →')
     })
 
-    it('no muestra botón de acción ni "Saldo pendiente" cuando actionLabel no se pasa (columna Listos)', () => {
+    it('no muestra "Saldo pendiente" cuando actionLabel no se pasa (columna Listos)', () => {
         const wrapper = mount(OrderDetailProductionCard, {
             props: {
                 card: card({
@@ -72,7 +81,6 @@ describe('OrderDetailProductionCard', () => {
 
         expect(wrapper.text()).toContain('Listo para entregar')
         expect(wrapper.text()).not.toContain('Saldo pendiente')
-        expect(wrapper.findAll('button')).toHaveLength(1)
     })
 
     it('muestra "Saldo pendiente" cuando hay actionLabel y remainingBalance > 0', () => {
@@ -93,19 +101,23 @@ describe('OrderDetailProductionCard', () => {
         expect(wrapper.text()).toContain('Saldo pendiente')
     })
 
-    it('deshabilita el botón de acción y muestra "Actualizando…" cuando disabled es true', () => {
+    it('muestra "Modificado desde sucursal" cuando modifiedAfterProduction es true', () => {
         const wrapper = mount(OrderDetailProductionCard, {
             props: {
-                card: card(),
-                accent: 'amber',
-                actionLabel: 'Iniciar producción →',
-                disabled: true,
+                card: card({ modifiedAfterProduction: true }),
+                accent: 'violet',
+                actionLabel: 'Marcar como listo →',
             },
         })
 
-        const buttons = wrapper.findAll('button')
-        const actionBtn = buttons.find((b) => b.text() === 'Actualizando…')
-        expect(actionBtn).toBeTruthy()
-        expect(actionBtn!.attributes('disabled')).toBeDefined()
+        expect(wrapper.text()).toContain('Modificado desde sucursal')
+    })
+
+    it('no muestra "Modificado desde sucursal" cuando modifiedAfterProduction es false', () => {
+        const wrapper = mount(OrderDetailProductionCard, {
+            props: { card: card(), accent: 'amber', actionLabel: 'Iniciar producción →' },
+        })
+
+        expect(wrapper.text()).not.toContain('Modificado desde sucursal')
     })
 })

@@ -16,7 +16,7 @@ const emit = defineEmits<{
 }>();
 
 // ── Location label translation ───────────────────────────────────────────────
-const { locationLabel } = useOrderCatalogs();
+const { locationLabel, pompaLocationLabel } = useOrderCatalogs();
 
 // ── Fetch full detail on open ────────────────────────────────────────────────
 const activeData = ref<OrderDetail | null>(null);
@@ -925,7 +925,7 @@ async function downloadFormat() {
                           v-if="detail.pipingLocation"
                           class="text-[11px] text-gray-500"
                         >
-                          Piping: {{ locationLabel(detail.pipingLocation) }}
+                          Pompa: {{ pompaLocationLabel(detail.pipingLocation) }}
                         </p>
                       </div>
                       <!-- Notes -->

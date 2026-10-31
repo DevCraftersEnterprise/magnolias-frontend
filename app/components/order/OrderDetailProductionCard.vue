@@ -5,12 +5,10 @@ const props = defineProps<{
   card: OrderDetailAssignmentCard;
   accent: "amber" | "violet" | "emerald";
   actionLabel?: string;
-  disabled?: boolean;
 }>();
 
 defineEmits<{
   (e: "view"): void;
-  (e: "advance"): void;
 }>();
 
 // Tailwind JIT necesita clases literales completas, no interpolación de
@@ -112,7 +110,7 @@ const hasPendingBalance = computed(() => {
           </svg>
           {{ formatDate(card.orderDetail.order.deliveryDate)
           }}<span v-if="card.orderDetail.order.deliveryTime" class="text-gray-400">
-            · {{ card.orderDetail.order.deliveryTime }}</span
+            · {{ bakerDeliveryTime(card.orderDetail.order.deliveryTime) }}</span
           >
         </div>
         <div
@@ -150,15 +148,25 @@ const hasPendingBalance = computed(() => {
         </div>
       </div>
     </button>
-    <div v-if="actionLabel" class="border-t border-black/[0.06] px-3 py-2.5">
-      <button
-        class="w-full rounded-lg py-1.5 text-[12px] font-semibold transition disabled:opacity-40"
-        :class="classes.btn"
-        :disabled="disabled"
-        @click="$emit('advance')"
+    <!-- Cliente: sucursal editó esta línea después de que producción ya la
+         había arrancado - avisa en el tablero hasta que el pastelero vuelva
+         a confirmarla (ver Iniciar producción / Marcar como listo). -->
+    <div
+      v-if="card.orderDetail.modifiedAfterProduction"
+      class="flex items-center gap-1.5 border-t border-black/[0.06] px-3.5 py-2 text-[11px] font-semibold text-red-600 bg-red-50"
+    >
+      <svg
+        class="h-3 w-3 shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
       >
-        {{ disabled ? "Actualizando…" : actionLabel }}
-      </button>
+        <path
+          d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+        />
+      </svg>
+      Modificado desde sucursal
     </div>
   </div>
 </template>

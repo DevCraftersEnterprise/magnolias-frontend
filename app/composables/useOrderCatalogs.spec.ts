@@ -102,13 +102,20 @@ describe('useOrderCatalogs', () => {
         expect(locationLabel(null)).toBe('')
     })
 
-    it('locationLabel también traduce los valores de PipingLocation (manga)', () => {
-        const { locationLabel } = useOrderCatalogs()
+    it('pompaLocationLabel traduce los valores de PipingLocation (Pompa) con su propio diccionario', () => {
+        const { pompaLocationLabel } = useOrderCatalogs()
 
-        expect(locationLabel('TOP_BORDER')).toBe('Borde superior')
-        expect(locationLabel('BOTTOM_BORDER')).toBe('Borde inferior')
-        expect(locationLabel('FULL_BORDER')).toBe('Borde completo')
-        expect(locationLabel('FULL_DESING')).toBe('Diseño completo')
-        expect(locationLabel('NONE')).toBe('Ninguna')
+        expect(pompaLocationLabel('TOP')).toBe('Arriba')
+        expect(pompaLocationLabel('BOTTOM')).toBe('Abajo')
+        expect(pompaLocationLabel('BOTH')).toBe('Ambos')
+        expect(pompaLocationLabel('SIDE')).toBe('Costado')
+        expect(pompaLocationLabel(null)).toBe('')
+    })
+
+    it('pompaLocationLabel y locationLabel traducen SIDE distinto (Costado vs Lado)', () => {
+        const { locationLabel, pompaLocationLabel } = useOrderCatalogs()
+
+        expect(locationLabel('SIDE')).toBe('Lado')
+        expect(pompaLocationLabel('SIDE')).toBe('Costado')
     })
 })

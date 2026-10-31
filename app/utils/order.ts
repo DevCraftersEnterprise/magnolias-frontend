@@ -66,6 +66,16 @@ export const NON_BAKER_ASSIGNABLE_ORDER_STATUSES: OrderStatus[] = [
     'IN DELIVERY',
 ]
 
+// Estados en los que el pedido completo ya no se puede editar (cliente: solo
+// bloquea a partir de "Listo" en adelante - Creado y En proceso sí se pueden
+// editar; editar un pedido En proceso regresa la línea tocada a Pendiente).
+export const ORDER_EDIT_BLOCKED_STATUSES: OrderStatus[] = [
+    'DONE',
+    'IN DELIVERY',
+    'DELIVERED',
+    'CANCELED',
+]
+
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
     CASH: 'Efectivo',
     TRANSFER: 'Transferencia',
@@ -89,11 +99,8 @@ export const ORDER_SOURCE_LABELS: Record<string, string> = {
     IN_PERSON: 'En persona / Mostrador',
 }
 
-// Usado tanto para WritingLocation (ubicación del escrito) como para
-// PipingLocation (posición del pompeado/manga) — locationLabel() es
-// compartida entre ambos campos, por eso viven en un solo diccionario.
+// Ubicación del escrito (WritingLocation).
 export const LOCATION_LABELS: Record<string, string> = {
-    // WritingLocation
     TOP: "Arriba",
     BOTTOM: "Abajo",
     CENTER: "Centro",
@@ -107,12 +114,16 @@ export const LOCATION_LABELS: Record<string, string> = {
     BACK: "Atrás",
     SIDE: "Lado",
     PLAQUE: "Placa",
-    // PipingLocation (manga) — deben coincidir con MANGA_OPTIONS en
-    // useProductBuilder.ts y con EnumTransformer.translatePipingLocation en
-    // el backend.
-    TOP_BORDER: "Borde superior",
-    BOTTOM_BORDER: "Borde inferior",
-    FULL_BORDER: "Borde completo",
-    FULL_DESING: "Diseño completo",
-    NONE: "Ninguna",
+};
+
+// Ubicación de la Pompa (PipingLocation, antes "Decoración con manga") -
+// diccionario aparte de LOCATION_LABELS porque comparte la clave SIDE con
+// WritingLocation con una traducción distinta ("Costado" vs "Lado"). Deben
+// coincidir con MANGA_OPTIONS en useProductBuilder.ts y con
+// EnumTransformer.translatePipingLocation en el backend.
+export const POMPA_LOCATION_LABELS: Record<string, string> = {
+    TOP: "Arriba",
+    BOTTOM: "Abajo",
+    BOTH: "Ambos",
+    SIDE: "Costado",
 };
