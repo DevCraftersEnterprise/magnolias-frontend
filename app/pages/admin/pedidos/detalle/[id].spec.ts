@@ -172,7 +172,7 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
         expect(wrapper.text()).toContain('Chocolate')
     })
 
-    it('traduce la posición del pompeado en vez de mostrar el valor crudo del enum', async () => {
+    it('traduce la posición de la Pompa en vez de mostrar el valor crudo del enum', async () => {
         ordersServiceMock.getOrder.mockResolvedValue(
             baseOrder({
                 details: [
@@ -182,7 +182,7 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
                         product: { name: 'Personalizado' },
                         hasWriting: true,
                         writingText: 'Feliz cumpleaños',
-                        pipingLocation: 'TOP_BORDER',
+                        pipingLocation: 'SIDE',
                     },
                 ],
             }),
@@ -190,8 +190,8 @@ describe('pages/admin/pedidos/detalle/[id] (vista pastelero)', () => {
 
         const wrapper = await mountPage()
 
-        expect(wrapper.text()).toContain('Borde superior')
-        expect(wrapper.text()).not.toContain('TOP_BORDER')
+        expect(wrapper.text()).toContain('Costado')
+        expect(wrapper.text()).not.toContain('SIDE')
     })
 
     it('muestra la fecha de montaje cuando el pedido la tiene (cliente: fecha de evento y montaje distintas)', async () => {

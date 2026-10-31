@@ -16,21 +16,28 @@ function close() {
   <Teleport to="body">
     <div
       v-if="modelValue"
-      class="fixed inset-0 z-[80] flex items-center justify-center px-4"
+      class="fixed inset-0 z-[80]"
       @keydown.esc="close"
       tabindex="-1"
     >
-      <!-- Overlay -->
-      <div class="absolute inset-0 bg-black/50" @click="close" />
+      <!-- Overlay: fijo a toda la pantalla, independiente del scroll de abajo -->
+      <div class="fixed inset-0 bg-black/50" @click="close" />
 
-      <!-- Panel -->
+      <!-- Cliente: en pantallas chicas (o ventana baja) un formulario largo
+           se salía de la pantalla y tapaba el título y los botones de
+           acción, sin forma de hacer scroll. Este contenedor sí hace
+           scroll, y el panel limita su alto a la ventana. -->
       <div
-        class="relative w-full max-w-[560px] rounded-3xl bg-white shadow-[0_24px_70px_rgba(0,0,0,0.28)] ring-1 ring-black/5 overflow-hidden"
-        role="dialog"
-        aria-modal="true"
+        class="relative h-full overflow-y-auto px-4 py-6 flex items-center justify-center"
       >
-        <div class="px-6 pt-5 pb-4">
-          <div class="flex items-start justify-between gap-4">
+        <!-- Panel -->
+        <div
+          class="relative w-full max-w-[560px] max-h-full flex flex-col rounded-3xl bg-white shadow-[0_24px_70px_rgba(0,0,0,0.28)] ring-1 ring-black/5 overflow-hidden"
+          role="dialog"
+          aria-modal="true"
+        >
+          <!-- Encabezado: siempre visible, no hace scroll -->
+          <div class="shrink-0 px-6 pt-5 pb-4 flex items-start justify-between gap-4">
             <div>
               <h3
                 class="text-[20px] font-semibold tracking-[-0.02em] text-[#111827]"
@@ -52,13 +59,18 @@ function close() {
             </button>
           </div>
 
-          <div class="mt-5">
+          <!-- Contenido: lo único que hace scroll si no cabe -->
+          <div class="min-h-0 overflow-y-auto px-6 pb-4">
             <slot />
           </div>
-        </div>
 
-        <div v-if="$slots.footer" class="border-t border-black/5 px-6 py-4">
-          <slot name="footer" />
+          <!-- Pie con los botones de acción: siempre visible, no hace scroll -->
+          <div
+            v-if="$slots.footer"
+            class="shrink-0 border-t border-black/5 px-6 py-4"
+          >
+            <slot name="footer" />
+          </div>
         </div>
       </div>
     </div>

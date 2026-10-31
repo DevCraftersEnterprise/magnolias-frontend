@@ -110,7 +110,7 @@ const hasPendingBalance = computed(() => {
           </svg>
           {{ formatDate(card.orderDetail.order.deliveryDate)
           }}<span v-if="card.orderDetail.order.deliveryTime" class="text-gray-400">
-            · {{ card.orderDetail.order.deliveryTime }}</span
+            · {{ bakerDeliveryTime(card.orderDetail.order.deliveryTime) }}</span
           >
         </div>
         <div

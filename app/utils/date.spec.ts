@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { formatDate, formatDateTime, formatLocalDate, formatTime, isoDate } from './date'
+import { bakerDeliveryTime, formatDate, formatDateTime, formatLocalDate, formatTime, isoDate } from './date'
 
 describe('utils/date', () => {
     const ORIGINAL_TZ = process.env.TZ
@@ -55,13 +55,43 @@ describe('utils/date', () => {
     })
 
     describe('formatTime', () => {
-        it('formatea HH:MM en formato 12 horas con AM/PM', () => {
+        it('formatea un datetime ISO completo en formato 12 horas con AM/PM', () => {
             expect(formatTime('2023-10-15T15:30:00')).toBe('3:30 PM')
             expect(formatTime('2023-10-15T00:05:00')).toBe('12:05 AM')
         })
 
+        it('formatea un "HH:MM" simple (cliente: el resumen de Crear pedido siempre mostraba 12:00 AM)', () => {
+            // step2.deliveryTime/pickupTime (buildTime24) son "HH:MM" sin "T" -
+            // antes split('T')[1] daba undefined y la hora caía siempre a 0.
+            expect(formatTime('15:30')).toBe('3:30 PM')
+            expect(formatTime('08:00')).toBe('8:00 AM')
+            expect(formatTime('00:05')).toBe('12:05 AM')
+        })
+
         it('retorna "-" si no hay valor', () => {
             expect(formatTime('')).toBe('-')
+        })
+    })
+
+    describe('bakerDeliveryTime (cliente: al pastelero se le muestra la hora de entrega 2h antes)', () => {
+        it('resta 2 horas a un "HH:MM"', () => {
+            expect(bakerDeliveryTime('15:30')).toBe('13:30')
+            expect(bakerDeliveryTime('09:00')).toBe('07:00')
+        })
+
+        it('da la vuelta correctamente cuando la resta cruza medianoche', () => {
+            expect(bakerDeliveryTime('01:00')).toBe('23:00')
+            expect(bakerDeliveryTime('00:15')).toBe('22:15')
+        })
+
+        it('ignora los segundos si vienen incluidos ("HH:MM:SS")', () => {
+            expect(bakerDeliveryTime('15:30:00')).toBe('13:30')
+        })
+
+        it('retorna cadena vacía si no hay valor', () => {
+            expect(bakerDeliveryTime('')).toBe('')
+            expect(bakerDeliveryTime(null)).toBe('')
+            expect(bakerDeliveryTime(undefined)).toBe('')
         })
     })
 })

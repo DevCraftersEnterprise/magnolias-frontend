@@ -52,9 +52,15 @@ export function useOrderCatalogs() {
         return LOCATION_LABELS[val.toUpperCase()] ?? val;
     }
 
+    // Pompa (PipingLocation) - diccionario aparte, ver POMPA_LOCATION_LABELS.
+    function pompaLocationLabel(val?: string | null) {
+        if (!val) return "";
+        return POMPA_LOCATION_LABELS[val.toUpperCase()] ?? val;
+    }
+
     return {
         breadTypes, fillings, frostings, styles, flowerCatalog, colorCatalog, commonAddresses,
         decorations, fruits,
-        colorName, colorHex, catalogLabel, locationLabel
+        colorName, colorHex, catalogLabel, locationLabel, pompaLocationLabel
     };
 }

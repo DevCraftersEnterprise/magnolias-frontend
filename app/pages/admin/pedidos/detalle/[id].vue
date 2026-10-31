@@ -27,7 +27,7 @@ watch(effectiveRole, () => {
   }
 });
 
-const { locationLabel } = useOrderCatalogs();
+const { locationLabel, pompaLocationLabel } = useOrderCatalogs();
 const toast = useToast();
 
 // ─── Load detail ────────────────────────────────────────────────────────────
@@ -570,9 +570,9 @@ function roundLabel(r?: string | null) {
                           v-if="detail.pipingLocation"
                           class="inline-flex items-center gap-1.5 text-[12px] text-[#C9007C]"
                         >
-                          <span class="font-semibold">Piping</span>
+                          <span class="font-semibold">Pompa</span>
                           <span class="opacity-40">·</span>
-                          {{ locationLabel(detail.pipingLocation) }}
+                          {{ pompaLocationLabel(detail.pipingLocation) }}
                         </span>
                       </div>
                     </div>
@@ -754,8 +754,10 @@ function roundLabel(r?: string | null) {
                 </div>
                 <div v-if="order.deliveryTime">
                   <p class="text-[11px] text-gray-400">Hora</p>
+                  <!-- Cliente: al pastelero se le muestra la hora de entrega
+                       2 horas antes de la real, como margen de producción. -->
                   <p class="mt-0.5 text-[15px] font-bold text-[#111827]">
-                    {{ order.deliveryTime }}
+                    {{ bakerDeliveryTime(order.deliveryTime) }}
                   </p>
                 </div>
                 <div v-if="order.deliveryRound" class="col-span-2">
